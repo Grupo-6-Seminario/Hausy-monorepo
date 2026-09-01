@@ -1,0 +1,32 @@
+# --- Secrets & credentials --------------------------------------------------
+.env
+.env.*
+!.env.example
+.aws/
+credentials
+*.pem
+*.key
+
+# --- Claude Code / agent tooling --------------------------------------------
+# Committed on purpose (shared with the team): AGENTS.md and its provider
+# pointers, .claude/settings.json, .claude/skills/, .mcp.json, skills-lock.json
+.claude/settings.local.json
+
+# Regenerable duplicate of .claude/skills/ for non-Claude agents. Keep it
+# ignored: when .agents/ is absent, `npx skills update` maintains
+# .claude/skills/ in place; when it is present, it replaces those files with
+# symlinks, which Windows checkouts cannot follow.
+.agents/
+
+# --- Go build artifacts -----------------------------------------------------
+/angus
+experiments/web-scraper/scraper
+*.exe
+*.test
+*.out
+
+# --- OS & editor junk -------------------------------------------------------
+.DS_Store
+**/.DS_Store
+*.swp
+.idea/
