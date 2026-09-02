@@ -145,13 +145,18 @@
 
 .ambient-canvas {
   position: absolute;
-  inset: 0;
+  inset: -52px;
   z-index: 0;
-  width: 100%;
-  height: 100%;
+  width: calc(100% + 104px);
+  height: calc(100% + 104px);
   border-radius: inherit;
+  filter: blur(7px) saturate(112%);
   pointer-events: none;
-  opacity: 0.76;
+  opacity: 0.86;
+}
+
+.ambient-canvas[data-fallback='true'] {
+  opacity: 0;
 }
 
 .site-header,
@@ -270,6 +275,7 @@
 
 .query-control {
   position: relative;
+  isolation: isolate;
   padding: 0.7rem;
   border: 1px solid color-mix(in srgb, var(--border) 80%, var(--foreground));
   border-radius: var(--radius-2xl);

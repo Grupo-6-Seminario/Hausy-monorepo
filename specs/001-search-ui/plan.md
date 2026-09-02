@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a standalone Vinext/React frontend under `frontend/`. Make the natural-language query the first-viewport working surface, use deterministic demo interpretation, and isolate a progressively enhanced vgpu canvas behind a static CSS fallback.
+Add a standalone Vinext/React frontend under `frontend/`. Make the natural-language query the first-viewport working surface, use deterministic demo interpretation, and isolate a progressively enhanced vgpu radiance-cascade backlight behind a static CSS fallback.
 
 ## Technical Context
 
@@ -20,7 +20,7 @@ Add a standalone Vinext/React frontend under `frontend/`. Make the natural-langu
 
 **Project Type**: Web application inside an existing Go repository
 
-**Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization
+**Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization; cap radiance-cascade rendering at 560 by 220 pixels and 12.5 frames per second
 
 **Constraints**: First viewport exposes the query; no backend or real-listing claims; accessible reduced-motion fallback
 
