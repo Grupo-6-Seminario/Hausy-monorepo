@@ -2,22 +2,23 @@
 
 import { useEffect, useRef } from 'react';
 
-export function AmbientCanvas() {
+export function PromptLedCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || typeof navigator === 'undefined' || !('gpu' in navigator)) {
+      if (canvas) canvas.dataset.fallback = 'true';
       return;
     }
 
     let dispose: (() => void) | undefined;
     let cancelled = false;
 
-    void import('./radiance/renderer')
-      .then(({ createRadianceBacklight }) => {
+    void import('./prompt-led/renderer')
+      .then(({ createPromptLedBorder }) => {
         if (cancelled) return;
-        const renderer = createRadianceBacklight(canvas);
+        const renderer = createPromptLedBorder(canvas);
         dispose = renderer.dispose;
         return renderer.ready;
       })
@@ -31,5 +32,12 @@ export function AmbientCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="ambient-canvas" aria-hidden="true" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="prompt-led-canvas"
+      data-prompt-led-border
+      aria-hidden="true"
+    />
+  );
 }

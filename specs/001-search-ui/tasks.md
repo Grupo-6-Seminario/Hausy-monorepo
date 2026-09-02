@@ -18,7 +18,7 @@
 
 ## User Story 3 - Progressive visual enhancement
 
-- [x] T008 [US3] Adapt vgpu's radiance-cascades example as a low-resolution prompt backlight with static and reduced-motion fallbacks.
+- [x] T008 [US3] Adapt vgpu's triangle-led-front example into an analytic LED prompt border, keeping the light behind the input surface with static and reduced-motion fallbacks.
 - [x] T009 [US3] Register the primary search journey as an imperative WebMCP tool.
 
 ## Validation

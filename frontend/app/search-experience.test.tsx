@@ -12,10 +12,15 @@ describe('SearchExperience', () => {
   it('makes a natural-language property query the primary action', () => {
     render(<SearchExperience />);
 
-    expect(
-      screen.getByRole('textbox', { name: /describí cómo querés vivir/i }),
-    ).toBeVisible();
+    const textbox = screen.getByRole('textbox', {
+      name: /describí cómo querés vivir/i,
+    });
+    const ledBorder = document.querySelector('[data-prompt-led-border]');
+
+    expect(textbox).toBeVisible();
     expect(screen.getByRole('button', { name: /buscar hogares/i })).toBeVisible();
+    expect(ledBorder).toBeInstanceOf(HTMLCanvasElement);
+    expect(ledBorder?.nextElementSibling).toBe(textbox);
   });
 
   it('keeps an empty query in place and explains what is missing', async () => {

@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-import { AmbientCanvas } from './ambient-canvas';
+import { PromptLedCanvas } from './prompt-led-canvas';
 
 const exampleQueries = [
   'Trabajo desde casa y necesito mucha luz natural, silencio y estar cerca del Subte D.',
@@ -154,7 +154,7 @@ export function SearchExperience() {
           <form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">Describí cómo querés vivir</label>
             <div className={cn('query-control', error && 'query-control-error')}>
-              <AmbientCanvas />
+              <PromptLedCanvas />
               <Textarea
                 ref={inputRef}
                 id="property-query"
