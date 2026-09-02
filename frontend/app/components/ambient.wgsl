@@ -18,5 +18,5 @@ struct Params {
   let forest = vec3f(0.165, 0.353, 0.227);
   let color = mix(base, mint, first * 0.34 + ripple);
   color = mix(color, forest, second * 0.12);
-  return vec4f(color, 0.78);
+  return vec4f(color, 0.34);
 }

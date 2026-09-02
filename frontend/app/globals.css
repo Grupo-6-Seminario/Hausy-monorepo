@@ -145,12 +145,13 @@
 
 .ambient-canvas {
   position: absolute;
-  inset: 0 0 auto;
-  z-index: -1;
+  inset: 0;
+  z-index: 0;
   width: 100%;
-  height: min(920px, 100dvh);
+  height: 100%;
+  border-radius: inherit;
   pointer-events: none;
-  opacity: 0.6;
+  opacity: 0.76;
 }
 
 .site-header,
@@ -281,6 +282,12 @@
   transition:
     border-color 180ms ease,
     transform 180ms ease;
+}
+
+.query-control > textarea,
+.query-control > button {
+  position: relative;
+  z-index: 1;
 }
 
 .query-control:focus-within {

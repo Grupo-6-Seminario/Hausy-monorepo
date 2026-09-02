@@ -129,8 +129,6 @@ export function SearchExperience() {
 
   return (
     <main className="site-shell">
-      <AmbientCanvas />
-
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Angus, inicio">
           <span className="brand-mark" aria-hidden="true">
@@ -156,6 +154,7 @@ export function SearchExperience() {
           <form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">Describí cómo querés vivir</label>
             <div className={cn('query-control', error && 'query-control-error')}>
+              <AmbientCanvas />
               <Textarea
                 ref={inputRef}
                 id="property-query"
