@@ -17,20 +17,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Angus | Encontrá el lugar que encaja con tu vida',
+  title: 'Hausy | Encontrá el lugar que encaja con tu vida',
   description:
     'Búsqueda inmobiliaria que entiende requisitos, preferencias y concesiones antes de comparar opciones.',
   openGraph: {
-    title: 'Angus | Encontrá el lugar que encaja con tu vida',
+    title: 'Hausy | Encontrá el lugar que encaja con tu vida',
     description:
       'Búsqueda inmobiliaria que entiende requisitos, preferencias y concesiones antes de comparar opciones.',
     locale: 'es_AR',
     type: 'website',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Angus, búsqueda inmobiliaria personal' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Hausy, búsqueda inmobiliaria personal' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Angus | Encontrá el lugar que encaja con tu vida',
+    title: 'Hausy | Encontrá el lugar que encaja con tu vida',
     description:
       'Búsqueda inmobiliaria que entiende requisitos, preferencias y concesiones antes de comparar opciones.',
     images: ['/og.png'],

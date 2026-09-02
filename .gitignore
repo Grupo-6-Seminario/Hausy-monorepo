@@ -19,7 +19,7 @@ credentials
 .agents/
 
 # --- Go build artifacts -----------------------------------------------------
-/angus
+/hausy
 experiments/web-scraper/scraper
 *.exe
 *.test
@@ -30,3 +30,4 @@ experiments/web-scraper/scraper
 **/.DS_Store
 *.swp
 .idea/
+.worktrees/

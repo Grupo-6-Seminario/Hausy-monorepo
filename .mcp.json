@@ -21,7 +21,7 @@
         "--access-mode=restricted"
       ],
       "env": {
-        "DATABASE_URI": "${DATABASE_URI:-postgresql://localhost:5432/angus}"
+        "DATABASE_URI": "${DATABASE_URI:-postgresql://localhost:5432/hausy}"
       }
     }
   }

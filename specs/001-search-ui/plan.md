@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a standalone Vinext/React frontend under `frontend/`. Make the natural-language query the first-viewport working surface, use deterministic demo interpretation, and isolate a progressively enhanced vgpu LED border and backlight behind a static CSS fallback.
+Connect the Vinext/React query surface to the local Go buyer agent through a same-origin frontend proxy, show the returned reply in an accessible dialog, and keep the progressively enhanced vgpu LED border independent from request handling.
 
 ## Technical Context
 
@@ -22,14 +22,14 @@ Add a standalone Vinext/React frontend under `frontend/`. Make the natural-langu
 
 **Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization; cap the analytic LED rendering at 760 by 320 pixels and 30 frames per second
 
-**Constraints**: First viewport exposes the query; no backend or real-listing claims; accessible reduced-motion fallback
+**Constraints**: First viewport exposes the query; local model credentials stay server-side; agent failures are recoverable; accessible reduced-motion fallback
 
 **Scale/Scope**: One route and one primary search flow
 
 ## Constitution Check
 
 - Red-green TDD at the public form seam: pass.
-- Deterministic software for explicit constraints: pass.
+- Existing buyer-agent boundary is reused instead of duplicating interpretation in the UI: pass.
 - LLM/A2A value is not claimed or simulated as validated: pass.
 - Visual effects cannot block product behavior: pass.
 

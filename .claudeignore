@@ -1,0 +1,18 @@
+# Ignore large data files and scraping dumps
+experiments/
+*.jsonl
+*.csv
+*.tsv
+
+# Ignore build artifacts and binaries
+hausy
+scraper
+*.exe
+*.test
+*.out
+
+# Ignore cache, logs, and browser profiles
+.chrome-profile/
+*.log
+.DS_Store
+.worktrees/

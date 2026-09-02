@@ -1,11 +1,24 @@
 import { effect, frame, surface, type Effect, type Gpu, type Surface } from 'vgpu';
 
+import {
+  POINTER_GLOW_RADIUS_CSS_PX,
+  POINTER_SMOOTHING_SECONDS,
+  approach,
+  pointerAim,
+  type PointerAim,
+} from './pointer';
 import promptLedWgsl from './prompt-led.wgsl';
 
-const MAX_RENDER_WIDTH = 760;
-const MAX_RENDER_HEIGHT = 320;
-const FRAME_INTERVAL = 1000 / 30;
-const CANVAS_INSET_CSS_PX = 56;
+const MAX_RENDER_WIDTH = 1100;
+const MAX_RENDER_HEIGHT = 420;
+const ACTIVE_FRAME_INTERVAL = 1000 / 60;
+const IDLE_FRAME_INTERVAL = 1000 / 30;
+const CANVAS_INSET_CSS_PX = 110;
+// The emitter ring sits a hair outside the prompt's border box so the crisp
+// front line stays clear of the translucent panel stacked above the canvas.
+const RING_BIAS_CSS_PX = 3;
+// How far the continuous strip is allowed to dip below full brightness.
+const SHIMMER_DEPTH = 0.12;
 
 function renderMetrics(canvas: HTMLCanvasElement) {
   const bounds = canvas.getBoundingClientRect();
@@ -23,15 +36,28 @@ function renderMetrics(canvas: HTMLCanvasElement) {
   };
 }
 
-function uniforms(size: readonly [number, number], scale: number, time: number) {
-  const inset = Math.max(18, CANVAS_INSET_CSS_PX * scale);
+function uniforms(
+  size: readonly [number, number],
+  scale: number,
+  time: number,
+  pointer: PointerAim,
+) {
+  const inset = Math.max(24, CANVAS_INSET_CSS_PX * scale);
   return {
     frame: [size[0], size[1], time, inset],
-    shape: [22 * scale, 2.2 * scale, 32, 0],
-    colour_a: [0.165, 0.353, 0.227, 1],
-    colour_b: [0.435, 0.745, 0.569, 1],
+    shape: [22 * scale, 1.6 * scale, SHIMMER_DEPTH, RING_BIAS_CSS_PX * scale],
+    pointer: [
+      pointer.x,
+      pointer.y,
+      pointer.strength,
+      POINTER_GLOW_RADIUS_CSS_PX * scale,
+    ],
+    colour_a: [0.204, 0.478, 0.31, 1],
+    colour_b: [0.588, 0.898, 0.71, 1],
   };
 }
+
+const DARK: PointerAim = { x: -1e4, y: -1e4, strength: 0 };
 
 export function createPromptLedBorder(canvas: HTMLCanvasElement) {
   let disposed = false;
@@ -40,13 +66,15 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
   let shader: Effect | undefined;
   let observer: ResizeObserver | undefined;
   let animationFrame = 0;
-  let lastFrame = -FRAME_INTERVAL;
+  let lastFrame = -IDLE_FRAME_INTERVAL;
   let size: readonly [number, number] = [1, 1];
   let renderScale = 1;
+  let target: PointerAim = DARK;
+  let current: PointerAim = DARK;
 
   const draw = (time: number) => {
     if (!gpu || !output || !shader) return;
-    shader.set({ led: uniforms(size, renderScale, time) });
+    shader.set({ led: uniforms(size, renderScale, time, current) });
     frame(gpu, (currentFrame) => {
       currentFrame.pass({ target: output!, clear: [0, 0, 0, 0] }, (pass) =>
         pass.draw(shader!),
@@ -63,13 +91,36 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
     draw(performance.now() / 1000);
   };
 
+  // The canvas is inert (`pointer-events: none`) and sits under the prompt, so
+  // the cursor is tracked on the window and projected into render space.
+  const onPointerMove = (event: PointerEvent) => {
+    if (event.pointerType !== 'mouse') return;
+    target = pointerAim(canvas.getBoundingClientRect(), event.clientX, event.clientY, size);
+  };
+  const onPointerOut = (event: PointerEvent) => {
+    if (event.relatedTarget === null) target = { ...target, strength: 0 };
+  };
+
   const tick = (timestamp: number) => {
     if (disposed) return;
-    if (!document.hidden && timestamp - lastFrame >= FRAME_INTERVAL) {
-      lastFrame = timestamp;
-      draw(timestamp / 1000);
-    }
     animationFrame = requestAnimationFrame(tick);
+    const settled = current.strength < 0.002 && target.strength < 0.002;
+    const interval = settled ? IDLE_FRAME_INTERVAL : ACTIVE_FRAME_INTERVAL;
+    const elapsed = timestamp - lastFrame;
+    if (document.hidden || elapsed < interval) return;
+    const delta = Math.min(elapsed, 200) / 1000;
+    lastFrame = timestamp;
+    current = {
+      x: approach(current.x, target.x, delta, POINTER_SMOOTHING_SECONDS),
+      y: approach(current.y, target.y, delta, POINTER_SMOOTHING_SECONDS),
+      strength: approach(
+        current.strength,
+        target.strength,
+        delta,
+        POINTER_SMOOTHING_SECONDS,
+      ),
+    };
+    draw(timestamp / 1000);
   };
 
   const initialize = async () => {
@@ -90,6 +141,8 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
     resize();
     observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(resize);
     observer?.observe(canvas);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerout', onPointerOut, { passive: true });
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       animationFrame = requestAnimationFrame(tick);
     }
@@ -100,6 +153,8 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
     if (disposed) return;
     disposed = true;
     if (animationFrame) cancelAnimationFrame(animationFrame);
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerout', onPointerOut);
     observer?.disconnect();
     output?.dispose();
     gpu?.dispose();

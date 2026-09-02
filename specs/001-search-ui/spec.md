@@ -6,22 +6,22 @@
 
 **Status**: In progress
 
-**Input**: Start the Angus UI in a separate worktree with a modern query-first experience inspired by Startups Argentina, Curations Supply, the Cozy Green palette, taste-skill, Spec Kit, and vgpu.
+**Input**: Start the Hausy UI in a separate worktree with a modern query-first experience inspired by Startups Argentina, Curations Supply, the Cozy Green palette, taste-skill, Spec Kit, and vgpu.
 
 ## User Scenarios & Testing
 
 ### User Story 1 - Describe the right home (Priority: P1)
 
-A person can describe hard constraints and nuanced preferences in one natural-language query, then see how Angus interpreted them.
+A person can describe hard constraints and nuanced preferences in one natural-language query, send it to the locally deployed buyer agent, and read the agent's reply in a dialog.
 
 **Why this priority**: The search box is the smallest interface that can test whether nuanced intent feels better than traditional filters.
 
-**Independent Test**: Submit a query mentioning budget, bedrooms, natural light, and noise. The page displays those constraints and priorities explicitly.
+**Independent Test**: Submit a query mentioning budget, bedrooms, natural light, and noise. The request reaches the buyer agent and its reply appears in an accessible dialog.
 
 **Acceptance Scenarios**:
 
 1. **Given** the empty search screen, **when** the person submits no text, **then** the page keeps focus in the query field and explains what is missing.
-2. **Given** a nuanced query, **when** the person submits it, **then** the page shows an interpretation summary and one clearly labeled example match.
+2. **Given** a nuanced query, **when** the person submits it, **then** the page sends it to the local buyer agent and shows the returned reply in a dialog.
 
 ### User Story 2 - Start from a concrete example (Priority: P2)
 
@@ -45,6 +45,7 @@ The page uses a subtle vgpu visual layer when WebGPU is available and remains fu
 - A very long query remains editable without changing the page width.
 - WebGPU initialization failure never hides or disables the form.
 - Reduced-motion preferences remove nonessential motion.
+- The local agent being unavailable produces an inline connection error and keeps the query editable.
 
 ## Requirements
 
@@ -52,8 +53,8 @@ The page uses a subtle vgpu visual layer when WebGPU is available and remains fu
 
 - **FR-001**: The system MUST present a labeled natural-language query field in the first viewport.
 - **FR-002**: The system MUST reject empty or whitespace-only queries inline and return focus to the query field.
-- **FR-003**: The system MUST show hard constraints separately from fuzzy preferences after a valid demo query.
-- **FR-004**: The system MUST label all property data as prototype content where it could otherwise be mistaken for a live listing.
+- **FR-003**: The system MUST forward valid queries to the local buyer-agent HTTP API without exposing the local model token to browser code.
+- **FR-004**: The system MUST show the agent's returned reply in an accessible dialog.
 - **FR-005**: The system MUST offer editable example queries.
 - **FR-006**: The system MUST preserve the complete search flow when WebGPU is unavailable or motion is reduced.
 - **FR-007**: The system MUST support keyboard submission and responsive layouts.
@@ -61,7 +62,7 @@ The page uses a subtle vgpu visual layer when WebGPU is available and remains fu
 ### Key Entities
 
 - **Search intent**: Original query, explicit constraints, fuzzy priorities, and acceptable trade-offs.
-- **Prototype match**: Example property with a fit explanation and explicit prototype provenance.
+- **Agent turn**: Session identifier, user message, returned reply, and extracted requirements.
 
 ## Success Criteria
 
@@ -69,11 +70,11 @@ The page uses a subtle vgpu visual layer when WebGPU is available and remains fu
 
 - **SC-001**: A first-time visitor can identify the primary action without scrolling.
 - **SC-002**: The complete query flow is usable by keyboard at 320 CSS pixels and wider.
-- **SC-003**: The UI never presents synthetic property information as a verified live listing.
-- **SC-004**: The primary flow passes automated tests for empty and nuanced queries.
+- **SC-003**: The local model credential remains server-side.
+- **SC-004**: The primary flow passes automated tests for empty queries, proxy forwarding, and agent replies.
 
 ## Assumptions
 
 - This slice validates UI language and interaction only; it does not prove demand or A2A value.
-- Search interpretation and the property result are deterministic prototype data in this first slice.
+- The locally deployed OpenAI-compatible model is available to the Go backend during local use.
 - Spanish is the initial interface language for Argentina.

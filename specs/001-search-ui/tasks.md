@@ -25,3 +25,10 @@
 
 - [x] T010 Run unit tests, production build, lint, and Go tests.
 - [x] T011 Run the taste-skill pre-flight audit and inspect generated visual assets.
+
+## User Story 4 - Reach the local buyer agent
+
+- [x] T012 [US4] Add a tested Go `POST /api/messages` boundary for the buyer agent.
+- [x] T013 [US4] Add a tested same-origin frontend proxy to the local Hausy API.
+- [x] T014 [US4] Replace the deterministic result with the real agent reply in an accessible dialog.
+- [x] T015 [US4] Document local model, API, and frontend startup configuration.

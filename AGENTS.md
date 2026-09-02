@@ -8,8 +8,10 @@
 > **Setting up a fresh clone:** [docs/SETUP.md](./docs/SETUP.md). It is written to be handed
 > straight to an agent.
 
-> **Repo state:** scaffolding only. `cmd/angus` invokes a Bedrock AgentCore harness through
-> `internal/agentcore`; no agent logic, no persistence, no IaC, no CI, no tests yet.
+> **Repo state:** `cmd/hausy` serves the buyer agent over a local HTTP API, backed by the
+> OpenAI-compatible model client in `internal/local`. The frontend proxies prompt messages to
+> that API. The AgentCore harness remains available in `internal/agentcore`; there is no
+> persistence, IaC, or CI yet.
 
 `internal/` is production code and carries the conventions below. `experiments/` holds
 throwaway spikes — `web-scraper/` is its own Go module and is not part of the main build.

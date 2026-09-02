@@ -6,9 +6,18 @@ import { SearchExperience } from './components/search-experience';
 
 afterEach(() => {
   Reflect.deleteProperty(document, 'modelContext');
+  vi.unstubAllGlobals();
 });
 
 describe('SearchExperience', () => {
+  it('uses the Hausy company name throughout the primary experience', () => {
+    render(<SearchExperience />);
+    const previousCompanyName = ['An', 'gus'].join('');
+
+    expect(screen.getByRole('link', { name: 'Hausy, inicio' })).toBeVisible();
+    expect(document.body).not.toHaveTextContent(previousCompanyName);
+  });
+
   it('makes a natural-language property query the primary action', () => {
     render(<SearchExperience />);
 
@@ -35,8 +44,57 @@ describe('SearchExperience', () => {
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
 
-  it('turns a nuanced query into an explicit preference summary', async () => {
+  it('sends the query when Enter is pressed', async () => {
     const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ reply: 'Respuesta del agente.', requirements: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    await user.type(screen.getByRole('textbox'), 'Dos ambientes con luz{Enter}');
+    // The reply dialog is modal, so the textarea leaves the accessibility tree.
+    await screen.findByRole('dialog', { name: 'Respuesta de Hausy' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/agent',
+      expect.objectContaining({ body: expect.stringContaining('Dos ambientes con luz') }),
+    );
+    expect(document.querySelector<HTMLTextAreaElement>('#property-query')).toHaveValue(
+      'Dos ambientes con luz',
+    );
+  });
+
+  it('starts a new line on Shift+Enter without sending', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    await user.type(
+      screen.getByRole('textbox'),
+      'Mucha luz{Shift>}{Enter}{/Shift}y poco ruido',
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue('Mucha luz\ny poco ruido');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('sends a nuanced query to the agent and shows its reply in a dialog', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          reply: 'Entendido. La luz natural es tu prioridad principal.',
+          requirements: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
     render(<SearchExperience />);
     const query =
       'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.';
@@ -44,14 +102,31 @@ describe('SearchExperience', () => {
     await user.type(screen.getByRole('textbox'), query);
     await user.click(screen.getByRole('button', { name: /buscar hogares/i }));
 
-    expect(await screen.findByText('Entendimos lo importante')).toBeVisible();
-    expect(screen.getByText('Hasta USD 1.000')).toBeVisible();
-    expect(screen.getByText('2 dormitorios')).toBeVisible();
-    expect(screen.getByText('Luz natural primero')).toBeVisible();
-    expect(screen.getByText('Poco ruido')).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/agent',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining(query),
+      }),
+    );
+    expect(
+      await screen.findByRole('dialog', { name: 'Respuesta de Hausy' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Entendido. La luz natural es tu prioridad principal.'),
+    ).toBeVisible();
   });
 
   it('exposes the same search journey as a structured browser tool', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ reply: 'Respuesta del agente.', requirements: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
     const registerTool = vi.fn();
     Object.defineProperty(document, 'modelContext', {
       configurable: true,
@@ -65,6 +140,6 @@ describe('SearchExperience', () => {
 
     await tool.execute({ query: 'Dos dormitorios con luz natural' });
 
-    expect(await screen.findByText('Entendimos lo importante')).toBeVisible();
+    expect(await screen.findByText('Respuesta del agente.')).toBeVisible();
   });
 });

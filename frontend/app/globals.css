@@ -145,12 +145,11 @@
 
 .prompt-led-canvas {
   position: absolute;
-  inset: -56px;
+  inset: -110px;
   z-index: 0;
-  width: calc(100% + 112px);
-  height: calc(100% + 112px);
+  width: calc(100% + 220px);
+  height: calc(100% + 220px);
   pointer-events: none;
-  opacity: 0.92;
 }
 
 .prompt-led-canvas[data-fallback='true'] {
@@ -374,6 +373,44 @@
 .form-meta [role='alert'] {
   color: var(--destructive);
   font-weight: 620;
+}
+
+.agent-response-dialog {
+  max-width: min(560px, calc(100vw - 2rem));
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
+  border-radius: var(--radius-2xl);
+  background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+  box-shadow: 0 32px 100px var(--shadow-color);
+}
+
+.agent-response-kicker {
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.agent-response-dialog [data-slot='dialog-title'] {
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+}
+
+.agent-response-copy {
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.agent-response-dialog [data-slot='dialog-footer'] {
+  margin: 0;
+  padding: 1rem 0 0;
+  border-top-color: color-mix(in srgb, var(--border) 65%, transparent);
+  background: transparent;
 }
 
 .examples {

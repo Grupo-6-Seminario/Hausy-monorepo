@@ -42,9 +42,9 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-`AGENTCORE_HARNESS_ARN` is the only value with no default. It is account-specific and is
-deliberately absent from the repo — ask a teammate for it, or read it from the AgentCore
-console. Everything else in `.env.example` has a working default.
+For the local Hausy flow, set `LOCAL_LLM_TOKEN` when your OpenAI-compatible model requires
+authentication. `AGENTCORE_HARNESS_ARN` is only needed for the separate AgentCore harness path;
+it remains deliberately absent from the repo because it is account-specific.
 
 ## 4. AWS credentials
 
@@ -78,10 +78,10 @@ placed for them) straight from the clone.
 ## 6. Postgres (only for persistence work)
 
 ```bash
-createdb angus
+createdb hausy
 ```
 
-The `postgres` MCP server defaults to `postgresql://localhost:5432/angus`. Override it by
+The `postgres` MCP server defaults to `postgresql://localhost:5432/hausy`. Override it by
 setting `DATABASE_URI` in `.env`.
 
 The server runs in `--access-mode=restricted` (read-only) so a stray query cannot mutate
@@ -106,9 +106,26 @@ straight after cloning, stop and report it rather than committing them.
 
 ## Running it
 
+Load the local configuration and start the Hausy API:
+
 ```bash
-go run ./cmd/angus
+set -a
+source .env
+set +a
+go run ./cmd/hausy
 ```
 
-Prints the harness reply. Without `AGENTCORE_HARNESS_ARN` set it exits with a message naming
-the missing variable.
+By default, the API listens at `http://127.0.0.1:8080` and sends messages to the
+OpenAI-compatible model at `http://127.0.0.1:8000`. Set `LOCAL_LLM_TOKEN` when the local model
+requires authentication.
+
+In a second terminal, start the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend's `/api/agent` route forwards prompt messages to the Hausy API and displays the
+returned agent reply in a modal.
