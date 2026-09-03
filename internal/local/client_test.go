@@ -100,3 +100,120 @@ func TestClient_Chat_ServerError(t *testing.T) {
 		t.Errorf("expected error to mention status 500, got: %v", err)
 	}
 }
+
+func TestClient_Chat_SendsToolDefinitionsAndReadsToolCalls(t *testing.T) {
+	var captured struct {
+		Tools []struct {
+			Type     string `json:"type"`
+			Function struct {
+				Name        string         `json:"name"`
+				Description string         `json:"description"`
+				Parameters  map[string]any `json:"parameters"`
+			} `json:"function"`
+		} `json:"tools"`
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &captured); err != nil {
+			t.Fatalf("failed unmarshaling request body: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[
+			{"id":"call_1","type":"function","function":{"name":"search_listings","arguments":"{\"neighborhoods\":[\"palermo\"]}"}}
+		]},"finish_reason":"tool_calls"}]}`))
+	}))
+	defer server.Close()
+
+	client := local.NewClient(server.URL, "", "")
+	resp, err := client.Chat(context.Background(), llm.ChatRequest{
+		Messages: []llm.Message{{Role: "user", Content: "Depto en Palermo"}},
+		Tools: []llm.ToolDefinition{{
+			Name:        "search_listings",
+			Description: "Search the listing inventory.",
+			InputSchema: map[string]any{"type": "object"},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Chat returned unexpected error: %v", err)
+	}
+
+	if len(captured.Tools) != 1 {
+		t.Fatalf("expected 1 tool in the request payload, got %d", len(captured.Tools))
+	}
+	if captured.Tools[0].Type != "function" {
+		t.Errorf("expected tool type %q, got %q", "function", captured.Tools[0].Type)
+	}
+	if captured.Tools[0].Function.Name != "search_listings" {
+		t.Errorf("expected tool name %q, got %q", "search_listings", captured.Tools[0].Function.Name)
+	}
+	if captured.Tools[0].Function.Parameters["type"] != "object" {
+		t.Errorf("expected the input schema to be sent as parameters, got %+v", captured.Tools[0].Function.Parameters)
+	}
+
+	if len(resp.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(resp.ToolCalls))
+	}
+	call := resp.ToolCalls[0]
+	if call.ID != "call_1" || call.Name != "search_listings" {
+		t.Errorf("unexpected tool call identity: %+v", call)
+	}
+	if string(call.Arguments) != `{"neighborhoods":["palermo"]}` {
+		t.Errorf("expected arguments to be decoded from the JSON string, got %s", call.Arguments)
+	}
+}
+
+func TestClient_Chat_SendsToolResultsInWireShape(t *testing.T) {
+	var captured struct {
+		Messages []struct {
+			Role       string `json:"role"`
+			Content    string `json:"content"`
+			ToolCallID string `json:"tool_call_id"`
+			ToolCalls  []struct {
+				ID       string `json:"id"`
+				Function struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
+		} `json:"messages"`
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &captured); err != nil {
+			t.Fatalf("failed unmarshaling request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"Listo"}}]}`))
+	}))
+	defer server.Close()
+
+	client := local.NewClient(server.URL, "", "")
+	_, err := client.Chat(context.Background(), llm.ChatRequest{Messages: []llm.Message{
+		{Role: "user", Content: "Depto en Palermo"},
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{
+			ID: "call_1", Name: "search_listings", Arguments: json.RawMessage(`{"neighborhoods":["palermo"]}`),
+		}}},
+		{Role: "tool", ToolCallID: "call_1", Content: `{"total_matches":3}`},
+	}})
+	if err != nil {
+		t.Fatalf("Chat returned unexpected error: %v", err)
+	}
+
+	if len(captured.Messages) != 3 {
+		t.Fatalf("expected 3 messages, got %d", len(captured.Messages))
+	}
+	assistant := captured.Messages[1]
+	if len(assistant.ToolCalls) != 1 {
+		t.Fatalf("expected the assistant message to carry 1 tool call, got %d", len(assistant.ToolCalls))
+	}
+	if assistant.ToolCalls[0].Function.Arguments != `{"neighborhoods":["palermo"]}` {
+		t.Errorf("expected arguments re-encoded as a JSON string, got %q", assistant.ToolCalls[0].Function.Arguments)
+	}
+	result := captured.Messages[2]
+	if result.Role != "tool" || result.ToolCallID != "call_1" || result.Content != `{"total_matches":3}` {
+		t.Errorf("unexpected tool result message: %+v", result)
+	}
+}

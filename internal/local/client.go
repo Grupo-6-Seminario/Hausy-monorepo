@@ -48,21 +48,115 @@ func NewClient(baseURL, token, defaultModelName string) *Client {
 	}
 }
 
+// The OpenAI wire shape is deliberately separate from llm.Message. The two
+// diverge once tools enter: on the wire a call's arguments are a JSON *string*
+// nested under "function", while the neutral type carries raw JSON. Mapping in
+// one place keeps that quirk from leaking into the agent.
 type chatCompletionRequest struct {
 	Model              string         `json:"model"`
-	Messages           []llm.Message  `json:"messages"`
+	Messages           []wireMessage  `json:"messages"`
 	Temperature        float64        `json:"temperature"`
 	MaxTokens          int            `json:"max_tokens,omitempty"`
+	Tools              []wireTool     `json:"tools,omitempty"`
 	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
+}
+
+type wireMessage struct {
+	Role       string         `json:"role"`
+	Content    string         `json:"content"`
+	ToolCalls  []wireToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string         `json:"tool_call_id,omitempty"`
+	Name       string         `json:"name,omitempty"`
+}
+
+type wireToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+type wireTool struct {
+	Type     string `json:"type"`
+	Function struct {
+		Name        string         `json:"name"`
+		Description string         `json:"description"`
+		Parameters  map[string]any `json:"parameters"`
+	} `json:"function"`
 }
 
 type chatCompletionResponse struct {
 	Choices []struct {
 		Message struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
+			Role      string         `json:"role"`
+			Content   string         `json:"content"`
+			ToolCalls []wireToolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
+}
+
+func toWireMessages(messages []llm.Message) []wireMessage {
+	wire := make([]wireMessage, 0, len(messages))
+	for _, message := range messages {
+		out := wireMessage{
+			Role:       message.Role,
+			Content:    message.Content,
+			ToolCallID: message.ToolCallID,
+			Name:       message.Name,
+		}
+		for _, call := range message.ToolCalls {
+			var wireCall wireToolCall
+			wireCall.ID = call.ID
+			wireCall.Type = "function"
+			wireCall.Function.Name = call.Name
+			// An absent argument object is "{}", not "": a bare empty string
+			// is not JSON and some servers reject the whole request over it.
+			wireCall.Function.Arguments = "{}"
+			if len(call.Arguments) > 0 {
+				wireCall.Function.Arguments = string(call.Arguments)
+			}
+			out.ToolCalls = append(out.ToolCalls, wireCall)
+		}
+		wire = append(wire, out)
+	}
+	return wire
+}
+
+func toWireTools(definitions []llm.ToolDefinition) []wireTool {
+	if len(definitions) == 0 {
+		return nil
+	}
+	wire := make([]wireTool, 0, len(definitions))
+	for _, definition := range definitions {
+		var tool wireTool
+		tool.Type = "function"
+		tool.Function.Name = definition.Name
+		tool.Function.Description = definition.Description
+		tool.Function.Parameters = definition.InputSchema
+		wire = append(wire, tool)
+	}
+	return wire
+}
+
+func fromWireToolCalls(calls []wireToolCall) []llm.ToolCall {
+	if len(calls) == 0 {
+		return nil
+	}
+	out := make([]llm.ToolCall, 0, len(calls))
+	for _, call := range calls {
+		arguments := strings.TrimSpace(call.Function.Arguments)
+		if arguments == "" {
+			arguments = "{}"
+		}
+		out = append(out, llm.ToolCall{
+			ID:        call.ID,
+			Name:      call.Function.Name,
+			Arguments: json.RawMessage(arguments),
+		})
+	}
+	return out
 }
 
 // Chat sends a completion request to the local OpenAI-compatible endpoint.
@@ -79,9 +173,10 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 
 	payload := chatCompletionRequest{
 		Model:       model,
-		Messages:    req.Messages,
+		Messages:    toWireMessages(req.Messages),
 		Temperature: req.Temperature,
 		MaxTokens:   maxTokens,
+		Tools:       toWireTools(req.Tools),
 		ChatTemplateKwargs: map[string]any{
 			"enable_thinking": false,
 		},
@@ -128,6 +223,7 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 	}
 
 	return &llm.ChatResponse{
-		Content: chatResp.Choices[0].Message.Content,
+		Content:   chatResp.Choices[0].Message.Content,
+		ToolCalls: fromWireToolCalls(chatResp.Choices[0].Message.ToolCalls),
 	}, nil
 }
