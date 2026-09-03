@@ -15,6 +15,13 @@
 > [docs/DATA_MODEL.md](./docs/DATA_MODEL.md). The AgentCore harness remains available in
 > `internal/agentcore`; there is no IaC or CI yet.
 
+> **Reading the inventory:** `internal/search` is the read side — the query a buyer agent can
+> ask, and the four tools (`list_neighborhoods`, `search_listings`, `get_listing`,
+> `neighborhood_price_stats`) that expose it to a model. `internal/tools` is the
+> provider-neutral registry and call loop underneath, so the same toolset backs the local
+> OpenAI-compatible endpoint today and a Bedrock agent later. Hard constraints are SQL,
+> preferences only reorder — see [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
+
 ## The listing pipeline
 
 Seller-side inventory reaches the database in three steps, deliberately kept separate:

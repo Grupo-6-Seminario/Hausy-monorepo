@@ -19,3 +19,11 @@ func TestServerConfigFromEnvUsesLocalDefaults(t *testing.T) {
 		t.Fatalf("expected local model, got %q", config.llmModel)
 	}
 }
+
+func TestServerConfigFromEnvDefaultsToTheLocalDatabase(t *testing.T) {
+	t.Setenv("DATABASE_URI", "")
+
+	if got := serverConfigFromEnv().databaseURI; got != "postgresql://hausy:hausy@localhost:5432/hausy" {
+		t.Fatalf("expected the local development database, got %q", got)
+	}
+}

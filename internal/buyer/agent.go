@@ -8,7 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/tools"
 )
 
 // EligibilityState defines the four eligibility states outlined in core.md.
@@ -31,6 +34,11 @@ type Requirement struct {
 type TurnResponse struct {
 	Reply        string        `json:"reply"`
 	Requirements []Requirement `json:"requirements"`
+
+	// Listings are the properties the agent settled on this turn, whole rather
+	// than trimmed: the interface renders them as cards, so it wants the
+	// seller's full prose and the evidence behind every parsed attribute.
+	Listings []listing.Listing `json:"listings,omitempty"`
 }
 
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.
@@ -42,21 +50,38 @@ type Agent interface {
 type session struct {
 	id           string
 	requirements []Requirement
+
+	// history is the conversation as the model saw it, tool traffic included.
+	// Used only in inventory mode, where a follow-up question ("¿y más
+	// barato?") is unanswerable without what came before it.
+	history []llm.Message
 }
 
 // DefaultAgent implements Agent backed by an llm.Client.
+//
+// It runs in one of two modes. Given an inventory it searches the store through
+// the tools in internal/search; without one it falls back to extracting
+// requirements from what the user says, which is all it can honestly do when
+// there is nothing to search.
 type DefaultAgent struct {
 	llmClient llm.Client
 	mu        sync.RWMutex
 	sessions  map[string]*session
+
+	inventory search.Repository
+	runner    *tools.Runner
 }
 
 // NewAgent creates a new Buyer Agent backed by the provided LLM client.
-func NewAgent(client llm.Client) *DefaultAgent {
-	return &DefaultAgent{
+func NewAgent(client llm.Client, options ...Option) *DefaultAgent {
+	agent := &DefaultAgent{
 		llmClient: client,
 		sessions:  make(map[string]*session),
 	}
+	for _, option := range options {
+		option(agent)
+	}
+	return agent
 }
 
 const extractionSystemPrompt = `Extract property-search requirements from the user message. Return only valid JSON in this shape: {"requirements":[{"type":"...","value":"..."}]}. Do not use Markdown fences. Do not invent requirements.`
@@ -69,6 +94,10 @@ type extractionResult struct {
 func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string) (*TurnResponse, error) {
 	if sessionID == "" {
 		sessionID = "default"
+	}
+
+	if a.inventory != nil {
+		return a.handleWithInventory(ctx, sessionID, message)
 	}
 
 	req := llm.ChatRequest{
