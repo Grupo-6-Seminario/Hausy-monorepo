@@ -102,6 +102,11 @@ are doing schema work, change that flag to `--access-mode=unrestricted` in `.mcp
 deliberate, reviewed edit rather than a reflex when a write fails. Note that `cmd/listings`
 connects directly with `DATABASE_URI` and is unaffected by that flag.
 
+The Postgres-backed tests (`internal/store/postgres`) truncate their target on every run.
+To protect development data, they require designating a disposable database ending with
+`_test` via `HAUSY_TEST_DATABASE_URI` (e.g. `postgresql://hausy:hausy@localhost:5432/hausy_test`).
+Without it, those tests skip safely.
+
 ## Verify
 
 Each command below should produce the stated result.
@@ -110,7 +115,8 @@ Each command below should produce the stated result.
 | --- | --- |
 | `go build ./...` | exits 0, no output |
 | `go vet ./...` | exits 0, no output |
-| `go test ./...` | passes (`no test files` is fine until the first test lands) |
+| `go test ./...` | passes (Postgres-backed tests skip safely when no disposable test database is designated) |
+| `HAUSY_TEST_DATABASE_URI="postgresql://hausy:hausy@localhost:5432/hausy_test" go test ./internal/store/postgres` | passes against a disposable database; note that these tests truncate their target |
 | `aws sts get-caller-identity` | prints the project account id |
 | `claude mcp list` | `aws-mcp` and `postgres` both listed |
 | `docker compose up -d` then `go run ./cmd/listings load` | loads the seed listings and prints the row count |

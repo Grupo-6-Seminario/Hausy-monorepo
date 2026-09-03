@@ -209,6 +209,7 @@ LIMIT %s`, preferenceScore, b.whereClause(), b.param(query.Limit))
 
 		match.Excerpt = excerpt(description)
 		match.MatchedPreferences, match.MissedPreferences = splitPreferences(query.PreferredAttributes, match.Attributes)
+		match.Rank = len(results.Matches) + 1
 
 		results.TotalMatches = total
 		results.Matches = append(results.Matches, match)

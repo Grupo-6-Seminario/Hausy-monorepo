@@ -372,3 +372,25 @@ func TestPriceStats_SaysSoWhenTheSegmentIsEmpty(t *testing.T) {
 func TestStore_SatisfiesTheSearchRepositoryPort(t *testing.T) {
 	var _ search.Repository = (*postgres.Store)(nil)
 }
+
+func TestSearch_AssignsExplicitSequentialRankToMatches(t *testing.T) {
+	store := openTestStore(t)
+	seedSearchFixture(t, store)
+
+	results := mustSearch(t, store, search.Query{
+		Neighborhoods: []string{"palermo"},
+		Limit:         5,
+	})
+
+	if len(results.Matches) == 0 {
+		t.Fatal("expected matches, got 0")
+	}
+
+	for i, match := range results.Matches {
+		wantRank := i + 1
+		if match.Rank != wantRank {
+			t.Errorf("match %d: got Rank %d, want %d", i, match.Rank, wantRank)
+		}
+	}
+}
+

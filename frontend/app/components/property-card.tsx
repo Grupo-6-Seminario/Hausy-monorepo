@@ -70,6 +70,7 @@ function formatAttributeLabel(attr: ListingAttribute): string {
 
 export function PropertyCard({ listing, className }: PropertyCardProps) {
   const {
+    rank,
     source,
     url,
     neighborhood,
@@ -98,9 +99,14 @@ export function PropertyCard({ listing, className }: PropertyCardProps) {
       )}
     >
       <div>
-        {/* Top Header: Operation + Neighborhood / Agency */}
+        {/* Top Header: Rank + Operation + Neighborhood / Agency */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
           <div className="flex items-center gap-2">
+            {rank != null ? (
+              <Badge variant="secondary" className="font-mono text-xs font-bold text-primary">
+                #{rank}
+              </Badge>
+            ) : null}
             <Badge variant="outline" className="text-xs font-semibold capitalize tracking-wide">
               {operation}
             </Badge>

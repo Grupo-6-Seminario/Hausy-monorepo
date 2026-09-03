@@ -98,4 +98,10 @@ describe('PropertyCard', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
+
+  it('renders the property rank number', () => {
+    render(<PropertyCard listing={{ ...sampleListing, rank: 1 }} />);
+
+    expect(screen.getByText('#1')).toBeVisible();
+  });
 });

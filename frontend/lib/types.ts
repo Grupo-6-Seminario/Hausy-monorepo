@@ -14,6 +14,7 @@ export interface Money {
 
 export interface Listing {
   id?: number | string;
+  rank?: number;
   source: string;
   url: string;
   neighborhood: string;

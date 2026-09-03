@@ -77,7 +77,9 @@ export function PropertyList({ listings = [], isLoading = false, className }: Pr
       <ul className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {listings.map((listing, index) => (
           <li key={listing.url || listing.id || index} className="list-none">
-            <PropertyCard listing={listing} />
+            <PropertyCard
+              listing={listing.rank != null ? listing : { ...listing, rank: index + 1 }}
+            />
           </li>
         ))}
       </ul>

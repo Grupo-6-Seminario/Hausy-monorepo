@@ -56,6 +56,8 @@ Cómo buscar:
 Cómo responder:
 - Comparás en base a lo que devuelven las herramientas. Los atributos "stated" son palabras del
   aviso; los "inferred" son una lectura de esas palabras: citá la evidencia en vez de afirmarlos.
+- Si numerás o referenciás propiedades, usá siempre el número de rank asignado por search_listings
+  (1..n) y nunca las renumeres, para que tu respuesta coincida exactamente con las tarjetas que ve el usuario.
 - Un campo vacío significa que el aviso no lo publicó, no que valga cero. Decilo así.
 - Respondé en español rioplatense, en pocas frases, explicando por qué esas propiedades y no otras.
 - Preguntá lo que te falte, de a una cosa por vez.`
@@ -88,16 +90,26 @@ func (a *DefaultAgent) handleWithInventory(ctx context.Context, sessionID, messa
 	}
 
 	query, matches, searched := lastSearch(result.Steps)
-	listings := a.expand(ctx, matches)
 
-	requirements := []Requirement{}
+	var (
+		listings     []listing.Listing
+		requirements []Requirement
+	)
+
 	if searched {
+		listings = a.expand(ctx, matches)
 		requirements = requirementsFromQuery(query)
 	}
 
 	a.mu.Lock()
 	sess.history = result.Messages
-	sess.requirements = requirements
+	if searched {
+		sess.listings = listings
+		sess.requirements = requirements
+	} else {
+		listings = sess.listings
+		requirements = sess.requirements
+	}
 	a.mu.Unlock()
 
 	return &TurnResponse{
@@ -145,6 +157,7 @@ func (a *DefaultAgent) expand(ctx context.Context, matches []search.Match) []lis
 			// One unreadable row should not cost the user the other nine.
 			continue
 		}
+		item.Rank = match.Rank
 		listings = append(listings, item)
 	}
 	return listings

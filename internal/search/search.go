@@ -212,6 +212,7 @@ func contains(list []string, value string) bool {
 // others, not enough to decide. Evidence is deliberately absent -- it is what
 // Get is for, once the shortlist is short.
 type Match struct {
+	Rank         int    `json:"rank"`
 	URL          string `json:"url"`
 	Neighborhood string `json:"neighborhood"`
 	Agency       string `json:"agency,omitempty"`

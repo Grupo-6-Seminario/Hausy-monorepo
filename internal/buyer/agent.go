@@ -50,6 +50,7 @@ type Agent interface {
 type session struct {
 	id           string
 	requirements []Requirement
+	listings     []listing.Listing
 
 	// history is the conversation as the model saw it, tool traffic included.
 	// Used only in inventory mode, where a follow-up question ("¿y más

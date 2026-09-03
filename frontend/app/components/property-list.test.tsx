@@ -43,6 +43,8 @@ describe('PropertyList', () => {
     expect(screen.getByText(/2 propiedades seleccionadas/i)).toBeVisible();
     expect(screen.getByText(/Humboldt 1900/i)).toBeVisible();
     expect(screen.getByText(/Cabildo 2000/i)).toBeVisible();
+    expect(screen.getByText('#1')).toBeVisible();
+    expect(screen.getByText('#2')).toBeVisible();
   });
 
   it('renders an empty state when no listings are found', () => {

@@ -37,6 +37,7 @@ type Money struct {
 // numeric fields are read deterministically from the page rather than inferred
 // by a model: a language model is the wrong tool for reading a price.
 type Listing struct {
+	Rank         int    `json:"rank,omitempty"`
 	Source       string `json:"source"`
 	URL          string `json:"url"`
 	Neighborhood string `json:"neighborhood"`

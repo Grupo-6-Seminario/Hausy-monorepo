@@ -10,15 +10,20 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
-// openTestStore connects to the local development database and applies the
-// migrations. It skips rather than fails when Postgres is not running, so
-// `go test ./...` stays green on a clone that has not started the container.
+// openTestStore connects to a disposable test database and applies the
+// migrations. It skips rather than fails when HAUSY_TEST_DATABASE_URI is unset
+// or points to a non-disposable database, so `go test ./...` stays green on a
+// clone without wiping development data.
 func openTestStore(t *testing.T) *postgres.Store {
 	t.Helper()
 
-	uri := os.Getenv("DATABASE_URI")
+	uri := os.Getenv("HAUSY_TEST_DATABASE_URI")
 	if uri == "" {
-		uri = "postgresql://hausy:hausy@localhost:5432/hausy"
+		t.Skip("skipping: HAUSY_TEST_DATABASE_URI not set; set it to a disposable database (e.g. postgresql://hausy:hausy@localhost:5432/hausy_test) to run Postgres-backed tests")
+	}
+
+	if err := postgres.CheckDisposableURI(uri); err != nil {
+		t.Skipf("skipping: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -38,6 +43,71 @@ func openTestStore(t *testing.T) *postgres.Store {
 	}
 	return store
 }
+
+func TestCheckDisposableURI_RefusesNonDisposableDatabases(t *testing.T) {
+	cases := []struct {
+		name    string
+		uri     string
+		wantErr bool
+	}{
+		{
+			name:    "empty URI",
+			uri:     "",
+			wantErr: true,
+		},
+		{
+			name:    "development database",
+			uri:     "postgresql://hausy:hausy@localhost:5432/hausy",
+			wantErr: true,
+		},
+		{
+			name:    "production database",
+			uri:     "postgresql://prod-user:secret@prod-host:5432/production",
+			wantErr: true,
+		},
+		{
+			name:    "dev suffix database",
+			uri:     "postgresql://hausy:hausy@localhost:5432/hausy_dev",
+			wantErr: true,
+		},
+		{
+			name:    "valid test database with _test suffix",
+			uri:     "postgresql://hausy:hausy@localhost:5432/hausy_test",
+			wantErr: false,
+		},
+		{
+			name:    "valid test database named test",
+			uri:     "postgresql://hausy:hausy@localhost:5432/test",
+			wantErr: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := postgres.CheckDisposableURI(tc.uri)
+			if tc.wantErr && err == nil {
+				t.Fatalf("expected error for URI %q, got nil", tc.uri)
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error for URI %q: %v", tc.uri, err)
+			}
+		})
+	}
+}
+
+func TestOpenTestStore_SkipsWhenNonDisposable(t *testing.T) {
+	t.Run("skips when unset", func(subT *testing.T) {
+		subT.Setenv("HAUSY_TEST_DATABASE_URI", "")
+		openTestStore(subT)
+		subT.Fatal("expected openTestStore to skip when HAUSY_TEST_DATABASE_URI is unset")
+	})
+
+	t.Run("skips when pointed at dev database", func(subT *testing.T) {
+		subT.Setenv("HAUSY_TEST_DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy")
+		openTestStore(subT)
+		subT.Fatal("expected openTestStore to skip when pointed at dev database")
+	})
+}
+
 
 func float64Ptr(v float64) *float64 { return &v }
 func intPtr(v int) *int             { return &v }
