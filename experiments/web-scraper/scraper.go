@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -16,10 +17,17 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 )
 
+var (
+	// perNeighborhood and outputPath are set from flags so a short run can
+	// validate the extraction before committing to the full, human-gated pass.
+	perNeighborhood = propertiesPerNeighborhood
+	outputPath      = outputFile
+)
+
 const (
 	propertiesPerNeighborhood = 100
 	scrapeWorkers             = 2
-	outputFile                = "property_requirements.jsonl"
+	outputFile                = "../../data/listings.jsonl"
 	pageTimeout               = 90 * time.Second
 	// A challenge you have to solve by hand needs far longer than a page load.
 	challengeTimeout = 5 * time.Minute
@@ -35,15 +43,39 @@ type Neighborhood struct {
 	URL  string
 }
 
+// Property is one scraped listing. It mirrors internal/listing.Raw field for
+// field, and the JSON tags are the contract between the two: this scraper is a
+// separate Go module by design, so the struct cannot be shared and the tags
+// must be kept in step with internal/listing/raw.go by hand.
+//
+// Everything here is text exactly as the page renders it. Turning "$ 450.000"
+// into an amount is deliberately left to internal/listing.Normalize, which is
+// a pure function under test and can be corrected and re-run without visiting
+// the site a second time.
 type Property struct {
-	Neighborhood string `json:"neighborhood"`
-	URL          string `json:"url"`
-	Requirements string `json:"requirements"`
+	Source       string            `json:"source"`
+	URL          string            `json:"url"`
+	Neighborhood string            `json:"neighborhood"`
+	Agency       string            `json:"agency,omitempty"`
+	Address      string            `json:"address,omitempty"`
+	Title        string            `json:"title,omitempty"`
+	Description  string            `json:"description"`
+	PriceText    string            `json:"price_text,omitempty"`
+	ExpensesText string            `json:"expenses_text,omitempty"`
+	Features     map[string]string `json:"features,omitempty"`
+	ScrapedAt    time.Time         `json:"scraped_at"`
 }
 
-type sectionResult struct {
-	HasContainer bool   `json:"hasContainer"`
-	Text         string `json:"text"`
+// extraction is the shape returned by extractScript.
+type extraction struct {
+	HasContainer bool              `json:"hasContainer"`
+	Agency       string            `json:"agency"`
+	Address      string            `json:"address"`
+	Title        string            `json:"title"`
+	Description  string            `json:"description"`
+	PriceText    string            `json:"priceText"`
+	ExpensesText string            `json:"expensesText"`
+	Features     map[string]string `json:"features"`
 }
 
 var neighborhoods = []Neighborhood{
@@ -177,10 +209,10 @@ func collectProperties(browser *rod.Browser, neighborhood Neighborhood) ([]Prope
 	}
 	defer page.Close()
 
-	properties := make([]Property, 0, propertiesPerNeighborhood)
+	properties := make([]Property, 0, perNeighborhood)
 	seen := make(map[string]bool)
 
-	for pageNumber := 1; len(properties) < propertiesPerNeighborhood; pageNumber++ {
+	for pageNumber := 1; len(properties) < perNeighborhood; pageNumber++ {
 		if pageNumber > 50 {
 			return nil, fmt.Errorf("%s: only found %d properties", neighborhood.Name, len(properties))
 		}
@@ -206,7 +238,7 @@ func collectProperties(browser *rod.Browser, neighborhood Neighborhood) ([]Prope
 				Neighborhood: neighborhood.Name,
 				URL:          propertyURL,
 			})
-			if len(properties) == propertiesPerNeighborhood {
+			if len(properties) == perNeighborhood {
 				break
 			}
 		}
@@ -262,11 +294,19 @@ func paginationURL(baseURL string, page int) string {
 	return strings.TrimSuffix(baseURL, ".html") + fmt.Sprintf("-pagina-%d.html", page)
 }
 
-func scrapeRequirements(browser *rod.Browser, properties []Property) error {
+// scrapeAll visits every collected listing and writes each success to disk as
+// it lands.
+//
+// A single unreadable listing does not abort the run. Three hundred pages
+// behind a Cloudflare challenge is a long, human-gated operation, and losing
+// all of it because one listing was withdrawn mid-scrape would be the wrong
+// trade. Failures are counted and reported instead.
+func scrapeAll(browser *rod.Browser, properties []Property, sink *jsonlWriter) (int, []error) {
 	jobs := make(chan int)
 	var workers sync.WaitGroup
-	var errorLock sync.Mutex
-	var firstError error
+	var mu sync.Mutex
+	var failures []error
+	succeeded := 0
 
 	for range scrapeWorkers {
 		workers.Add(1)
@@ -275,11 +315,9 @@ func scrapeRequirements(browser *rod.Browser, properties []Property) error {
 
 			page, err := newPage(browser)
 			if err != nil {
-				errorLock.Lock()
-				if firstError == nil {
-					firstError = err
-				}
-				errorLock.Unlock()
+				mu.Lock()
+				failures = append(failures, err)
+				mu.Unlock()
 				for range jobs {
 				}
 				return
@@ -287,24 +325,26 @@ func scrapeRequirements(browser *rod.Browser, properties []Property) error {
 			defer page.Close()
 
 			for index := range jobs {
-				errorLock.Lock()
-				stopped := firstError != nil
-				errorLock.Unlock()
-				if stopped {
+				time.Sleep(requestDelay)
+
+				if err := scrapeProperty(page, &properties[index]); err != nil {
+					mu.Lock()
+					failures = append(failures, fmt.Errorf("%s: %w", properties[index].URL, err))
+					mu.Unlock()
 					continue
 				}
 
-				time.Sleep(requestDelay)
-				requirements, err := scrapeProperty(page, properties[index].URL)
-				if err != nil {
-					errorLock.Lock()
-					if firstError == nil {
-						firstError = fmt.Errorf("%s: %w", properties[index].URL, err)
+				mu.Lock()
+				writeErr := sink.write(properties[index])
+				if writeErr != nil {
+					failures = append(failures, writeErr)
+				} else {
+					succeeded++
+					if succeeded%25 == 0 {
+						fmt.Printf("  scraped %d/%d\n", succeeded, len(properties))
 					}
-					errorLock.Unlock()
-					continue
 				}
-				properties[index].Requirements = requirements
+				mu.Unlock()
 			}
 		}()
 	}
@@ -315,51 +355,134 @@ func scrapeRequirements(browser *rod.Browser, properties []Property) error {
 	close(jobs)
 	workers.Wait()
 
-	return firstError
+	return succeeded, failures
 }
 
-func scrapeProperty(page *rod.Page, propertyURL string) (string, error) {
-	if err := navigate(page, propertyURL); err != nil {
-		return "", err
+// jsonlWriter appends one listing per line, flushing as it goes so a run that
+// dies partway through still leaves everything it had already read.
+type jsonlWriter struct {
+	file    *os.File
+	encoder *json.Encoder
+}
+
+func newJSONLWriter(path string) (*jsonlWriter, error) {
+	// The default output is ../../data/, which a fresh clone may not have yet.
+	if dir := filepath.Dir(path); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
+		}
 	}
 
-	result, err := page.Eval(`() => {
-		const container = document.getElementById('article-container');
-		const section = document.evaluate('//*[@id="article-container"]/section[3]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-		return {
-			hasContainer: container !== null,
-			text: section ? section.innerText.replace(/\s+/g, ' ').trim() : ''
-		};
-	}`)
+	file, err := os.Create(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	var section sectionResult
-	if err := result.Value.Unmarshal(&section); err != nil {
-		return "", err
-	}
-	if !section.HasContainer {
-		return "", fmt.Errorf("article-container was not found")
-	}
-	return section.Text, nil
+	encoder := json.NewEncoder(file)
+	encoder.SetEscapeHTML(false)
+	return &jsonlWriter{file: file, encoder: encoder}, nil
 }
 
-func writeProperties(properties []Property) error {
-	file, err := os.Create(outputFile)
+func (w *jsonlWriter) write(property Property) error {
+	if err := w.encoder.Encode(property); err != nil {
+		return err
+	}
+	return w.file.Sync()
+}
+
+func (w *jsonlWriter) Close() error { return w.file.Close() }
+
+// extractScript reads the listing fields off the rendered page.
+//
+// The anchors were chosen by probing a real listing (go run . -probe <url>).
+// ZonaProp's layout class names are hashed and rotate between deploys, so the
+// selectors deliberately hang off things that carry meaning instead: element
+// ids, data-qa attributes, and the semantic icon-* class on each feature row.
+const extractScript = `() => {
+	const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+	const textOf = sel => {
+		const el = document.querySelector(sel);
+		return el ? clean(el.innerText) : '';
+	};
+
+	// Each feature is an <li> whose <i> carries a semantic class such as
+	// icon-stotal or icon-ambiente; the readable value is on the <li>.
+	const iconFeature = name => {
+		const icon = document.querySelector('#section-icon-features-property i[class*="icon-' + name + '"]');
+		return icon && icon.parentElement ? clean(icon.parentElement.innerText) : '';
+	};
+
+	// Keep the paragraph breaks: the description is what the parser reads, and
+	// the structure helps it far more than it costs in bytes.
+	const description = document.querySelector('#longDescription');
+
+	return {
+		hasContainer: document.getElementById('article-container') !== null,
+		agency: textOf('[data-qa="linkMicrositioAnuncianteLeads"]') ||
+			textOf('[data-qa="linkMicrositioAnunciante"]'),
+		address: textOf('#map-section h4'),
+		title: textOf('h1'),
+		description: description ? description.innerText.trim() : '',
+		priceText: textOf('#article-container .price-value span'),
+		expensesText: textOf('#article-container .price-expenses'),
+		features: {
+			'superficie total': iconFeature('stotal'),
+			'superficie cubierta': iconFeature('scubierta'),
+			'ambientes': iconFeature('ambiente'),
+			'dormitorios': iconFeature('dormitorio'),
+			'banos': iconFeature('bano'),
+			'cocheras': iconFeature('cochera'),
+			'antiguedad': iconFeature('antiguedad'),
+			'disposicion': iconFeature('disposicion'),
+		},
+	};
+}`
+
+func scrapeProperty(page *rod.Page, property *Property) error {
+	if err := navigate(page, property.URL); err != nil {
+		return err
+	}
+
+	result, err := page.Eval(extractScript)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	encoder.SetEscapeHTML(false)
-	for _, property := range properties {
-		if err := encoder.Encode(property); err != nil {
-			return err
+	var found extraction
+	if err := result.Value.Unmarshal(&found); err != nil {
+		return err
+	}
+	if !found.HasContainer {
+		return fmt.Errorf("article-container was not found")
+	}
+	if found.Description == "" {
+		return fmt.Errorf("listing has no description")
+	}
+
+	property.Source = "zonaprop"
+	property.Agency = found.Agency
+	property.Address = found.Address
+	property.Title = found.Title
+	property.Description = found.Description
+	property.PriceText = found.PriceText
+	property.ExpensesText = found.ExpensesText
+	property.Features = dropEmpty(found.Features)
+	property.ScrapedAt = time.Now().UTC()
+	return nil
+}
+
+// dropEmpty removes fields the listing did not publish, so an absent value
+// stays absent rather than becoming an empty string downstream.
+func dropEmpty(features map[string]string) map[string]string {
+	kept := make(map[string]string, len(features))
+	for label, value := range features {
+		if strings.TrimSpace(value) != "" {
+			kept[label] = value
 		}
 	}
-	return nil
+	if len(kept) == 0 {
+		return nil
+	}
+	return kept
 }
 
 func warmUp(browser *rod.Browser) error {
@@ -390,27 +513,52 @@ func run() error {
 		return err
 	}
 
-	properties := make([]Property, 0, len(neighborhoods)*propertiesPerNeighborhood)
+	properties := make([]Property, 0, len(neighborhoods)*perNeighborhood)
 	for _, neighborhood := range neighborhoods {
 		collected, err := collectProperties(browser, neighborhood)
 		if err != nil {
 			return err
 		}
+		fmt.Printf("collected %d listing urls in %s\n", len(collected), neighborhood.Name)
 		properties = append(properties, collected...)
 	}
 
-	if err := scrapeRequirements(browser, properties); err != nil {
+	sink, err := newJSONLWriter(outputPath)
+	if err != nil {
 		return err
 	}
-	if err := writeProperties(properties); err != nil {
-		return err
-	}
+	defer sink.Close()
 
-	fmt.Printf("saved %d properties to %s\n", len(properties), outputFile)
+	succeeded, failures := scrapeAll(browser, properties, sink)
+
+	fmt.Printf("saved %d of %d listings to %s\n", succeeded, len(properties), outputPath)
+	if len(failures) > 0 {
+		fmt.Printf("%d listings failed:\n", len(failures))
+		for _, failure := range failures {
+			fmt.Printf("  %v\n", failure)
+		}
+	}
+	if succeeded == 0 {
+		return fmt.Errorf("no listings were scraped")
+	}
 	return nil
 }
 
 func main() {
+	probeURL := flag.String("probe", "", "dump one listing page's structure to probe.json and exit")
+	limit := flag.Int("limit", propertiesPerNeighborhood, "listings to scrape per neighborhood")
+	out := flag.String("out", outputFile, "path to write the scraped JSONL to")
+	flag.Parse()
+
+	perNeighborhood = *limit
+	outputPath = *out
+
+	if *probeURL != "" {
+		if err := probe(*probeURL); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}

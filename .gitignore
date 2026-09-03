@@ -25,6 +25,13 @@ experiments/web-scraper/scraper
 *.test
 *.out
 
+# --- Scrape and parse artefacts ---------------------------------------------
+# data/listings.jsonl and data/listings.parsed.jsonl ARE committed on purpose:
+# they are the seed that lets every teammate build an identical database
+# without scraping ZonaProp or running a model. Short validation runs are not.
+data/sample*.jsonl
+experiments/web-scraper/probe.json
+
 # --- OS & editor junk -------------------------------------------------------
 .DS_Store
 **/.DS_Store
