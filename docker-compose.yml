@@ -1,0 +1,22 @@
+# Local Postgres for the listing store. Matches the DATABASE_URI default in
+# .env.example and docs/SETUP.md, so a fresh clone needs no extra configuration.
+services:
+  postgres:
+    image: postgres:14.23-trixie
+    container_name: hausy-db
+    environment:
+      POSTGRES_USER: hausy
+      POSTGRES_PASSWORD: hausy
+      POSTGRES_DB: hausy
+    ports:
+      - "5432:5432"
+    volumes:
+      - hausy-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hausy -d hausy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hausy-postgres-data:

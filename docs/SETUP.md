@@ -14,7 +14,8 @@ Setup is done when every check in [Verify](#verify) passes.
 | uv | runs both MCP servers via `uvx` | `winget install astral-sh.uv` | `brew install uv` |
 | Node 18+ | runs `npx skills` for skill updates | `winget install OpenJS.NodeJS.LTS` | `brew install node` |
 | AWS CLI v2 | credentials for Bedrock and the aws-mcp server | `winget install Amazon.AWSCLI` | `brew install awscli` |
-| PostgreSQL 14+ | only if you are working on persistence | `winget install PostgreSQL.PostgreSQL.17` | `brew install postgresql@17` |
+| Docker | runs the Postgres the listing store uses | `winget install Docker.DockerDesktop` | `brew install --cask docker` |
+| PostgreSQL client 14+ | optional, for `psql` against that database | `winget install PostgreSQL.PostgreSQL.17` | `brew install postgresql@17` |
 
 Close and reopen the terminal after installing, so the new tools land on `PATH`.
 
@@ -75,18 +76,31 @@ one needs a one-time local approval the first time you open the repo in Claude C
 Other agents need no setup: Codex, Cursor and Copilot read `AGENTS.md` (or the pointer file
 placed for them) straight from the clone.
 
-## 6. Postgres (only for persistence work)
+## 6. Postgres
 
 ```bash
-createdb hausy
+docker compose up -d
 ```
 
-The `postgres` MCP server defaults to `postgresql://localhost:5432/hausy`. Override it by
-setting `DATABASE_URI` in `.env`.
+That starts Postgres 14 on 5432 with database, user and password all `hausy`, matching the
+`DATABASE_URI` default in `.env.example`. Override it by setting `DATABASE_URI` in `.env`.
+No `createdb` is needed, and migrations apply themselves on the first `listings load`.
 
-The server runs in `--access-mode=restricted` (read-only) so a stray query cannot mutate
-anyone's database. If you are doing schema work, change that flag to `--access-mode=unrestricted`
-in `.mcp.json` — as a deliberate, reviewed edit rather than a reflex when a write fails.
+To populate it with the committed seed data:
+
+```bash
+go run ./cmd/listings load
+```
+
+That is the whole thing — no scraping and no local model required. See
+[DATA_MODEL.md](./DATA_MODEL.md) for the schema, and `AGENTS.md` for how the seed files are
+produced when they need refreshing.
+
+The **`postgres` MCP server** (a separate thing from the database itself) runs in
+`--access-mode=restricted` (read-only) so a stray query cannot mutate anyone's database. If you
+are doing schema work, change that flag to `--access-mode=unrestricted` in `.mcp.json` — as a
+deliberate, reviewed edit rather than a reflex when a write fails. Note that `cmd/listings`
+connects directly with `DATABASE_URI` and is unaffected by that flag.
 
 ## Verify
 
@@ -99,6 +113,7 @@ Each command below should produce the stated result.
 | `go test ./...` | passes (`no test files` is fine until the first test lands) |
 | `aws sts get-caller-identity` | prints the project account id |
 | `claude mcp list` | `aws-mcp` and `postgres` both listed |
+| `docker compose up -d` then `go run ./cmd/listings load` | loads the seed listings and prints the row count |
 | `git status --short` | empty — a correct clone has nothing untracked |
 
 That last row is the one that catches platform problems: if `git status` shows modifications

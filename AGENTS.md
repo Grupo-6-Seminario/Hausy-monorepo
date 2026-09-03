@@ -10,8 +10,42 @@
 
 > **Repo state:** `cmd/hausy` serves the buyer agent over a local HTTP API, backed by the
 > OpenAI-compatible model client in `internal/local`. The frontend proxies prompt messages to
-> that API. The AgentCore harness remains available in `internal/agentcore`; there is no
-> persistence, IaC, or CI yet.
+> that API. `cmd/listings` parses and loads scraped ZonaProp inventory into Postgres
+> (`docker compose up -d`); the schema and attribute vocabulary are documented in
+> [docs/DATA_MODEL.md](./docs/DATA_MODEL.md). The AgentCore harness remains available in
+> `internal/agentcore`; there is no IaC or CI yet.
+
+## The listing pipeline
+
+Seller-side inventory reaches the database in three steps, deliberately kept separate:
+
+```
+scrape  →  data/listings.jsonl         raw page text, no interpretation
+parse   →  data/listings.parsed.jsonl  local model reads the prose  ← committed
+load    →  Postgres                    deterministic, idempotent upsert on url
+```
+
+```bash
+docker compose up -d
+cd experiments/web-scraper && go run .            # ~300 listings, needs a human for Cloudflare
+go run ./cmd/listings parse                       # slow, resumable, non-deterministic
+go run ./cmd/listings load                        # fast, repeatable
+```
+
+**Both JSONL files are committed.** A model run is not reproducible across machines, so if
+every teammate parsed locally they would each get a different reading of every listing.
+Committing the parsed file means `load` alone rebuilds an identical database — no scrape, no
+model, no Cloudflare challenge. Re-scraping and re-parsing are occasional, deliberate acts.
+
+The split between the three steps is also what makes a normalization bug cheap: fixing
+`listing.Normalize` and re-running `load` costs nothing, where baking the parsing into the
+scraper would mean visiting 300 pages again.
+
+**What is deterministic and what is not.** Price, expensas, m², ambientes, dormitorios, baños,
+cocheras, antigüedad and the Frente/Contrafrente disposition are read off the page as text and
+converted by pure functions in `internal/listing`. The model is used only for the qualities
+that exist nowhere but the prose — light, noise, condition, amenities, transit. A published
+field always outranks the model's reading of the same quality.
 
 `internal/` is production code and carries the conventions below. `experiments/` holds
 throwaway spikes — `web-scraper/` is its own Go module and is not part of the main build.

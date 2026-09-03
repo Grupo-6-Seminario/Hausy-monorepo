@@ -1,2 +1,7 @@
 .chrome-profile/
+# Scrape output lands in ../../data/, which is committed; these are local
+# artefacts from probing and short validation runs.
+probe.json
+sample.jsonl
+listings.jsonl
 property_requirements.jsonl
