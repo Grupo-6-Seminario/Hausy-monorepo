@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Bot,
   Check,
   MoveUpRight,
   Sparkles,
@@ -15,20 +16,14 @@ import {
   useState,
 } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import type { AgentResponse, Listing, Requirement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { PromptLedCanvas } from './prompt-led-canvas';
+import { PropertyList } from './property-list';
 
 const exampleQueries = [
   'Trabajo desde casa y necesito mucha luz natural, silencio y estar cerca del Subte D.',
@@ -37,19 +32,18 @@ const exampleQueries = [
 
 type SearchState = 'idle' | 'loading';
 
-interface AgentResponse {
-  reply?: string;
-  error?: string;
-}
-
 export function SearchExperience() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [state, setState] = useState<SearchState>('idle');
   const [answer, setAnswer] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+
   const reactSessionID = useId();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const resultsRef = useRef<HTMLElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const sessionRef = useRef(`browser-${reactSessionID}`);
 
@@ -84,14 +78,27 @@ export function SearchExperience() {
         signal: controller.signal,
       });
       const payload = (await response.json()) as AgentResponse;
-      if (!response.ok || !payload.reply) {
+      if (!response.ok || (!payload.reply && !payload.listings)) {
         throw new Error(payload.error || 'El agente local no pudo responder.');
       }
 
-      setAnswer(payload.reply);
-      setDialogOpen(true);
+      setAnswer(payload.reply || '');
+      setListings(payload.listings || []);
+      setRequirements(payload.requirements || []);
+      setHasSearched(true);
       setState('idle');
-      return { status: 'complete', query: normalizedQuery, reply: payload.reply };
+
+      // Allow DOM update, then scroll smoothly to the results section
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      }, 50);
+
+      return {
+        status: 'complete',
+        query: normalizedQuery,
+        reply: payload.reply || '',
+        listings: payload.listings || [],
+      };
     } catch (cause) {
       if (controller.signal.aborted) throw cause;
       const message = cause instanceof Error ? cause.message : 'El agente local no pudo responder.';
@@ -114,7 +121,7 @@ export function SearchExperience() {
         name: 'search_properties',
         title: 'Buscar propiedades',
         description:
-          'Ejecuta la búsqueda de demostración con requisitos y preferencias en lenguaje natural y actualiza el resultado visible.',
+          'Ejecuta la búsqueda con requisitos y preferencias en lenguaje natural y actualiza los resultados visibles en pantalla.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -150,7 +157,6 @@ export function SearchExperience() {
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey) return;
-    // Enter also commits an IME candidate; that keystroke belongs to the editor.
     if (event.nativeEvent.isComposing) return;
     event.preventDefault();
     void startSearch(query, true).catch(() => undefined);
@@ -175,6 +181,7 @@ export function SearchExperience() {
         <nav aria-label="Navegación principal">
           <a href="#como-funciona">Cómo funciona</a>
           <a href="#principios">Principios</a>
+          {hasSearched ? <a href="#resultados">Resultados</a> : null}
         </nav>
         <span className="prototype-note">Prototipo de búsqueda</span>
       </header>
@@ -184,7 +191,8 @@ export function SearchExperience() {
           <p className="eyebrow">Tu búsqueda, bien entendida</p>
           <h1>Encontrá el lugar que encaja con tu vida.</h1>
           <p className="hero-subtitle">
-            Contanos cómo vivís. Hausy ordena prioridades, pregunta lo que falta y compara opciones por vos.
+            Contanos cómo vivís. Hausy interpreta tus prioridades, consulta la base de propiedades y
+            te presenta las opciones más afines con sus cualidades verificables.
           </p>
 
           <form className="query-form" onSubmit={handleSubmit} noValidate>
@@ -242,11 +250,66 @@ export function SearchExperience() {
         </figure>
       </section>
 
+      {/* Results Section rendered inline once a search is made or loading */}
+      {(hasSearched || state === 'loading') && (
+        <section
+          id="resultados"
+          ref={resultsRef}
+          aria-label="Análisis y resultados"
+          className="results-section my-16 scroll-mt-8 space-y-8"
+        >
+          {/* Agent Analysis & Reasoning Box */}
+          <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-sm backdrop-blur-md md:p-8">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+              <Bot className="h-4 w-4" />
+              <span>Análisis de Hausy</span>
+            </div>
+
+            <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Respuesta de Hausy
+            </h2>
+
+            {state === 'loading' ? (
+              <div className="mt-4 space-y-2">
+                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            ) : (
+              <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-wrap sm:text-lg">
+                {answer}
+              </p>
+            )}
+
+            {/* Extracted requirements pills */}
+            {requirements.length > 0 ? (
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Criterios entendidos:
+                </span>
+                {requirements.map((req, idx) => (
+                  <Badge
+                    key={`${req.type}-${req.value}-${idx}`}
+                    variant="secondary"
+                    className="text-xs font-medium"
+                  >
+                    {req.type}: {req.value}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* List of Properties in Box Card Fashion */}
+          <PropertyList listings={listings} isLoading={state === 'loading'} />
+        </section>
+      )}
+
       <section id="como-funciona" className="explanation-section">
         <div>
           <h2>Primero entiende. Después filtra.</h2>
           <p>
-            Precio, ambientes y zona son datos. Luz, ruido y flexibilidad necesitan contexto. Hausy mantiene esa diferencia visible.
+            Precio, ambientes y zona son datos. Luz, ruido y flexibilidad necesitan contexto. Hausy
+            mantiene esa diferencia visible.
           </p>
         </div>
         <div className="principle-grid" id="principios">
@@ -262,19 +325,6 @@ export function SearchExperience() {
           </article>
         </div>
       </section>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="agent-response-dialog" showCloseButton={false}>
-          <DialogHeader>
-            <span className="agent-response-kicker">Tu búsqueda llegó al agente</span>
-            <DialogTitle>Respuesta de Hausy</DialogTitle>
-          </DialogHeader>
-          <DialogDescription className="agent-response-copy">{answer}</DialogDescription>
-          <DialogFooter>
-            <DialogClose render={<Button type="button" />}>Cerrar</DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </main>
   );
 }

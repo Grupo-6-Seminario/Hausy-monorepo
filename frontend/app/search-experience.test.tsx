@@ -2,7 +2,26 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { Listing } from '@/lib/types';
 import { SearchExperience } from './components/search-experience';
+
+const sampleListing: Listing = {
+  id: 101,
+  source: 'zonaprop',
+  url: 'https://www.zonaprop.com.ar/101',
+  neighborhood: 'palermo',
+  address: 'Humboldt 1900',
+  description: 'Muy luminoso',
+  price: { amount: 900, currency: 'USD' },
+  expenses: { amount: 110000, currency: 'ARS' },
+  rooms: 2,
+  bedrooms: 1,
+  bathrooms: 1,
+  total_area_m2: 50,
+  attributes: [
+    { type: 'natural_light', value: 'high', provenance: 'stated', evidence: 'Muy luminoso' },
+  ],
+};
 
 afterEach(() => {
   Reflect.deleteProperty(document, 'modelContext');
@@ -44,27 +63,33 @@ describe('SearchExperience', () => {
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
 
-  it('sends the query when Enter is pressed', async () => {
+  it('sends the query when Enter is pressed and displays results inline', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ reply: 'Respuesta del agente.', requirements: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({
+          reply: 'Respuesta del agente.',
+          listings: [sampleListing],
+          requirements: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     );
     vi.stubGlobal('fetch', fetchMock);
     render(<SearchExperience />);
 
     await user.type(screen.getByRole('textbox'), 'Dos ambientes con luz{Enter}');
-    // The reply dialog is modal, so the textarea leaves the accessibility tree.
-    await screen.findByRole('dialog', { name: 'Respuesta de Hausy' });
+
+    expect(await screen.findByText('Respuesta de Hausy')).toBeVisible();
+    expect(screen.getByText('Respuesta del agente.')).toBeVisible();
+    expect(screen.getByText('Humboldt 1900')).toBeVisible();
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/agent',
       expect.objectContaining({ body: expect.stringContaining('Dos ambientes con luz') }),
-    );
-    expect(document.querySelector<HTMLTextAreaElement>('#property-query')).toHaveValue(
-      'Dos ambientes con luz',
     );
   });
 
@@ -83,12 +108,13 @@ describe('SearchExperience', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('sends a nuanced query to the agent and shows its reply in a dialog', async () => {
+  it('sends a nuanced query and renders property listings in box card fashion inline', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          reply: 'Entendido. La luz natural es tu prioridad principal.',
+          reply: 'Entendido. Encontré 1 propiedad con excelente luz natural.',
+          listings: [sampleListing],
           requirements: [],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -109,22 +135,78 @@ describe('SearchExperience', () => {
         body: expect.stringContaining(query),
       }),
     );
+
     expect(
-      await screen.findByRole('dialog', { name: 'Respuesta de Hausy' }),
+      await screen.findByText('Entendido. Encontré 1 propiedad con excelente luz natural.'),
     ).toBeVisible();
-    expect(
-      screen.getByText('Entendido. La luz natural es tu prioridad principal.'),
-    ).toBeVisible();
+    expect(screen.getByText('Humboldt 1900')).toBeVisible();
+    expect(screen.getByText(/USD 900/i)).toBeVisible();
+    expect(screen.getByText(/luz natural: alta/i)).toBeVisible();
+    // Modal dialog is NOT rendered
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('exposes the same search journey as a structured browser tool', async () => {
+  it('allows multi-turn interaction without blocking modal dialogs', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            reply: 'Primer turno: 1 propiedad encontrada.',
+            listings: [sampleListing],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            reply: 'Segundo turno: requisitos actualizados.',
+            listings: [
+              {
+                ...sampleListing,
+                id: 102,
+                address: 'Thames 2200',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    const input = screen.getByRole('textbox');
+    await user.type(input, 'Busco en Palermo{Enter}');
+
+    expect(await screen.findByText('Primer turno: 1 propiedad encontrada.')).toBeVisible();
+    expect(screen.getByText('Humboldt 1900')).toBeVisible();
+
+    // Query box remains editable and in view for follow-up questions
+    await user.clear(input);
+    await user.type(input, '¿Tienen balcón?{Enter}');
+
+    expect(await screen.findByText('Segundo turno: requisitos actualizados.')).toBeVisible();
+    expect(screen.getByText('Thames 2200')).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('exposes the same search journey as a structured browser tool returning listings', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ reply: 'Respuesta del agente.', requirements: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            reply: 'Respuesta del agente.',
+            listings: [sampleListing],
+            requirements: [],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
       ),
     );
     const registerTool = vi.fn();
@@ -138,8 +220,15 @@ describe('SearchExperience', () => {
     const tool = registerTool.mock.calls[0][0];
     expect(tool.name).toBe('search_properties');
 
-    await tool.execute({ query: 'Dos dormitorios con luz natural' });
+    const result = await tool.execute({ query: 'Dos dormitorios con luz natural' });
 
     expect(await screen.findByText('Respuesta del agente.')).toBeVisible();
+    expect(screen.getByText('Humboldt 1900')).toBeVisible();
+    expect(result).toMatchObject({
+      status: 'complete',
+      query: 'Dos dormitorios con luz natural',
+      reply: 'Respuesta del agente.',
+      listings: [sampleListing],
+    });
   });
 });
