@@ -168,7 +168,7 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 
 	maxTokens := req.MaxTokens
 	if maxTokens == 0 {
-		maxTokens = 512
+		maxTokens = 4096
 	}
 
 	payload := chatCompletionRequest{
