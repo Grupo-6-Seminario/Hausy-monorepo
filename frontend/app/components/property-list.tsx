@@ -15,12 +15,14 @@ import { PropertyCard } from './property-card';
 
 interface PropertyListProps {
   listings?: Listing[];
+  recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
 }
 
 export function PropertyList({
   listings = [],
+  recommendedRanks = [],
   isLoading = false,
   className,
 }: PropertyListProps) {
@@ -97,16 +99,25 @@ export function PropertyList({
         </div>
         <span>Ordenadas por afinidad</span>
       </div>
+      <p className="selection-guide">
+        {recommendedRanks.length > 0
+          ? 'Las fichas citadas en la lectura de Hausy están señaladas. En todas distinguimos lo publicado de lo interpretado.'
+          : 'Usá el número de cada ficha para relacionarla con la lectura de Hausy. Lo publicado y lo interpretado aparecen separados.'}
+      </p>
       <ol>
-        {listings.map((listing, index) => (
-          <li key={listing.url || listing.id || index}>
-            <PropertyCard
-              listing={
-                listing.rank != null ? listing : { ...listing, rank: index + 1 }
-              }
-            />
-          </li>
-        ))}
+        {listings.map((listing, index) => {
+          const rank = listing.rank ?? index + 1;
+          const rankedListing = { ...listing, rank };
+
+          return (
+            <li key={listing.url || listing.id || index}>
+              <PropertyCard
+                isRecommended={recommendedRanks.includes(rank)}
+                listing={rankedListing}
+              />
+            </li>
+          );
+        })}
       </ol>
     </section>
   );

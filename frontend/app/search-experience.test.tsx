@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,23 +39,65 @@ describe('SearchExperience', () => {
     const previousCompanyName = ['An', 'gus'].join('');
 
     expect(screen.getByRole('link', { name: 'Hausy, inicio' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Hausy' })).toHaveAttribute(
+      'src',
+      '/hausy_logo.png',
+    );
     expect(document.body).not.toHaveTextContent(previousCompanyName);
   });
 
-  it('makes a natural-language property query the primary action', () => {
+  it('makes a natural-language property query the primary action without an animated light canvas', () => {
     render(<SearchExperience />);
 
     const textbox = screen.getByRole('textbox', {
       name: /describí cómo querés vivir/i,
     });
-    const ledBorder = document.querySelector('[data-prompt-led-border]');
-
     expect(textbox).toBeVisible();
     expect(
       screen.getByRole('button', { name: /buscar hogares/i }),
     ).toBeVisible();
-    expect(ledBorder).toBeInstanceOf(HTMLCanvasElement);
-    expect(ledBorder?.nextElementSibling).toBe(textbox);
+    expect(document.querySelector('[data-prompt-led-border]')).toBeNull();
+  });
+
+  it('presents the agent explanation as a readable recommendation brief', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            reply: [
+              '## Por qué las elegí',
+              '1. **#1 Humboldt 1900**: prioriza la luz natural y mantiene el presupuesto.',
+              '2. **#2 Thames 2200**: ofrece más silencio, pero queda un poco más lejos.',
+              '',
+              '## Qué falta confirmar',
+              '- El aviso no publica orientación.',
+            ].join('\n'),
+            listings: [sampleListing],
+            requirements: [],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    render(<SearchExperience />);
+
+    await user.type(screen.getByRole('textbox'), 'Busco mucha luz{Enter}');
+
+    const log = await screen.findByRole('log', {
+      name: /conversación con Hausy/i,
+    });
+    const explanation = within(log).getByRole('region', {
+      name: /explicación de Hausy/i,
+    });
+    expect(
+      within(explanation).getByRole('heading', { name: 'Por qué las elegí' }),
+    ).toBeVisible();
+    expect(within(explanation).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(explanation).getByText('#1 Humboldt 1900')).toBeVisible();
+    expect(within(explanation).queryByText(/\*\*/)).toBeNull();
+    expect(screen.getByText('Destacada por Hausy')).toBeVisible();
   });
 
   it('keeps an empty query in place and explains what is missing', async () => {

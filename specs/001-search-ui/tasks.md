@@ -3,7 +3,7 @@
 ## Setup
 
 - [x] T001 Create the separate `feat/ui-prototype` worktree.
-- [x] T002 Initialize the `frontend/` Vinext project and install test tooling plus vgpu.
+- [x] T002 Initialize the `frontend/` Vinext project and install test tooling.
 - [x] T003 Record the Spec Kit-style specification and plan.
 
 ## User Story 1 - Describe the right home
@@ -16,9 +16,9 @@
 
 - [x] T007 [US2] Add editable example prompts to the search surface.
 
-## User Story 3 - Progressive visual enhancement
+## User Story 3 - Stable visual refinement
 
-- [x] T008 [US3] Adapt vgpu's triangle-led-front example into an analytic LED prompt border, keeping the light behind the input surface with static and reduced-motion fallbacks.
+- [x] T008 [US3] Add restrained loading and focus feedback with reduced-motion support.
 - [x] T009 [US3] Register the primary search journey as an imperative WebMCP tool.
 
 ## Validation
@@ -38,4 +38,7 @@
 - [x] T016 [US5] Add failing public-seam tests for persistent turns, stable follow-up results, and request cancellation.
 - [x] T017 [US5] Replace the landing/result handoff with a responsive conversation-and-selection workspace.
 - [x] T018 [US5] Restyle the query, messages, loading states, empty state, and listing evidence using only the `DESIGN.md` tokens.
-- [x] T019 [US5] Move the approved prism channels into the vgpu prompt artifact and preserve static and reduced-motion fallbacks.
+- [x] T019 [US5] Restore the approved cozy green palette and remove the unstable decorative GPU prompt artifact.
+- [x] T020 [US5] Render agent replies as semantic, concise decision briefs.
+- [x] T021 [US5] Link explicit rank citations in the agent reply to the corresponding property cards.
+- [x] T022 [US5] Expand the conversation column, soften all component geometry, and add the provisional Hausy logo.

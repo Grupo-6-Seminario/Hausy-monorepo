@@ -4,23 +4,23 @@
 
 ## Summary
 
-Keep the existing Vinext-to-Go request boundary, replace the one-response result surface with a persistent multi-turn conversation and stable property shortlist, and apply the exact dark palette and typographic hierarchy from `frontend/DESIGN.md`. The progressively enhanced vgpu border remains independent from request handling and is the only chromatic artifact.
+Keep the existing Vinext-to-Go request boundary, replace the one-response result surface with a persistent multi-turn conversation and stable property shortlist, and apply the exact cozy green palette and typographic hierarchy from `frontend/DESIGN.md`. Use stable CSS feedback and semantically render the agent's concise decision brief.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.9, React 19
 
-**Primary Dependencies**: Vinext, Tailwind CSS 4, shadcn-owned components, vgpu
+**Primary Dependencies**: Vinext, Tailwind CSS 4, shadcn-owned components
 
 **Storage**: N/A for this slice
 
 **Testing**: Vitest, Testing Library, jsdom
 
-**Target Platform**: Modern browsers with graceful no-WebGPU fallback
+**Target Platform**: Modern browsers with responsive desktop and mobile layouts
 
 **Project Type**: Web application inside an existing Go repository
 
-**Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization; cap the analytic LED rendering at 1100 by 420 pixels, use 60 frames per second while interactive and 30 while idle
+**Performance Goals**: Keep the primary form immediately interactive and limit loading feedback to a lightweight transform animation
 
 **Constraints**: First viewport exposes the query; local model credentials stay server-side; agent failures are recoverable; accessible reduced-motion fallback
 
@@ -33,7 +33,7 @@ Keep the existing Vinext-to-Go request boundary, replace the one-response result
 - LLM/A2A value is not claimed or simulated as validated: pass.
 - Visual effects cannot block product behavior: pass.
 - Follow-up loading preserves prior evidence and results instead of replacing them: pass.
-- Color usage is limited to the exact `DESIGN.md` palette, with prism channels confined to the vgpu artifact: pass.
+- Color usage is limited to the exact `DESIGN.md` palette and decorative GPU effects have been removed: pass.
 
 ## Project Structure
 

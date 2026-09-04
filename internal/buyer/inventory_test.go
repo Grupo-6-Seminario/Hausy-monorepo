@@ -92,6 +92,27 @@ func TestAgent_WithInventory_OffersTheSearchToolsToTheModel(t *testing.T) {
 	}
 }
 
+func TestAgent_WithInventory_AsksForAConciseDecisionBriefInsteadOfRepeatingCards(t *testing.T) {
+	client := &toolCallingClient{replies: []llm.ChatResponse{{Content: "Listo."}}}
+	agent := buyer.NewAgent(client, buyer.WithInventory(inventoryWithTwoListings()))
+
+	if _, err := agent.HandleMessage(context.Background(), "s1", "Alquiler en Palermo"); err != nil {
+		t.Fatalf("HandleMessage failed: %v", err)
+	}
+
+	prompt := client.requests[0].Messages[0].Content
+	for _, instruction := range []string{
+		"La interfaz ya muestra las tarjetas",
+		"## Por qué las elegí",
+		"máximo tres propiedades",
+		"un ajuste y una concesión",
+	} {
+		if !strings.Contains(prompt, instruction) {
+			t.Errorf("expected decision-brief instruction %q in system prompt", instruction)
+		}
+	}
+}
+
 // The cards the user sees come from the search that actually ran, not from
 // URLs re-typed by the model into its prose.
 func TestAgent_WithInventory_ReturnsTheListingsTheSearchActuallyFound(t *testing.T) {
@@ -292,4 +313,3 @@ func TestAgent_WithInventory_CarriesListingsAcrossFollowUpTurnsAndClearsOnEmptyS
 		t.Fatalf("turn 3: expected 0 listings after empty search, got %d", len(resp3.Listings))
 	}
 }
-
