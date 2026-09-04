@@ -46,7 +46,7 @@ describe('SearchExperience', () => {
     expect(document.body).not.toHaveTextContent(previousCompanyName);
   });
 
-  it('makes a natural-language property query the primary action without an animated light canvas', () => {
+  it('makes the prompt the primary action with a green luminary canvas beneath it', () => {
     render(<SearchExperience />);
 
     const textbox = screen.getByRole('textbox', {
@@ -56,7 +56,13 @@ describe('SearchExperience', () => {
     expect(
       screen.getByRole('button', { name: /buscar hogares/i }),
     ).toBeVisible();
-    expect(document.querySelector('[data-prompt-led-border]')).toBeNull();
+    expect(document.querySelector('[data-prompt-luminary]')).toBeInstanceOf(
+      HTMLCanvasElement,
+    );
+    expect(document.querySelector('[data-prompt-stage]')).toHaveAttribute(
+      'data-active',
+      'false',
+    );
   });
 
   it('presents the agent explanation as a readable recommendation brief', async () => {
@@ -316,6 +322,10 @@ describe('SearchExperience', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Consultando el inventario y comparando tus prioridades',
+    );
+    expect(document.querySelector('[data-prompt-stage]')).toHaveAttribute(
+      'data-active',
+      'true',
     );
     expect(screen.getByText('Humboldt 1900')).toBeVisible();
 

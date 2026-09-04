@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 import { AgentReply } from './agent-reply';
 import { PropertyList } from './property-list';
+import { PromptLuminary } from './prompt-luminary';
 
 const exampleQueries = [
   {
@@ -329,44 +330,51 @@ export function SearchExperience() {
                 : 'Describí cómo querés vivir'}
             </label>
             <div
-              className={cn('query-control', error && 'query-control-error')}
+              className="prompt-stage"
+              data-prompt-stage
+              data-active={isWorking ? 'true' : 'false'}
             >
-              <Textarea
-                ref={inputRef}
-                id="property-query"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  if (error) setError('');
-                }}
-                onKeyDown={handleKeyDown}
-                aria-describedby={
-                  error ? 'query-error query-help' : 'query-help'
-                }
-                aria-invalid={Boolean(error)}
-                placeholder={
-                  isWorkspace
-                    ? 'Ejemplo: priorizá silencio aunque quede un poco más lejos del subte.'
-                    : 'Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena.'
-                }
-                rows={isWorkspace ? 2 : 4}
-              />
-              {isWorking ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  onClick={stopSearch}
-                >
-                  Detener
-                  <Square aria-hidden="true" />
-                </Button>
-              ) : (
-                <Button type="submit" size="lg" variant="outline">
-                  Buscar hogares
-                  <ArrowRight aria-hidden="true" />
-                </Button>
-              )}
+              <PromptLuminary />
+              <div
+                className={cn('query-control', error && 'query-control-error')}
+              >
+                <Textarea
+                  ref={inputRef}
+                  id="property-query"
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    if (error) setError('');
+                  }}
+                  onKeyDown={handleKeyDown}
+                  aria-describedby={
+                    error ? 'query-error query-help' : 'query-help'
+                  }
+                  aria-invalid={Boolean(error)}
+                  placeholder={
+                    isWorkspace
+                      ? 'Ejemplo: priorizá silencio aunque quede un poco más lejos del subte.'
+                      : 'Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena.'
+                  }
+                  rows={isWorkspace ? 2 : 4}
+                />
+                {isWorking ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    onClick={stopSearch}
+                  >
+                    Detener
+                    <Square aria-hidden="true" />
+                  </Button>
+                ) : (
+                  <Button type="submit" size="lg" variant="outline">
+                    Buscar hogares
+                    <ArrowRight aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="form-meta">
               <p id="query-help">
