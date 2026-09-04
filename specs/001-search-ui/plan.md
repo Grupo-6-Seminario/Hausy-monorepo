@@ -1,10 +1,10 @@
 # Implementation Plan: Natural-language property search
 
-**Branch**: `feat/ui-prototype` | **Date**: 2026-09-02 | **Spec**: [spec.md](./spec.md)
+**Branch**: `Nick2611/frontend-query-ui-refactor` | **Date**: 2026-09-04 | **Spec**: [spec.md](./spec.md)
 
 ## Summary
 
-Connect the Vinext/React query surface to the local Go buyer agent through a same-origin frontend proxy, show the returned reply in an accessible dialog, and keep the progressively enhanced vgpu LED border independent from request handling.
+Keep the existing Vinext-to-Go request boundary, replace the one-response result surface with a persistent multi-turn conversation and stable property shortlist, and apply the exact dark palette and typographic hierarchy from `frontend/DESIGN.md`. The progressively enhanced vgpu border remains independent from request handling and is the only chromatic artifact.
 
 ## Technical Context
 
@@ -20,7 +20,7 @@ Connect the Vinext/React query surface to the local Go buyer agent through a sam
 
 **Project Type**: Web application inside an existing Go repository
 
-**Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization; cap the analytic LED rendering at 760 by 320 pixels and 30 frames per second
+**Performance Goals**: Keep the primary form interactive without waiting for WebGPU initialization; cap the analytic LED rendering at 1100 by 420 pixels, use 60 frames per second while interactive and 30 while idle
 
 **Constraints**: First viewport exposes the query; local model credentials stay server-side; agent failures are recoverable; accessible reduced-motion fallback
 
@@ -32,6 +32,8 @@ Connect the Vinext/React query surface to the local Go buyer agent through a sam
 - Existing buyer-agent boundary is reused instead of duplicating interpretation in the UI: pass.
 - LLM/A2A value is not claimed or simulated as validated: pass.
 - Visual effects cannot block product behavior: pass.
+- Follow-up loading preserves prior evidence and results instead of replacing them: pass.
+- Color usage is limited to the exact `DESIGN.md` palette, with prism channels confined to the vgpu artifact: pass.
 
 ## Project Structure
 

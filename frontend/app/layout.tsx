@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono, Inter } from 'next/font/google';
 
 import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
 });
 
@@ -26,7 +26,14 @@ export const metadata: Metadata = {
       'Búsqueda inmobiliaria que entiende requisitos, preferencias y concesiones antes de comparar opciones.',
     locale: 'es_AR',
     type: 'website',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Hausy, búsqueda inmobiliaria personal' }],
+    images: [
+      {
+        url: '/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Hausy, búsqueda inmobiliaria personal',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -44,7 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${inter.variable} ${geistMono.variable}`}>
         {children}
       </body>
     </html>

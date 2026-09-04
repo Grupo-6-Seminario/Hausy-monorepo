@@ -19,7 +19,12 @@ const sampleListing: Listing = {
   bathrooms: 1,
   total_area_m2: 50,
   attributes: [
-    { type: 'natural_light', value: 'high', provenance: 'stated', evidence: 'Muy luminoso' },
+    {
+      type: 'natural_light',
+      value: 'high',
+      provenance: 'stated',
+      evidence: 'Muy luminoso',
+    },
   ],
 };
 
@@ -46,7 +51,9 @@ describe('SearchExperience', () => {
     const ledBorder = document.querySelector('[data-prompt-led-border]');
 
     expect(textbox).toBeVisible();
-    expect(screen.getByRole('button', { name: /buscar hogares/i })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /buscar hogares/i }),
+    ).toBeVisible();
     expect(ledBorder).toBeInstanceOf(HTMLCanvasElement);
     expect(ledBorder?.nextElementSibling).toBe(textbox);
   });
@@ -81,7 +88,10 @@ describe('SearchExperience', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<SearchExperience />);
 
-    await user.type(screen.getByRole('textbox'), 'Dos ambientes con luz{Enter}');
+    await user.type(
+      screen.getByRole('textbox'),
+      'Dos ambientes con luz{Enter}',
+    );
 
     expect(await screen.findByText('Respuesta de Hausy')).toBeVisible();
     expect(screen.getByText('Respuesta del agente.')).toBeVisible();
@@ -89,7 +99,9 @@ describe('SearchExperience', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/agent',
-      expect.objectContaining({ body: expect.stringContaining('Dos ambientes con luz') }),
+      expect.objectContaining({
+        body: expect.stringContaining('Dos ambientes con luz'),
+      }),
     );
   });
 
@@ -137,7 +149,9 @@ describe('SearchExperience', () => {
     );
 
     expect(
-      await screen.findByText('Entendido. Encontré 1 propiedad con excelente luz natural.'),
+      await screen.findByText(
+        'Entendido. Encontré 1 propiedad con excelente luz natural.',
+      ),
     ).toBeVisible();
     expect(screen.getByText('Humboldt 1900')).toBeVisible();
     expect(screen.getByText(/USD 900/i)).toBeVisible();
@@ -180,16 +194,121 @@ describe('SearchExperience', () => {
     const input = screen.getByRole('textbox');
     await user.type(input, 'Busco en Palermo{Enter}');
 
-    expect(await screen.findByText('Primer turno: 1 propiedad encontrada.')).toBeVisible();
+    expect(
+      await screen.findByText('Primer turno: 1 propiedad encontrada.'),
+    ).toBeVisible();
     expect(screen.getByText('Humboldt 1900')).toBeVisible();
 
     // Query box remains editable and in view for follow-up questions
     await user.clear(input);
     await user.type(input, '¿Tienen balcón?{Enter}');
 
-    expect(await screen.findByText('Segundo turno: requisitos actualizados.')).toBeVisible();
+    expect(
+      await screen.findByText('Segundo turno: requisitos actualizados.'),
+    ).toBeVisible();
     expect(screen.getByText('Thames 2200')).toBeVisible();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps completed user and agent turns visible and clears the composer for a follow-up', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            reply: 'Encontré una opción que prioriza luz y silencio.',
+            listings: [sampleListing],
+            requirements: [{ type: 'barrio', value: 'Palermo' }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    render(<SearchExperience />);
+
+    const composer = screen.getByRole('textbox', {
+      name: /describí cómo querés vivir/i,
+    });
+    await user.type(composer, 'Quiero vivir en Palermo con mucha luz{Enter}');
+
+    expect(
+      await screen.findByRole('log', { name: /conversación con Hausy/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Quiero vivir en Palermo con mucha luz'),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Encontré una opción que prioriza luz y silencio.'),
+    ).toBeVisible();
+    expect(composer).toHaveValue('');
+    expect(composer).toHaveFocus();
+  });
+
+  it('keeps the current shortlist visible while Hausy handles a follow-up', async () => {
+    const user = userEvent.setup();
+    let finishFollowUp: ((response: Response) => void) | undefined;
+    const followUpResponse = new Promise<Response>((resolve) => {
+      finishFollowUp = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            reply: 'Primera selección.',
+            listings: [sampleListing],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockReturnValueOnce(followUpResponse);
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    const composer = screen.getByRole('textbox');
+    await user.type(composer, 'Busco algo luminoso{Enter}');
+    expect(await screen.findByText('Primera selección.')).toBeVisible();
+
+    await user.type(composer, '¿Y si priorizamos silencio?{Enter}');
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Consultando el inventario y comparando tus prioridades',
+    );
+    expect(screen.getByText('Humboldt 1900')).toBeVisible();
+
+    finishFollowUp?.(
+      new Response(
+        JSON.stringify({
+          reply: 'Selección actualizada.',
+          listings: [sampleListing],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    expect(await screen.findByText('Selección actualizada.')).toBeVisible();
+  });
+
+  it('lets the user stop a slow request and restores the message for editing', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    const composer = screen.getByRole('textbox');
+    await user.type(composer, 'Dos dormitorios y poco ruido{Enter}');
+    await user.click(await screen.findByRole('button', { name: /detener/i }));
+
+    expect(fetchMock.mock.calls[0][1]?.signal).toHaveProperty('aborted', true);
+    expect(composer).toHaveValue('Dos dormitorios y poco ruido');
+    expect(composer).toHaveFocus();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('exposes the same search journey as a structured browser tool returning listings', async () => {
@@ -220,7 +339,9 @@ describe('SearchExperience', () => {
     const tool = registerTool.mock.calls[0][0];
     expect(tool.name).toBe('search_properties');
 
-    const result = await tool.execute({ query: 'Dos dormitorios con luz natural' });
+    const result = await tool.execute({
+      query: 'Dos dormitorios con luz natural',
+    });
 
     expect(await screen.findByText('Respuesta del agente.')).toBeVisible();
     expect(screen.getByText('Humboldt 1900')).toBeVisible();
