@@ -11,7 +11,8 @@ const sampleListing: Listing = {
   neighborhood: 'palermo',
   agency: 'LOUNGE PROPIEDADES S.A.',
   address: 'Humboldt al 1900, Palermo',
-  description: 'Excelente semipiso al contrafrente con mucha luz natural y vista abierta.',
+  description:
+    'Excelente semipiso al contrafrente con mucha luz natural y vista abierta.',
   operation: 'alquiler',
   price: { amount: 850, currency: 'USD' },
   expenses: { amount: 120000, currency: 'ARS' },
@@ -103,5 +104,16 @@ describe('PropertyCard', () => {
     render(<PropertyCard listing={{ ...sampleListing, rank: 1 }} />);
 
     expect(screen.getByText('#1')).toBeVisible();
+  });
+
+  it('marks a property only when Hausy explicitly recommends it', () => {
+    const { rerender } = render(
+      <PropertyCard listing={{ ...sampleListing, rank: 4 }} isRecommended />,
+    );
+
+    expect(screen.getByText('Destacada por Hausy')).toBeVisible();
+
+    rerender(<PropertyCard listing={{ ...sampleListing, rank: 1 }} />);
+    expect(screen.queryByText('Destacada por Hausy')).toBeNull();
   });
 });

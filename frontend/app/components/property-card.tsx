@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 interface PropertyCardProps {
   listing: Listing;
+  isRecommended?: boolean;
   className?: string;
 }
 
@@ -62,7 +63,11 @@ function formatAttributeLabel({ type, value }: ListingAttribute): string {
   }
 }
 
-export function PropertyCard({ listing, className }: PropertyCardProps) {
+export function PropertyCard({
+  listing,
+  isRecommended = false,
+  className,
+}: PropertyCardProps) {
   const {
     rank,
     source,
@@ -104,10 +109,19 @@ export function PropertyCard({ listing, className }: PropertyCardProps) {
   );
 
   return (
-    <article className={cn('property-card', className)}>
+    <article
+      className={cn(
+        'property-card',
+        isRecommended && 'property-card-featured',
+        className,
+      )}
+    >
       <header className="property-card-header">
         <div className="listing-position">
           {rank != null ? <span className="listing-rank">#{rank}</span> : null}
+          {isRecommended ? (
+            <span className="listing-fit">Destacada por Hausy</span>
+          ) : null}
           <span className="listing-operation">{operation}</span>
           <span className="listing-neighborhood">
             <MapPin aria-hidden="true" />

@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { AgentResponse, Listing, Requirement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { PromptLedCanvas } from './prompt-led-canvas';
+import { AgentReply } from './agent-reply';
 import { PropertyList } from './property-list';
 
 const exampleQueries = [
@@ -39,12 +39,23 @@ interface ConversationTurn {
   reply: string;
 }
 
+function referencedRanks(reply: string): number[] {
+  const ranks = new Set<number>();
+
+  for (const match of reply.matchAll(/(?:#\s*|rank\s+)(\d+)\b/gi)) {
+    ranks.add(Number(match[1]));
+  }
+
+  return [...ranks];
+}
+
 export function SearchExperience() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [state, setState] = useState<SearchState>('idle');
   const [listings, setListings] = useState<Listing[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [recommendedRanks, setRecommendedRanks] = useState<number[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
   const [pendingQuery, setPendingQuery] = useState('');
@@ -98,6 +109,7 @@ export function SearchExperience() {
 
         setListings(payload.listings || []);
         setRequirements(payload.requirements || []);
+        setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
           ...currentTurns,
@@ -210,9 +222,7 @@ export function SearchExperience() {
     >
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Hausy, inicio">
-          <span className="brand-mark" aria-hidden="true">
-            H/
-          </span>
+          <img src="/hausy_logo.png" alt="Hausy" width="40" height="40" />
           <span>Hausy</span>
         </a>
         <p className="prototype-note">Prototipo de búsqueda</p>
@@ -267,7 +277,7 @@ export function SearchExperience() {
                     </div>
                     <div className="message message-agent">
                       <p className="conversation-speaker">Hausy</p>
-                      <p>{turn.reply}</p>
+                      <AgentReply reply={turn.reply} />
                     </div>
                   </li>
                 ))}
@@ -292,8 +302,11 @@ export function SearchExperience() {
               </ol>
 
               {requirements.length > 0 ? (
-                <div className="criteria" aria-label="Criterios entendidos">
-                  <p>Criterios entendidos</p>
+                <details className="criteria">
+                  <summary>
+                    <span>Criterios que estoy usando</span>
+                    <span>{requirements.length}</span>
+                  </summary>
                   <ul>
                     {requirements.map((requirement, index) => (
                       <li
@@ -304,7 +317,7 @@ export function SearchExperience() {
                       </li>
                     ))}
                   </ul>
-                </div>
+                </details>
               ) : null}
             </div>
           ) : null}
@@ -318,7 +331,6 @@ export function SearchExperience() {
             <div
               className={cn('query-control', error && 'query-control-error')}
             >
-              <PromptLedCanvas />
               <Textarea
                 ref={inputRef}
                 id="property-query"
@@ -398,6 +410,7 @@ export function SearchExperience() {
           >
             <PropertyList
               listings={listings}
+              recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             />
           </section>

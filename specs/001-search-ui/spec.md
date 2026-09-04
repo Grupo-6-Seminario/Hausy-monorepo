@@ -6,7 +6,7 @@
 
 **Status**: In progress
 
-**Input**: Renew Hausy's query-first experience around persistent buyer-agent conversation and property comparison, following `frontend/DESIGN.md` and using vgpu for the sole chromatic light artifact.
+**Input**: Renew Hausy's query-first experience around persistent buyer-agent conversation and property comparison, following `frontend/DESIGN.md` and the approved cozy green palette.
 
 ## User Scenarios & Testing
 
@@ -31,13 +31,13 @@ A person unsure how to phrase a search can load a realistic example and edit it 
 
 **Independent Test**: Activate an example query and verify that it populates the same editable search field.
 
-### User Story 3 - Keep the experience polished without blocking access (Priority: P3)
+### User Story 3 - Keep the experience polished and stable (Priority: P3)
 
-The page uses a subtle vgpu visual layer when WebGPU is available and remains fully usable when it is not.
+The page uses restrained CSS state feedback, soft green surfaces, and consistent rounded geometry without decorative GPU effects.
 
-**Why this priority**: Visual novelty is secondary to completing the search task.
+**Why this priority**: The interface should feel calm and trustworthy throughout a high-consideration decision.
 
-**Independent Test**: Render with no WebGPU support and verify that the form, content, and fallback background still work.
+**Independent Test**: Render the page at desktop and mobile sizes and verify that the form, conversation, and results remain readable, rounded, and on palette.
 
 ### User Story 4 - Refine the search conversationally (Priority: P1)
 
@@ -57,7 +57,6 @@ A person can add a condition or ask a follow-up without losing earlier turns or 
 
 - A query made only of whitespace is invalid.
 - A very long query remains editable without changing the page width.
-- WebGPU initialization failure never hides or disables the form.
 - Reduced-motion preferences remove nonessential motion.
 - The local agent being unavailable produces an inline connection error and keeps the query editable.
 
@@ -70,11 +69,13 @@ A person can add a condition or ask a follow-up without losing earlier turns or 
 - **FR-003**: The system MUST forward valid queries to the local buyer-agent HTTP API without exposing the local model token to browser code.
 - **FR-004**: The system MUST keep user messages and agent replies in an accessible inline conversation log.
 - **FR-005**: The system MUST offer editable example queries.
-- **FR-006**: The system MUST preserve the complete search flow when WebGPU is unavailable or motion is reduced.
+- **FR-006**: The system MUST preserve the complete search flow when motion is reduced and MUST NOT depend on decorative GPU rendering.
 - **FR-007**: The system MUST support keyboard submission and responsive layouts.
 - **FR-008**: The system MUST preserve completed turns and the current shortlist during follow-up requests.
 - **FR-009**: The system MUST let the person abort a pending request and recover the submitted message.
 - **FR-010**: The system MUST identify published data and model inference separately.
+- **FR-011**: The system MUST render the agent reply as a concise decision brief without exposing raw Markdown syntax.
+- **FR-012**: The system MUST mark only listing cards explicitly cited by the agent's latest reply.
 
 ### Key Entities
 
