@@ -1,18 +1,36 @@
 # Hausy frontend design reference
 
-> A calm property search conversation in a cozy green room.
+> A personal property search in a cozy green room, with the responsiveness of a modern creative tool.
 
 ## Direction
 
-Hausy is a decision-support product for people making a high-consideration housing choice. The interface should feel warm, clear, patient, and grounded. It is not a dark-tech product and it should not resemble an analytics dashboard.
+Hausy is decision support for a high-consideration housing choice. It should feel warm, clear, patient, and grounded, while its motion and response quality make the agent feel present.
 
-The search conversation is the primary surface. Property results support that conversation with evidence, trade-offs, and links to the original publication.
+The search conversation is the primary surface. Property results support it with evidence, trade-offs, and links to the original publication.
+
+Design calibration:
+
+- `DESIGN_VARIANCE: 6/10`
+- `MOTION_INTENSITY: 6/10`
+- `VISUAL_DENSITY: 4/10`
+- Mode: targeted evolution of the existing experience
+
+## Reference synthesis
+
+The interaction language is informed by the four exports in the [GSAP Refero style guide](https://styles.refero.design/style/00537a20-e99e-4ef2-b119-c6f532c44cc9):
+
+1. `DESIGN.md`: humanist display type, confident scale, light controls, deliberate animation.
+2. Tailwind v4 theme: named theme tokens mapped to runtime CSS variables.
+3. CSS Variables: a single source for color, typography, spacing, radius, and motion values.
+4. Design Tokens: portable DTCG-style values in `design-tokens.json`.
+
+Hausy borrows the reference's typography, rhythm, pill controls, motion hierarchy, and internally lit depth. It does not inherit the reference's black canvas, cream surface, or multicolor taxonomy.
 
 ## Non-negotiable color rule
 
-Use only the cozy green palette documented below. Do not introduce, replace, or reinterpret colors without explicit approval from the project owner.
+Use only the cozy green palette below. Do not introduce, replace, or reinterpret colors without explicit approval from the project owner.
 
-Rainbow lighting, RGB effects, prism treatments, neon borders, and multicolor gradients are not part of the Hausy visual language. Focus states should use the existing green ring token and must remain stable when WebGPU is unavailable.
+All transparency, shadows, gradients, focus treatments, and shader colors must be derived from these values. Rainbow, RGB, prism, purple, blue, orange, pink, and unrelated neon effects are not part of Hausy.
 
 ### Light theme
 
@@ -49,36 +67,67 @@ Rainbow lighting, RGB effects, prism treatments, neon borders, and multicolor gr
 | Focus ring          | `#6fbe91` | `--ring`               |
 | Error               | `#e27d72` | `--destructive`        |
 
-The page follows the system theme. A single rendered page must remain entirely within one theme.
+The page follows the system theme. A rendered page stays entirely within that theme.
 
 ## Typography
 
-- Use Geist Sans for interface and display text.
+- Use DM Sans for interface and display text. It is the humanist substitute selected from the Refero guide.
 - Use Geist Mono only for compact numerical or technical metadata.
+- Use weight 600 and tight tracking for display headings; weight 400-500 for body copy.
 - Prefer sentence case.
-- Use weight and spacing for hierarchy. Avoid oversized display typography inside the result workspace.
-- Body copy should have a line height between 1.45 and 1.6.
+- Body copy uses a line height between 1.45 and 1.6.
+- Display type can be large on the welcome view but must contract inside the result workspace.
 
-## Shapes and depth
+## Spacing and shapes
+
+Spacing uses a 4 px base and the named runtime tokens:
+
+- Element gap: 16 px.
+- Card padding: 24 px.
+- Section rhythm: 80 px where the viewport allows it.
+- Maximum page width: 1560 px.
 
 Hausy uses one soft shape system:
 
-- Main panels and property cards: 16-22px radius.
-- Inputs and buttons: 12-16px radius.
-- Metadata chips and counters: fully rounded.
-- Shadows are subtle and tinted green. Never use pure black shadows.
+- Main panels and property cards: 16-22 px radius.
+- Inputs: 14-20 px radius.
+- Buttons, metadata chips, and counters: fully rounded.
+- Shadows are subtle, diffuse, and tinted with approved greens.
 
-Square property cards, sharp text fields, and mixed sharp/rounded controls are not allowed.
+Square property cards, sharp text fields, and mixed sharp or rounded controls are not allowed.
 
 ## Layout
 
-- Maximum page width: 1560px.
-- Desktop search workspace: two columns with the conversation as the larger column.
-- Target desktop balance: approximately 54 percent conversation and 46 percent results.
+- Desktop search workspace: approximately 54 percent conversation and 46 percent results.
 - The conversation pane can remain sticky on wide screens.
-- Below 1180px, use a single column with the conversation before results.
-- Do not trap the complete page in nested scroll areas. A bounded conversation history may scroll when necessary.
+- Below 1180 px, use a single column with the conversation before results.
+- Do not trap the full page in nested scroll areas. A bounded conversation history may scroll when necessary.
 - Use generous gaps between property cards and clear internal grouping.
+
+## Motion and interaction
+
+Every animation must communicate hierarchy, feedback, or state.
+
+- The header, headline, supporting copy, composer, and examples enter in a short stagger on first load.
+- The prompt surface lifts slightly on hover and focus.
+- The green luminary beneath the prompt follows the mouse locally and brightens on hover, focus, and active search.
+- New conversation turns and property cards rise into place once.
+- Buttons compress on press. Directional icons move only when their control is engaged.
+- Loading uses a skeletal or linear shimmer that matches the final shape, not a generic spinner.
+- Animate opacity and transform for DOM transitions. The luminary is the only continuous canvas animation.
+- Honor `prefers-reduced-motion`; render a static green light when motion is reduced.
+
+### vgpu prompt luminary
+
+The vgpu effect is a supported Hausy signature, not a prohibited dependency.
+
+- Render it beneath the prompt, never as a rainbow border.
+- Shader colors are limited to `#3a7e4f`, `#6fbe91`, and `#d3e0b8` or their dark-theme equivalents.
+- At rest the glow remains quiet. Hover and focus increase local energy near the pointer. Searching raises the overall intensity.
+- Track the pointer only inside the prompt stage. Do not attach a permanent page-wide pointer listener.
+- Clamp device pixel ratio and keep one GPU context, surface, effect, and frame loop per mounted prompt.
+- Dispose listeners, the frame loop, and the GPU context on unmount.
+- If WebGPU or shader startup fails, hide the canvas and keep a stable CSS glow derived from `--accent`.
 
 ## Conversation and agent communication
 
@@ -91,32 +140,26 @@ For searches with results, prefer this structure:
 3. `Qué falta confirmar`: only relevant unknown or inferred facts, with no more than two items.
 4. One focused follow-up question when an answer would materially improve the ranking.
 
-The interface should render headings, lists, and emphasis semantically. Raw Markdown markers must never be visible.
+Render headings, lists, and emphasis semantically. Raw Markdown markers must never be visible.
 
 ## Property results
 
 - Keep the shortlist visible while follow-up requests run.
-- Mark a property as `Destacada por Hausy` only when the agent's latest decision brief explicitly cites that card's rank. Never infer a recommendation from its array position.
+- Mark a property as `Destacada por Hausy` only when the agent explicitly cites that card's rank.
 - Show published facts separately from model inference.
 - Do not repeat every card's price, address, and features in the agent response.
-- Keep the link to the original publication visible and clearly secondary to the search conversation.
-
-## Motion
-
-- Motion intensity is low.
-- Use motion only for state feedback, such as a short loading progress sweep or button press.
-- Animate transform and opacity only.
-- Honor `prefers-reduced-motion`.
-- Do not use persistent decorative animation, pointer-following light, WebGPU borders, rainbow lighting, or glow effects.
+- Keep the original publication link visible and secondary to the search conversation.
+- Hover movement can reinforce that a card is interactive, but it must not imply a better ranking.
 
 ## Brand asset
 
-Use `/hausy_logo.png` as the provisional Hausy mark. Preserve its colors and aspect ratio. It may appear in the header and other restrained brand-identification contexts, but should not be recolored, cropped into another symbol, or used as decoration.
+Use `/hausy_logo.png` as the provisional Hausy mark. Preserve its colors and aspect ratio. It may identify the product but must not be recolored, cropped into another symbol, or used as decoration.
 
-## Accessibility
+## Accessibility and resilience
 
 - Keep visible labels above form fields.
-- Preserve keyboard submission with Enter and multiline entry with Shift + Enter.
-- Maintain visible focus states with the green focus-ring token.
+- Preserve Enter to submit and Shift + Enter for a new line.
+- Maintain visible green focus states and WCAG AA contrast.
 - Use semantic headings, lists, status messages, and disclosure controls.
-- All interactive controls must meet WCAG AA contrast.
+- Motion is supplementary. The full search flow works without WebGPU and with reduced motion.
+- Continuous visual values stay outside React state to avoid pointer-driven rerenders.

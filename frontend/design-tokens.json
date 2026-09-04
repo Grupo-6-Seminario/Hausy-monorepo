@@ -1,0 +1,58 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "color": {
+    "light": {
+      "background": { "$type": "color", "$value": "#f5f9e6" },
+      "foreground": { "$type": "color", "$value": "#193724" },
+      "card": { "$type": "color", "$value": "#f9fbea" },
+      "primary": { "$type": "color", "$value": "#2a5a3a" },
+      "secondary": { "$type": "color", "$value": "#d3e0b8" },
+      "muted": { "$type": "color", "$value": "#e7edcf" },
+      "mutedText": { "$type": "color", "$value": "#46634f" },
+      "accent": { "$type": "color", "$value": "#6fbe91" },
+      "border": { "$type": "color", "$value": "#b8c99c" },
+      "input": { "$type": "color", "$value": "#9eb487" },
+      "ring": { "$type": "color", "$value": "#3a7e4f" },
+      "error": { "$type": "color", "$value": "#a73b3b" }
+    },
+    "dark": {
+      "background": { "$type": "color", "$value": "#102218" },
+      "foreground": { "$type": "color", "$value": "#eef4df" },
+      "card": { "$type": "color", "$value": "#173322" },
+      "primary": { "$type": "color", "$value": "#6fbe91" },
+      "secondary": { "$type": "color", "$value": "#284a34" },
+      "muted": { "$type": "color", "$value": "#203d2b" },
+      "mutedText": { "$type": "color", "$value": "#b8c9ad" },
+      "border": { "$type": "color", "$value": "#3d5d46" },
+      "input": { "$type": "color", "$value": "#56745d" },
+      "ring": { "$type": "color", "$value": "#6fbe91" },
+      "error": { "$type": "color", "$value": "#e27d72" }
+    }
+  },
+  "font": {
+    "sans": { "$type": "fontFamily", "$value": "DM Sans" },
+    "mono": { "$type": "fontFamily", "$value": "Geist Mono" }
+  },
+  "spacing": {
+    "unit": { "$type": "dimension", "$value": "4px" },
+    "element": { "$type": "dimension", "$value": "16px" },
+    "card": { "$type": "dimension", "$value": "24px" },
+    "section": { "$type": "dimension", "$value": "80px" }
+  },
+  "radius": {
+    "control": { "$type": "dimension", "$value": "14px" },
+    "card": { "$type": "dimension", "$value": "20px" },
+    "pill": { "$type": "dimension", "$value": "9999px" }
+  },
+  "motion": {
+    "fast": { "$type": "duration", "$value": "180ms" },
+    "enter": { "$type": "duration", "$value": "640ms" },
+    "focusEase": {
+      "$type": "cubicBezier",
+      "$value": [0.16, 1, 0.3, 1]
+    }
+  },
+  "layout": {
+    "pageMaxWidth": { "$type": "dimension", "$value": "1560px" }
+  }
+}
