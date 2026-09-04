@@ -1,4 +1,11 @@
-import { effect, frame, surface, type Effect, type Gpu, type Surface } from 'vgpu';
+import {
+  effect,
+  frame,
+  surface,
+  type Effect,
+  type Gpu,
+  type Surface,
+} from 'vgpu';
 
 import {
   POINTER_GLOW_RADIUS_CSS_PX,
@@ -52,8 +59,10 @@ function uniforms(
       pointer.strength,
       POINTER_GLOW_RADIUS_CSS_PX * scale,
     ],
-    colour_a: [0.204, 0.478, 0.31, 1],
-    colour_b: [0.588, 0.898, 0.71, 1],
+    // DESIGN.md prism channels, kept inside the luminary artifact.
+    colour_a: [1, 0.1647, 0.1647, 1],
+    colour_b: [0.1647, 0.498, 1, 1],
+    colour_c: [0.1647, 1, 0.1647, 1],
   };
 }
 
@@ -95,7 +104,12 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
   // the cursor is tracked on the window and projected into render space.
   const onPointerMove = (event: PointerEvent) => {
     if (event.pointerType !== 'mouse') return;
-    target = pointerAim(canvas.getBoundingClientRect(), event.clientX, event.clientY, size);
+    target = pointerAim(
+      canvas.getBoundingClientRect(),
+      event.clientX,
+      event.clientY,
+      size,
+    );
   };
   const onPointerOut = (event: PointerEvent) => {
     if (event.relatedTarget === null) target = { ...target, strength: 0 };
@@ -139,7 +153,10 @@ export function createPromptLedBorder(canvas: HTMLCanvasElement) {
     await shader.compile({ colors: [output.format] });
     if (disposed) return;
     resize();
-    observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(resize);
+    observer =
+      typeof ResizeObserver === 'undefined'
+        ? undefined
+        : new ResizeObserver(resize);
     observer?.observe(canvas);
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('pointerout', onPointerOut, { passive: true });

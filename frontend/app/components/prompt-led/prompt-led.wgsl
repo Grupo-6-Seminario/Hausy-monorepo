@@ -9,6 +9,7 @@ struct Config {
   pointer: vec4f,
   colour_a: vec4f,
   colour_b: vec4f,
+  colour_c: vec4f,
 };
 
 @group(0) @binding(0) var<uniform> led: Config;
@@ -102,7 +103,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   // Hovering only warms the strip; it is not a second, brighter mode.
   let emitter = shimmer * (1.0 + 0.5 * lift);
 
-  let emitter_colour = mix(led.colour_a.rgb, led.colour_b.rgb, clamp(0.72 + lift * 0.28, 0.0, 1.0));
+  // The border is the sole chromatic artifact in the interface: its phase
+  // travels through the three approved prism channels while pointer proximity
+  // changes energy, never the palette.
+  let colour_phase = fract(edge.phase + time * 0.006);
+  let red_to_cyan = mix(led.colour_a.rgb, led.colour_b.rgb, smoothstep(0.0, 0.5, colour_phase));
+  let emitter_colour = mix(red_to_cyan, led.colour_c.rgb, smoothstep(0.5, 1.0, colour_phase));
 
   let outside = max(edge.distance, 0.0);
   let front = exp(-abs(edge.distance) / max(led.shape.y, 0.5));

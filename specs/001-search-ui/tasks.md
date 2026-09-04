@@ -32,3 +32,10 @@
 - [x] T013 [US4] Add a tested same-origin frontend proxy to the local Hausy API.
 - [x] T014 [US4] Replace the deterministic result with the real agent reply in an accessible dialog.
 - [x] T015 [US4] Document local model, API, and frontend startup configuration.
+
+## User Story 5 - Renew the conversational search experience
+
+- [x] T016 [US5] Add failing public-seam tests for persistent turns, stable follow-up results, and request cancellation.
+- [x] T017 [US5] Replace the landing/result handoff with a responsive conversation-and-selection workspace.
+- [x] T018 [US5] Restyle the query, messages, loading states, empty state, and listing evidence using only the `DESIGN.md` tokens.
+- [x] T019 [US5] Move the approved prism channels into the vgpu prompt artifact and preserve static and reduced-motion fallbacks.

@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  ArrowRight,
-  Bot,
-  Check,
-  MoveUpRight,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowRight, Bot, MoveUpRight, Square } from 'lucide-react';
 import {
   KeyboardEvent,
   useCallback,
@@ -16,7 +10,6 @@ import {
   useState,
 } from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { AgentResponse, Listing, Requirement } from '@/lib/types';
@@ -26,90 +19,122 @@ import { PromptLedCanvas } from './prompt-led-canvas';
 import { PropertyList } from './property-list';
 
 const exampleQueries = [
-  'Trabajo desde casa y necesito mucha luz natural, silencio y estar cerca del Subte D.',
-  'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.',
+  {
+    label: 'Home office y Subte D',
+    query:
+      'Trabajo desde casa y necesito mucha luz natural, silencio y estar cerca del Subte D.',
+  },
+  {
+    label: 'Palermo con prioridades',
+    query:
+      'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.',
+  },
 ];
 
 type SearchState = 'idle' | 'loading';
+
+interface ConversationTurn {
+  id: number;
+  query: string;
+  reply: string;
+}
 
 export function SearchExperience() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [state, setState] = useState<SearchState>('idle');
-  const [answer, setAnswer] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [turns, setTurns] = useState<ConversationTurn[]>([]);
+  const [pendingQuery, setPendingQuery] = useState('');
 
   const reactSessionID = useId();
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const resultsRef = useRef<HTMLElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const sessionRef = useRef(`browser-${reactSessionID}`);
+  const turnIDRef = useRef(0);
+  const isWorking = state === 'loading';
+  const isWorkspace = hasSearched || isWorking;
 
   useEffect(() => {
     return () => requestRef.current?.abort();
   }, []);
 
-  const startSearch = useCallback(async (nextQuery: string, returnFocus = false) => {
-    const normalizedQuery = nextQuery.trim();
-    if (!normalizedQuery) {
-      setError('Contanos al menos una necesidad o preferencia.');
-      setState('idle');
-      if (returnFocus) inputRef.current?.focus();
-      return Promise.reject(new Error('La consulta no puede estar vacía.'));
-    }
-
-    setQuery(nextQuery);
-    setError('');
-    setState('loading');
-    requestRef.current?.abort();
-    const controller = new AbortController();
-    requestRef.current = controller;
-
-    try {
-      const response = await fetch('/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionRef.current,
-          message: normalizedQuery,
-        }),
-        signal: controller.signal,
-      });
-      const payload = (await response.json()) as AgentResponse;
-      if (!response.ok || (!payload.reply && !payload.listings)) {
-        throw new Error(payload.error || 'El agente local no pudo responder.');
+  const startSearch = useCallback(
+    async (nextQuery: string, returnFocus = false) => {
+      const normalizedQuery = nextQuery.trim();
+      if (!normalizedQuery) {
+        setError('Contanos al menos una necesidad o preferencia.');
+        setState('idle');
+        if (returnFocus) inputRef.current?.focus();
+        return Promise.reject(new Error('La consulta no puede estar vacía.'));
       }
 
-      setAnswer(payload.reply || '');
-      setListings(payload.listings || []);
-      setRequirements(payload.requirements || []);
-      setHasSearched(true);
-      setState('idle');
+      setError('');
+      setState('loading');
+      setPendingQuery(normalizedQuery);
+      setQuery('');
+      requestRef.current?.abort();
+      const controller = new AbortController();
+      requestRef.current = controller;
 
-      // Allow DOM update, then scroll smoothly to the results section
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      }, 50);
+      try {
+        const response = await fetch('/api/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionRef.current,
+            message: normalizedQuery,
+          }),
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as AgentResponse;
+        if (!response.ok || (!payload.reply && !payload.listings)) {
+          throw new Error(
+            payload.error || 'El agente local no pudo responder.',
+          );
+        }
 
-      return {
-        status: 'complete',
-        query: normalizedQuery,
-        reply: payload.reply || '',
-        listings: payload.listings || [],
-      };
-    } catch (cause) {
-      if (controller.signal.aborted) throw cause;
-      const message = cause instanceof Error ? cause.message : 'El agente local no pudo responder.';
-      setError(message);
-      setState('idle');
-      if (returnFocus) inputRef.current?.focus();
-      throw cause;
-    } finally {
-      if (requestRef.current === controller) requestRef.current = null;
-    }
-  }, []);
+        setListings(payload.listings || []);
+        setRequirements(payload.requirements || []);
+        setHasSearched(true);
+        setTurns((currentTurns) => [
+          ...currentTurns,
+          {
+            id: ++turnIDRef.current,
+            query: normalizedQuery,
+            reply: payload.reply || '',
+          },
+        ]);
+        setPendingQuery('');
+        setState('idle');
+        if (returnFocus) inputRef.current?.focus();
+
+        return {
+          status: 'complete',
+          query: normalizedQuery,
+          reply: payload.reply || '',
+          listings: payload.listings || [],
+        };
+      } catch (cause) {
+        if (controller.signal.aborted) throw cause;
+        const message =
+          cause instanceof Error
+            ? cause.message
+            : 'El agente local no pudo responder.';
+        setError(message);
+        setPendingQuery('');
+        setQuery(normalizedQuery);
+        setState('idle');
+        if (returnFocus) inputRef.current?.focus();
+        throw cause;
+      } finally {
+        if (requestRef.current === controller) requestRef.current = null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const context = document.modelContext;
@@ -152,6 +177,7 @@ export function SearchExperience() {
 
   function handleSubmit(event: { preventDefault(): void }) {
     event.preventDefault();
+    if (isWorking) return;
     void startSearch(query, true).catch(() => undefined);
   }
 
@@ -159,64 +185,181 @@ export function SearchExperience() {
     if (event.key !== 'Enter' || event.shiftKey) return;
     if (event.nativeEvent.isComposing) return;
     event.preventDefault();
+    if (isWorking) return;
     void startSearch(query, true).catch(() => undefined);
+  }
+
+  function stopSearch() {
+    requestRef.current?.abort();
+    setQuery(pendingQuery);
+    setPendingQuery('');
+    setState('idle');
+    inputRef.current?.focus();
   }
 
   function applyExample(example: string) {
     setQuery(example);
     setError('');
-    setState('idle');
     inputRef.current?.focus();
   }
 
   return (
-    <main className="site-shell">
+    <main
+      className="site-shell"
+      data-view={isWorkspace ? 'workspace' : 'welcome'}
+    >
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Hausy, inicio">
           <span className="brand-mark" aria-hidden="true">
-            H
+            H/
           </span>
           <span>Hausy</span>
         </a>
-        <nav aria-label="Navegación principal">
-          <a href="#como-funciona">Cómo funciona</a>
-          <a href="#principios">Principios</a>
-          {hasSearched ? <a href="#resultados">Resultados</a> : null}
-        </nav>
-        <span className="prototype-note">Prototipo de búsqueda</span>
+        <p className="prototype-note">Prototipo de búsqueda</p>
+        {hasSearched ? (
+          <a className="results-link" href="#resultados">
+            Ver selección <span aria-hidden="true">({listings.length})</span>
+          </a>
+        ) : null}
       </header>
 
-      <section id="top" className="hero-section">
-        <div className="hero-copy">
-          <p className="eyebrow">Tu búsqueda, bien entendida</p>
-          <h1>Encontrá el lugar que encaja con tu vida.</h1>
-          <p className="hero-subtitle">
-            Contanos cómo vivís. Hausy interpreta tus prioridades, consulta la base de propiedades y
-            te presenta las opciones más afines con sus cualidades verificables.
-          </p>
+      <div className="experience-frame">
+        <section
+          id="top"
+          className="conversation-surface"
+          aria-labelledby="experience-title"
+          aria-busy={isWorking}
+        >
+          <div className="experience-intro">
+            <p className="eyebrow">Búsqueda inmobiliaria personal</p>
+            <h1 id="experience-title">
+              {isWorkspace
+                ? 'Tu búsqueda, en conversación.'
+                : 'Encontrá el lugar que encaja con tu vida.'}
+            </h1>
+            <p className="hero-subtitle">
+              {isWorkspace
+                ? 'Afiná prioridades, preguntá por una propiedad o cambiá una condición sin empezar de nuevo.'
+                : 'Contanos cómo vivís. Hausy separa requisitos, preferencias e inferencias antes de comparar opciones.'}
+            </p>
+          </div>
+
+          {isWorkspace ? (
+            <div className="conversation-panel">
+              <div className="panel-heading">
+                <Bot aria-hidden="true" />
+                <div>
+                  <p>Agente comprador</p>
+                  <h2>Respuesta de Hausy</h2>
+                </div>
+              </div>
+
+              <ol
+                className="conversation-log"
+                role="log"
+                aria-label="Conversación con Hausy"
+              >
+                {turns.map((turn) => (
+                  <li key={turn.id} className="conversation-turn">
+                    <div className="message message-user">
+                      <p className="conversation-speaker">Vos</p>
+                      <p>{turn.query}</p>
+                    </div>
+                    <div className="message message-agent">
+                      <p className="conversation-speaker">Hausy</p>
+                      <p>{turn.reply}</p>
+                    </div>
+                  </li>
+                ))}
+                {isWorking ? (
+                  <li>
+                    <output className="conversation-pending" aria-live="polite">
+                      <div className="message message-user">
+                        <p className="conversation-speaker">Vos</p>
+                        <p>{pendingQuery}</p>
+                      </div>
+                      <div className="message message-agent message-working">
+                        <p className="conversation-speaker">Hausy</p>
+                        <p>
+                          Consultando el inventario y comparando tus
+                          prioridades...
+                        </p>
+                        <span className="working-line" aria-hidden="true" />
+                      </div>
+                    </output>
+                  </li>
+                ) : null}
+              </ol>
+
+              {requirements.length > 0 ? (
+                <div className="criteria" aria-label="Criterios entendidos">
+                  <p>Criterios entendidos</p>
+                  <ul>
+                    {requirements.map((requirement, index) => (
+                      <li
+                        key={`${requirement.type}-${requirement.value}-${index}`}
+                      >
+                        <span>{requirement.type.replaceAll('_', ' ')}</span>
+                        {requirement.value}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <form className="query-form" onSubmit={handleSubmit} noValidate>
-            <label htmlFor="property-query">Describí cómo querés vivir</label>
-            <div className={cn('query-control', error && 'query-control-error')}>
+            <label htmlFor="property-query">
+              {isWorkspace
+                ? 'Sumá una condición o hacé una pregunta'
+                : 'Describí cómo querés vivir'}
+            </label>
+            <div
+              className={cn('query-control', error && 'query-control-error')}
+            >
               <PromptLedCanvas />
               <Textarea
                 ref={inputRef}
                 id="property-query"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  if (error) setError('');
+                }}
                 onKeyDown={handleKeyDown}
-                aria-describedby={error ? 'query-error query-help' : 'query-help'}
+                aria-describedby={
+                  error ? 'query-error query-help' : 'query-help'
+                }
                 aria-invalid={Boolean(error)}
-                placeholder="Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena."
-                rows={4}
+                placeholder={
+                  isWorkspace
+                    ? 'Ejemplo: priorizá silencio aunque quede un poco más lejos del subte.'
+                    : 'Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena.'
+                }
+                rows={isWorkspace ? 2 : 4}
               />
-              <Button type="submit" size="lg" disabled={state === 'loading'}>
-                {state === 'loading' ? 'Buscando...' : 'Buscar hogares'}
-                <ArrowRight aria-hidden="true" />
-              </Button>
+              {isWorking ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={stopSearch}
+                >
+                  Detener
+                  <Square aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button type="submit" size="lg" variant="outline">
+                  Buscar hogares
+                  <ArrowRight aria-hidden="true" />
+                </Button>
+              )}
             </div>
             <div className="form-meta">
-              <p id="query-help">Enter para buscar, Shift + Enter para una nueva línea</p>
+              <p id="query-help">
+                Enter para enviar · Shift + Enter para una nueva línea
+              </p>
               {error ? (
                 <p id="query-error" role="alert">
                   {error}
@@ -225,106 +368,41 @@ export function SearchExperience() {
             </div>
           </form>
 
-          <div className="examples" aria-label="Consultas de ejemplo">
-            <span>Probá con</span>
-            {exampleQueries.map((example, index) => (
-              <button key={example} type="button" onClick={() => applyExample(example)}>
-                {index === 0 ? 'Home office y Subte D' : 'Palermo con prioridades'}
-                <MoveUpRight aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <figure className="hero-visual">
-          <img
-            src="/assets/buenos-aires-apartment.webp"
-            alt="Living luminoso de un departamento de Buenos Aires con grandes ventanales y vegetación"
-            width="1536"
-            height="1024"
-          />
-          <figcaption>
-            <span>Ejemplo visual</span>
-            <strong>No es una publicación activa</strong>
-          </figcaption>
-        </figure>
-      </section>
-
-      {/* Results Section rendered inline once a search is made or loading */}
-      {(hasSearched || state === 'loading') && (
-        <section
-          id="resultados"
-          ref={resultsRef}
-          aria-label="Análisis y resultados"
-          className="results-section my-16 scroll-mt-8 space-y-8"
-        >
-          {/* Agent Analysis & Reasoning Box */}
-          <div className="rounded-3xl border border-border bg-card/90 p-6 shadow-sm backdrop-blur-md md:p-8">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              <Bot className="h-4 w-4" />
-              <span>Análisis de Hausy</span>
+          {!isWorkspace ? (
+            <div className="examples" aria-label="Consultas de ejemplo">
+              <span>Podés empezar por</span>
+              {exampleQueries.map((example) => (
+                <button
+                  key={example.label}
+                  type="button"
+                  onClick={() => applyExample(example.query)}
+                >
+                  {example.label}
+                  <MoveUpRight aria-hidden="true" />
+                </button>
+              ))}
             </div>
+          ) : null}
 
-            <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Respuesta de Hausy
-            </h2>
-
-            {state === 'loading' ? (
-              <div className="mt-4 space-y-2">
-                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-              </div>
-            ) : (
-              <p className="mt-3 text-base leading-relaxed text-foreground whitespace-pre-wrap sm:text-lg">
-                {answer}
-              </p>
-            )}
-
-            {/* Extracted requirements pills */}
-            {requirements.length > 0 ? (
-              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Criterios entendidos:
-                </span>
-                {requirements.map((req, idx) => (
-                  <Badge
-                    key={`${req.type}-${req.value}-${idx}`}
-                    variant="secondary"
-                    className="text-xs font-medium"
-                  >
-                    {req.type}: {req.value}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          {/* List of Properties in Box Card Fashion */}
-          <PropertyList listings={listings} isLoading={state === 'loading'} />
-        </section>
-      )}
-
-      <section id="como-funciona" className="explanation-section">
-        <div>
-          <h2>Primero entiende. Después filtra.</h2>
-          <p>
-            Precio, ambientes y zona son datos. Luz, ruido y flexibilidad necesitan contexto. Hausy
-            mantiene esa diferencia visible.
+          <p className="trust-note">
+            Los datos publicados y las inferencias del modelo aparecen
+            identificados por separado.
           </p>
-        </div>
-        <div className="principle-grid" id="principios">
-          <article>
-            <Check aria-hidden="true" />
-            <h3>Requisitos claros</h3>
-            <p>Lo que se puede comprobar se trata como dato, no como opinión.</p>
-          </article>
-          <article>
-            <Sparkles aria-hidden="true" />
-            <h3>Preferencias con matices</h3>
-            <p>Las prioridades y concesiones quedan explícitas antes de ordenar resultados.</p>
-          </article>
-        </div>
-      </section>
+        </section>
+
+        {isWorkspace ? (
+          <section
+            id="resultados"
+            aria-label="Análisis y resultados"
+            className="results-section"
+          >
+            <PropertyList
+              listings={listings}
+              isLoading={isWorking && !hasSearched}
+            />
+          </section>
+        ) : null}
+      </div>
     </main>
   );
 }

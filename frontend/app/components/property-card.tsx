@@ -6,10 +6,8 @@ import {
   Layers,
   MapPin,
   Maximize2,
-  Sparkles,
 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import type { Listing, ListingAttribute } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -24,14 +22,10 @@ function formatMoney(amount?: number | null, currency?: string | null): string {
     maximumFractionDigits: 0,
   }).format(amount);
 
-  if (currency === 'USD') {
-    return `USD ${formattedNumber}`;
-  }
-  return `$ ${formattedNumber}`;
+  return currency === 'USD' ? `USD ${formattedNumber}` : `$ ${formattedNumber}`;
 }
 
-function formatAttributeLabel(attr: ListingAttribute): string {
-  const { type, value } = attr;
+function formatAttributeLabel({ type, value }: ListingAttribute): string {
   switch (type) {
     case 'natural_light':
       if (value === 'high') return 'Luz natural: alta';
@@ -64,7 +58,7 @@ function formatAttributeLabel(attr: ListingAttribute): string {
     case 'amenity':
       return value.charAt(0).toUpperCase() + value.slice(1);
     default:
-      return `${type.replace(/_/g, ' ')}: ${value}`;
+      return `${type.replaceAll('_', ' ')}: ${value}`;
   }
 }
 
@@ -89,171 +83,116 @@ export function PropertyCard({ listing, className }: PropertyCardProps) {
 
   const hasExpenses = expenses?.amount != null;
   const isRental = operation.toLowerCase().includes('alquiler');
-  const sourceName = source ? source.charAt(0).toUpperCase() + source.slice(1) : 'ZonaProp';
+  const sourceName = source
+    ? source.charAt(0).toUpperCase() + source.slice(1)
+    : 'ZonaProp';
+  const metrics = [
+    rooms != null ? { icon: Layers, label: `${rooms} amb` } : null,
+    bedrooms != null ? { icon: BedDouble, label: `${bedrooms} dorm` } : null,
+    bathrooms != null
+      ? {
+          icon: Bath,
+          label: `${bathrooms} ${bathrooms === 1 ? 'baño' : 'baños'}`,
+        }
+      : null,
+    total_area_m2 != null
+      ? { icon: Maximize2, label: `${total_area_m2} m²` }
+      : null,
+  ].filter(
+    (metric): metric is { icon: typeof Layers; label: string } =>
+      metric !== null,
+  );
 
   return (
-    <article
-      className={cn(
-        'property-card group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card/90 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md md:p-6',
-        className,
-      )}
-    >
-      <div>
-        {/* Top Header: Rank + Operation + Neighborhood / Agency */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-          <div className="flex items-center gap-2">
-            {rank != null ? (
-              <Badge variant="secondary" className="font-mono text-xs font-bold text-primary">
-                #{rank}
-              </Badge>
-            ) : null}
-            <Badge variant="outline" className="text-xs font-semibold capitalize tracking-wide">
-              {operation}
-            </Badge>
-            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <MapPin className="h-3 w-3 text-primary" />
-              <span className="capitalize">{neighborhood}</span>
+    <article className={cn('property-card', className)}>
+      <header className="property-card-header">
+        <div className="listing-position">
+          {rank != null ? <span className="listing-rank">#{rank}</span> : null}
+          <span className="listing-operation">{operation}</span>
+          <span className="listing-neighborhood">
+            <MapPin aria-hidden="true" />
+            {neighborhood}
+          </span>
+        </div>
+        {agency ? <p title={agency}>{agency}</p> : null}
+      </header>
+
+      <div className="property-summary">
+        <div>
+          <h3>{address || `Departamento en ${neighborhood}`}</h3>
+          {floor ? <p className="listing-floor">Piso {floor}</p> : null}
+        </div>
+        <div className="listing-price">
+          <p>
+            {formatMoney(price.amount, price.currency)}
+            {isRental ? <span> / mes</span> : null}
+          </p>
+          {hasExpenses ? (
+            <span>
+              + {formatMoney(expenses.amount, expenses.currency)} expensas
             </span>
-          </div>
-
-          {agency ? (
-            <span className="truncate text-xs text-muted-foreground" title={agency}>
-              {agency}
+          ) : (
+            <span title="El anuncio original no publicó el valor de expensas">
+              Expensas no publicadas
             </span>
-          ) : null}
+          )}
         </div>
-
-        {/* Address & Price Row */}
-        <div className="mt-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-baseline">
-          <div>
-            <h3 className="font-heading text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-              {address || `Departamento en ${neighborhood}`}
-            </h3>
-            {floor ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">Piso {floor}</p>
-            ) : null}
-          </div>
-
-          <div className="text-left sm:text-right">
-            <div className="font-mono text-xl font-bold tracking-tight text-primary sm:text-2xl">
-              {formatMoney(price.amount, price.currency)}
-              {isRental ? <span className="text-xs font-normal text-muted-foreground"> / mes</span> : null}
-            </div>
-
-            <div className="mt-0.5 text-xs">
-              {hasExpenses ? (
-                <span className="font-mono text-muted-foreground">
-                  + {formatMoney(expenses.amount, expenses.currency)} expensas
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-sm bg-muted/60 px-1.5 py-0.5 font-sans text-xs font-medium text-muted-foreground" title="El anuncio original no publicó el valor de expensas">
-                  Expensas no publicadas
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Key Metrics Grid */}
-        <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-2.5 sm:grid-cols-4 sm:gap-3">
-          {rooms != null ? (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">{rooms} amb</span>
-            </div>
-          ) : null}
-
-          {bedrooms != null ? (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <BedDouble className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">{bedrooms} dorm</span>
-            </div>
-          ) : null}
-
-          {bathrooms != null ? (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <Bath className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">
-                {bathrooms} {bathrooms === 1 ? 'baño' : 'baños'}
-              </span>
-            </div>
-          ) : null}
-
-          {total_area_m2 != null ? (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">{total_area_m2} m²</span>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Parsed Attributes with Provenance & Quotes */}
-        {attributes.length > 0 ? (
-          <div className="mt-4 border-t border-border/40 pt-3">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              Cualidades identificadas
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {attributes.map((attr, idx) => {
-                const isStated = attr.provenance === 'stated';
-                const label = formatAttributeLabel(attr);
-
-                return (
-                  <div
-                    key={`${attr.type}-${attr.value}-${idx}`}
-                    className={cn(
-                      'inline-flex flex-col gap-0.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors',
-                      isStated
-                        ? 'border-border/80 bg-background text-foreground'
-                        : 'border-dashed border-primary/40 bg-secondary/20 text-foreground',
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 font-medium">
-                      {!isStated ? (
-                        <span
-                          title="Deducido por el modelo a partir de la descripción"
-                          className="flex items-center text-primary"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                        </span>
-                      ) : null}
-                      <span>{label}</span>
-                      <span className="text-[10px] text-muted-foreground/80">
-                        ({isStated ? 'publicado' : 'inferido'})
-                      </span>
-                    </div>
-
-                    {attr.evidence ? (
-                      <p className="text-[11px] italic text-muted-foreground">
-                        “{attr.evidence}”
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </div>
 
-      {/* Footer: Link to Original Listing */}
-      <div className="mt-5 flex items-center justify-between border-t border-border/40 pt-3">
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Building2 className="h-3 w-3" />
+      {metrics.length > 0 ? (
+        <ul
+          className="property-metrics"
+          aria-label="Características principales"
+        >
+          {metrics.map(({ icon: Icon, label }) => (
+            <li key={label}>
+              <Icon aria-hidden="true" />
+              {label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {attributes.length > 0 ? (
+        <section
+          className="property-evidence"
+          aria-label="Cualidades identificadas"
+        >
+          <h4>Cualidades identificadas</h4>
+          <ul>
+            {attributes.map((attribute, index) => {
+              const isStated = attribute.provenance === 'stated';
+              return (
+                <li key={`${attribute.type}-${attribute.value}-${index}`}>
+                  <div>
+                    <span>{formatAttributeLabel(attribute)}</span>
+                    <small>
+                      {isStated ? 'Publicado' : 'Inferido por Hausy'}
+                    </small>
+                  </div>
+                  {attribute.evidence ? <q>{attribute.evidence}</q> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      <footer className="property-card-footer">
+        <span>
+          <Building2 aria-hidden="true" />
           Publicado en {sourceName}
         </span>
-
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           aria-label={`Ver en ${sourceName}`}
         >
-          <span>Ver en {sourceName}</span>
-          <ExternalLink className="h-3 w-3" aria-hidden="true" />
+          Ver publicación
+          <ExternalLink aria-hidden="true" />
         </a>
-      </div>
+      </footer>
     </article>
   );
 }
