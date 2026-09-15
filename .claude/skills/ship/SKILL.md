@@ -61,9 +61,17 @@ gh pr view --json url,state,baseRefName
   gh pr create --base dev --head "$(git branch --show-current)" --title "<title>" --body "<body>"
   ```
 
-  Title: the conventional-commit summary of the whole branch. Body: what changed and why, how
-  it was verified (test command and result), and anything a reviewer should look at. Follow any
-  PR attribution instructions present in your context.
+  Title: the conventional-commit summary of the whole branch. Body: what changed and why, a
+  diagram, how it was verified (test command and result), and anything a reviewer should look
+  at. Follow any PR attribution instructions present in your context.
+
+  **Diagram (required):** use the `show-me` skill against the branch diff
+  (`git diff origin/dev...HEAD`) and paste its smallest useful view into the body under a
+  `## Diagram` heading — a Mermaid block, call tree, file tree, or `diff` sketch. Only use
+  formats that render in GitHub markdown; never an HTML file.
+
+  If the PR already exists and has no `## Diagram` section, add one with
+  `gh pr edit --body-file`.
 
 ## 6. Report
 
