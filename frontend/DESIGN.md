@@ -120,6 +120,8 @@ Every animation must communicate hierarchy, feedback, or state.
 - Loading uses a skeletal or linear shimmer that matches the final shape, not a generic spinner.
 - Animate opacity and transform for DOM transitions. The luminary is the only continuous canvas animation.
 - Honor `prefers-reduced-motion`; render a static green light when motion is reduced.
+- Interactive surfaces marked `data-glow` (header pills, example chips, property cards, publication links, account roles and actions) carry a pointer glow: the luminary's quieter sibling. A soft `--accent` light fills the control under the pointer and a thin `--ring` light traces the nearest edge. It appears only on hover or focus, is fainter on large surfaces, and centres itself when motion is reduced.
+- The pointer glow is CSS driven by `--glow-x`/`--glow-y`. `usePointerGlow` listens with one delegated `pointerover` on the page root and tracks `pointermove` only on the hovered control. It ignores touch and never uses React state.
 
 ### vgpu prompt luminary
 

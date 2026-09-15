@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +44,28 @@ describe('SearchExperience', () => {
       '/hausy_logo.png',
     );
     expect(document.body).not.toHaveTextContent(previousCompanyName);
+  });
+
+  it('lights header controls where the pointer rests, without React state', () => {
+    render(<SearchExperience />);
+    const signIn = screen.getByRole('link', { name: 'Ingresar' });
+    signIn.getBoundingClientRect = () => new DOMRect(100, 20, 84, 42);
+
+    fireEvent.pointerOver(signIn, {
+      pointerType: 'mouse',
+      clientX: 130,
+      clientY: 30,
+    });
+    expect(signIn.style.getPropertyValue('--glow-x')).toBe('30px');
+    expect(signIn.style.getPropertyValue('--glow-y')).toBe('10px');
+
+    fireEvent.pointerMove(signIn, {
+      pointerType: 'mouse',
+      clientX: 170,
+      clientY: 52,
+    });
+    expect(signIn.style.getPropertyValue('--glow-x')).toBe('70px');
+    expect(signIn.style.getPropertyValue('--glow-y')).toBe('32px');
   });
 
   it('makes the prompt the primary action with a green luminary canvas beneath it', () => {

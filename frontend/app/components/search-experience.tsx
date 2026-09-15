@@ -17,6 +17,7 @@ import type { AgentResponse, Listing, Requirement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { AgentReply } from './agent-reply';
+import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
 import { PromptLuminary } from './prompt-luminary';
 
@@ -63,6 +64,7 @@ export function SearchExperience() {
   const [pendingQuery, setPendingQuery] = useState('');
 
   const reactSessionID = useId();
+  const shellRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const requestRef = useRef<AbortController | null>(null);
@@ -70,6 +72,8 @@ export function SearchExperience() {
   const turnIDRef = useRef(0);
   const isWorking = state === 'loading';
   const isWorkspace = hasSearched || isWorking;
+
+  usePointerGlow(shellRef);
 
   useLayoutEffect(() => {
     const log = logRef.current;
@@ -229,6 +233,7 @@ export function SearchExperience() {
 
   return (
     <main
+      ref={shellRef}
       className="site-shell"
       data-view={isWorkspace ? 'workspace' : 'welcome'}
     >
@@ -240,13 +245,13 @@ export function SearchExperience() {
         <p className="prototype-note">Prototipo de búsqueda</p>
         <nav className="header-actions" aria-label="Accesos">
           {hasSearched ? (
-            <a className="results-link" href="#resultados">
+            <a className="results-link" href="#resultados" data-glow>
               Ver selección <span aria-hidden="true">({listings.length})</span>
             </a>
           ) : null}
           {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
           {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-          <a className="results-link" href="/ingresar">
+          <a className="results-link" href="/ingresar" data-glow>
             Ingresar
           </a>
         </nav>
@@ -417,6 +422,7 @@ export function SearchExperience() {
                 <button
                   key={example.label}
                   type="button"
+                  data-glow
                   onClick={() => applyExample(example.query)}
                 >
                   {example.label}

@@ -115,6 +115,7 @@ export function PropertyCard({
         isRecommended && 'property-card-featured',
         className,
       )}
+      data-glow
     >
       <header className="property-card-header">
         <div className="listing-position">
@@ -201,6 +202,7 @@ export function PropertyCard({
           href={url}
           target="_blank"
           rel="noopener noreferrer"
+          data-glow
           aria-label={`Ver en ${sourceName}`}
         >
           Ver publicación
