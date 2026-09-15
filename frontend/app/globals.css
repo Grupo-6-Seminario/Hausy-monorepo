@@ -54,9 +54,9 @@
   /* Cozy green palette. See frontend/DESIGN.md. */
   --background: #f5f9e6;
   --foreground: #193724;
-  --card: #f9fbea;
+  --card: #fdfefa;
   --card-foreground: #193724;
-  --popover: #f9fbea;
+  --popover: #fdfefa;
   --popover-foreground: #193724;
   --primary: #2a5a3a;
   --primary-foreground: #f5f9e6;
@@ -70,13 +70,21 @@
   --border: #b8c99c;
   --input: #9eb487;
   --ring: #3a7e4f;
-  --chart-1: #6fbe91;
-  --chart-2: #3a7e4f;
-  --chart-3: #2a5a3a;
-  --chart-4: #d3e0b8;
-  --chart-5: #46634f;
+  /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+  --signal-conditional: #8a5a18;
+  --signal-conditional-surface: #f0e0bd;
+  --signal-evidence: #1f5f63;
+  --signal-evidence-surface: #d3e7e6;
+  --signal-unknown: #5f6660;
+  --signal-unknown-surface: #e4e6e0;
+  /* Hue- and luminance-separated ramp: green, amber, teal, deep green, stone. */
+  --chart-1: #a5d7ba;
+  --chart-2: #d49b4a;
+  --chart-3: #2f8d96;
+  --chart-4: #336d46;
+  --chart-5: #3d443c;
   --radius: 1rem;
-  --sidebar: #f9fbea;
+  --sidebar: #fdfefa;
   --sidebar-foreground: #193724;
   --sidebar-primary: #2a5a3a;
   --sidebar-primary-foreground: #f5f9e6;
@@ -103,9 +111,9 @@
   :root {
     --background: #102218;
     --foreground: #eef4df;
-    --card: #173322;
+    --card: #1c3b28;
     --card-foreground: #eef4df;
-    --popover: #173322;
+    --popover: #1c3b28;
     --popover-foreground: #eef4df;
     --primary: #6fbe91;
     --primary-foreground: #102218;
@@ -119,12 +127,20 @@
     --border: #3d5d46;
     --input: #56745d;
     --ring: #6fbe91;
-    --chart-1: #6fbe91;
-    --chart-2: #3a7e4f;
-    --chart-3: #2a5a3a;
-    --chart-4: #d3e0b8;
-    --chart-5: #b8c9ad;
-    --sidebar: #173322;
+    /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+    --signal-conditional: #e0b464;
+    --signal-conditional-surface: #523f1e;
+    --signal-evidence: #6cc2bd;
+    --signal-evidence-surface: #1d4749;
+    --signal-unknown: #aeb6ae;
+    --signal-unknown-surface: #3a423c;
+    /* Hue- and luminance-separated ramp: green, amber, teal, deep green, stone. */
+    --chart-1: #c0e5d0;
+    --chart-2: #e0b579;
+    --chart-3: #45acb5;
+    --chart-4: #47905f;
+    --chart-5: #5d6d5a;
+    --sidebar: #1c3b28;
     --sidebar-foreground: #eef4df;
     --sidebar-primary: #6fbe91;
     --sidebar-primary-foreground: #102218;
@@ -1063,6 +1079,22 @@
   gap: 0.85rem;
   padding-left: 0.75rem;
   border-left: 2px solid color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+/*
+ * Provenance is carried by border style first and hue second, so the published
+ * / inferred distinction survives greyscale and a colorblind viewer.
+ */
+.property-evidence > ul > li.is-published {
+  border-left: 2px solid var(--signal-evidence);
+}
+
+.property-evidence > ul > li.is-inferred {
+  border-left: 2px dashed var(--signal-unknown);
+}
+
+.property-evidence .evidence-provenance {
+  color: var(--signal-unknown);
 }
 
 .property-evidence li div {

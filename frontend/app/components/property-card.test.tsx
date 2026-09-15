@@ -1,4 +1,7 @@
 import { render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import type { Listing } from '@/lib/types';
@@ -86,6 +89,61 @@ describe('PropertyCard', () => {
 
     // Evidence quote displayed
     expect(screen.getByText(/mucha luz natural/i)).toBeVisible();
+  });
+
+  it('gives stated and inferred attributes distinct provenance hooks', () => {
+    render(<PropertyCard listing={sampleListing} />);
+
+    const statedItem = screen
+      .getByText(/luz natural: alta/i)
+      .closest('li') as HTMLLIElement;
+    const inferredItem = screen
+      .getByText(/silencioso/i)
+      .closest('li') as HTMLLIElement;
+
+    expect(statedItem).toHaveClass('is-published');
+    expect(inferredItem).toHaveClass('is-inferred');
+    expect(statedItem.className).not.toBe(inferredItem.className);
+  });
+
+  it('labels the inferred attribute with the unknown signal, the stated one without it', () => {
+    render(<PropertyCard listing={sampleListing} />);
+
+    expect(screen.getByText('Inferido por Hausy')).toHaveClass(
+      'evidence-provenance',
+    );
+    expect(screen.getAllByText('Publicado')[0]).not.toHaveClass(
+      'evidence-provenance',
+    );
+  });
+
+  it('resolves the two provenance hooks to different border styles', () => {
+    const css = readFileSync(
+      path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '..',
+        'globals.css',
+      ),
+      'utf8',
+    );
+
+    const rule = (selector: string) => {
+      const at = css.indexOf(selector);
+      expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
+      return css.slice(at, css.indexOf('}', at));
+    };
+
+    const published = rule('.property-evidence > ul > li.is-published');
+    const inferred = rule('.property-evidence > ul > li.is-inferred');
+
+    // Solid vs dashed carries the distinction without relying on hue, so it
+    // survives greyscale and a colorblind viewer.
+    expect(published).toMatch(
+      /border-left:\s*2px solid var\(--signal-evidence\)/,
+    );
+    expect(inferred).toMatch(
+      /border-left:\s*2px dashed var\(--signal-unknown\)/,
+    );
   });
 
   it('provides a link to the original listing source', () => {
