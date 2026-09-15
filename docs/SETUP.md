@@ -84,7 +84,8 @@ docker compose up -d
 
 That starts Postgres 14 on 5432 with database, user and password all `hausy`, matching the
 `DATABASE_URI` default in `.env.example`. Override it by setting `DATABASE_URI` in `.env`.
-No `createdb` is needed, and migrations apply themselves on the first `listings load`.
+No `createdb` is needed, and migrations apply themselves on the first `listings load` or
+`go run ./cmd/hausy`, whichever runs first.
 
 To populate it with the committed seed data:
 
@@ -150,3 +151,8 @@ npm run dev
 
 The frontend's `/api/agent` route forwards prompt messages to the Hausy API and displays the
 returned agent reply in a modal.
+
+Accounts are optional: searching never requires one. `/ingresar` signs searchers and realtors in
+through `/api/auth/*`, which keeps the backend's session token in an HttpOnly `hausy_session`
+cookie. Without a reachable database the API keeps accounts in memory, so they disappear on
+restart.

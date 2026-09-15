@@ -116,7 +116,8 @@ frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer → in
 | `internal/tools` | Provider-neutral tool registry and call loop |
 | `internal/llm` · `internal/local` | Vendor-neutral LLM types · OpenAI-compatible client |
 | `internal/listing` | Listing model, deterministic parsers |
-| `internal/pipeline` · `internal/store/postgres` | Parse/load steps · persistence |
+| `internal/auth` | Account seam: `Provider` (sign-up/in/out, bearer tokens), `Local` + memory store; a Cognito `Provider` plugs in at `cmd/hausy` |
+| `internal/pipeline` · `internal/store/postgres` | Parse/load steps · persistence (listings, users, sessions) |
 | `internal/agentcore` | Bedrock AgentCore harness (not imported by any command) |
 | `frontend/` | Next.js via vinext; proxies to `HAUSY_BACKEND_URL` (default `127.0.0.1:8080`). Design: `frontend/DESIGN.md` |
 | `specs/` | Feature specs (`001-search-ui`) |

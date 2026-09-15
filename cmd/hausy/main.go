@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
@@ -47,21 +48,32 @@ func main() {
 	// one it can still take requirements down, and saying so at startup beats
 	// a fresh clone failing to boot before anything has been ingested.
 	var options []buyer.Option
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	var accounts auth.Store = auth.NewMemoryStore()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	store, err := postgres.Open(ctx, config.databaseURI)
+	if err == nil {
+		// Accounts need their tables even on a database no one has loaded yet.
+		if err = store.Migrate(ctx); err != nil {
+			store.Close()
+		}
+	}
 	cancel()
 	if err != nil {
-		log.Printf("no listing store at %s (%v); the agent will collect requirements but cannot search", config.databaseURI, err)
+		log.Printf("no listing store at %s (%v); the agent will collect requirements but cannot search, and accounts are kept in memory until restart", config.databaseURI, err)
 	} else {
 		defer store.Close()
 		options = append(options, buyer.WithInventory(store))
+		accounts = store
 		log.Printf("listing store connected at %s", config.databaseURI)
 	}
 
 	agent := buyer.NewAgent(llmClient, options...)
+	// ponytail: the only Provider today is Local; an AWS Cognito Provider would
+	// be chosen here from configuration without changing httpapi or the frontend.
+	provider := auth.NewLocal(accounts)
 	server := &http.Server{
 		Addr:              config.address,
-		Handler:           httpapi.NewHandler(agent),
+		Handler:           httpapi.NewHandler(agent, provider),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
