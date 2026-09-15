@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -63,11 +64,21 @@ export function SearchExperience() {
 
   const reactSessionID = useId();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const logRef = useRef<HTMLOListElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const sessionRef = useRef(`browser-${reactSessionID}`);
   const turnIDRef = useRef(0);
   const isWorking = state === 'loading';
   const isWorkspace = hasSearched || isWorking;
+
+  useLayoutEffect(() => {
+    const log = logRef.current;
+    const latestTurn = log?.lastElementChild as HTMLElement | null;
+    if (!log || !latestTurn) return;
+    // Move only the history viewport. Start at the new turn so long replies
+    // can be read from the beginning, without jumping the entire page.
+    log.scrollTop = latestTurn.offsetTop;
+  }, [turns.length, pendingQuery]);
 
   useEffect(() => {
     return () => requestRef.current?.abort();
@@ -249,7 +260,9 @@ export function SearchExperience() {
           aria-busy={isWorking}
         >
           <div className="experience-intro">
-            <p className="eyebrow">Tu próximo hogar, en CABA</p>
+            {!isWorkspace ? (
+              <p className="eyebrow">Tu próximo hogar, en CABA</p>
+            ) : null}
             <h1 id="experience-title">
               {isWorkspace
                 ? 'Sigamos con tu búsqueda.'
@@ -272,8 +285,11 @@ export function SearchExperience() {
               </div>
 
               <ol
+                ref={logRef}
                 className="conversation-log"
                 role="log"
+                // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- The bounded history needs keyboard scrolling.
+                tabIndex={0}
                 aria-label="Conversación con Hausy"
               >
                 {turns.map((turn) => (
@@ -410,10 +426,12 @@ export function SearchExperience() {
             </div>
           ) : null}
 
-          <p className="trust-note">
-            Los datos publicados y las inferencias del modelo aparecen
-            identificados por separado.
-          </p>
+          {!isWorkspace ? (
+            <p className="trust-note">
+              Los datos publicados y las inferencias del modelo aparecen
+              identificados por separado.
+            </p>
+          ) : null}
         </section>
 
         {isWorkspace ? (
@@ -427,6 +445,10 @@ export function SearchExperience() {
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             />
+            <a className="conversation-return" href="#property-query">
+              Seguir la conversación con Hausy
+              <ArrowRight aria-hidden="true" />
+            </a>
           </section>
         ) : null}
       </div>

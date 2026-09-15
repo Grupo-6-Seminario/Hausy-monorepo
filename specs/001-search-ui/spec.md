@@ -33,7 +33,7 @@ A person unsure how to phrase a search can load a realistic example and edit it 
 
 ### User Story 3 - Keep the experience polished and stable (Priority: P3)
 
-The page uses restrained CSS state feedback, soft green surfaces, and consistent rounded geometry without decorative GPU effects.
+The page uses restrained state feedback, soft green surfaces, consistent rounded geometry, and an optional green vgpu luminary beneath the composer. The search flow remains usable without WebGPU.
 
 **Why this priority**: The interface should feel calm and trustworthy throughout a high-consideration decision.
 
@@ -52,6 +52,8 @@ A person can add a condition or ask a follow-up without losing earlier turns or 
 1. **Given** a completed search, **when** a follow-up is pending, **then** the current property selection remains visible and the UI announces an honest working state.
 2. **Given** a slow request, **when** the person stops it, **then** the request is aborted and their message is restored for editing.
 3. **Given** a completed response, **when** the interface settles, **then** the composer is empty and focused for the next turn.
+4. **Given** a long conversation, **when** a new turn arrives, **then** the history viewport shows that turn from its beginning and retains earlier turns.
+5. **Given** the property results, **when** the person follows the return link, **then** the composer receives focus for a follow-up.
 
 ### Edge Cases
 

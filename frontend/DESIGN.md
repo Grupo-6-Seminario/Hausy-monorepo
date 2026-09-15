@@ -85,7 +85,9 @@ Spacing uses a 4 px base and the named runtime tokens:
 - Element gap: 16 px.
 - Card padding: 24 px.
 - Section rhythm: 80 px where the viewport allows it.
-- Maximum page width: 1560 px.
+- Maximum page width: 1360 px; welcome content is limited to 760 px.
+- Welcome headings range from 32 px on small screens to 60 px on desktop.
+- Workspace headings are 26–32 px. Regular conversation text stays at 16 px.
 
 Hausy uses one soft shape system:
 
@@ -102,6 +104,8 @@ Square property cards, sharp text fields, and mixed sharp or rounded controls ar
 - The conversation pane can remain sticky on wide screens.
 - Below 1180 px, use a single column with the conversation before results.
 - Do not trap the full page in nested scroll areas. A bounded conversation history may scroll when necessary.
+- The conversation sits directly on the page instead of inside nested cards. A new turn scrolls only the history viewport to that turn's beginning.
+- The history is keyboard-focusable; results include a direct link back to the composer.
 - Use generous gaps between property cards and clear internal grouping.
 
 ## Motion and interaction
@@ -109,7 +113,7 @@ Square property cards, sharp text fields, and mixed sharp or rounded controls ar
 Every animation must communicate hierarchy, feedback, or state.
 
 - The header, headline, supporting copy, composer, and examples enter in a short stagger on first load.
-- The prompt surface lifts slightly on hover and focus.
+- The prompt stays still on hover and focus; its border and diffuse light provide feedback.
 - The green luminary beneath the prompt follows the mouse locally and brightens on hover, focus, and active search.
 - New conversation turns and property cards rise into place once.
 - Buttons compress on press. Directional icons move only when their control is engaged.
@@ -126,6 +130,9 @@ The vgpu effect is a supported Hausy signature, not a prohibited dependency.
 - At rest the glow remains quiet. Hover and focus increase local energy near the pointer. Searching raises the overall intensity.
 - Track the pointer only inside the prompt stage. Do not attach a permanent page-wide pointer listener.
 - Clamp device pixel ratio and keep one GPU context, surface, effect, and frame loop per mounted prompt.
+- Render at up to 2× device pixel ratio, but calculate halo distances in CSS pixels so its width stays consistent across screens.
+- Use premultiplied alpha and a Gaussian falloff. Every canvas edge must reach zero opacity before clipping; the CSS fallback must not add a second outline.
+- Stop the frame loop while the page is hidden. Reduced motion renders a still frame and redraws on resize.
 - Dispose listeners, the frame loop, and the GPU context on unmount.
 - If WebGPU or shader startup fails, hide the canvas and keep a stable CSS glow derived from `--accent`.
 
@@ -163,3 +170,12 @@ Use `/hausy_logo.png` as the provisional Hausy mark. Preserve its colors and asp
 - Use semantic headings, lists, status messages, and disclosure controls.
 - Motion is supplementary. The full search flow works without WebGPU and with reduced motion.
 - Continuous visual values stay outside React state to avoid pointer-driven rerenders.
+
+## Verification
+
+- `npm test`: component and API contract tests.
+- `npm run test:ui`: Chrome browser tests for welcome, results, long conversations, keyboard return, errors without WebGPU, reduced motion, responsive layouts, and account forms. Chrome must be installed. The runner starts a local server or reuses port 5173.
+- `npm run test:gpu`: renders the actual WGSL through a native WebGPU adapter and checks premultiplied alpha, transparent edges, smoothness, visible interaction feedback, and consistent size at 1×/2× DPR.
+- `npm run lint`, `npx tsc --noEmit --incremental false`, and `npm run build` complete the checks.
+
+Browser tests use explicit listing and response fixtures. They verify the frontend, not live model responses or listing accuracy. Browser screenshots and traces are written to ignored `test-results/` output.
