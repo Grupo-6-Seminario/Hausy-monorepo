@@ -1,12 +1,14 @@
 'use client';
 
 import { ArrowRight, LogOut } from 'lucide-react';
-import { KeyboardEvent, useEffect, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { AuthRole, AuthUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+
+import { usePointerGlow } from './pointer-glow';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -45,6 +47,9 @@ export function AuthExperience() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const shellRef = useRef<HTMLElement>(null);
+
+  usePointerGlow(shellRef);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -113,7 +118,7 @@ export function AuthExperience() {
   }
 
   return (
-    <main className="site-shell">
+    <main ref={shellRef} className="site-shell">
       <header className="site-header">
         {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
         {/* oxlint-disable-next-line next/no-html-link-for-pages */}
@@ -145,7 +150,7 @@ export function AuthExperience() {
               <p className="auth-session-email">{user.email}</p>
               <div className="auth-session-actions">
                 {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-                <a className="auth-primary-link" href="/">
+                <a className="auth-primary-link" href="/" data-glow>
                   Ir a la búsqueda
                   <ArrowRight aria-hidden="true" />
                 </a>
@@ -196,6 +201,7 @@ export function AuthExperience() {
                       {roles.map((option) => (
                         <label
                           key={option.value}
+                          data-glow
                           className={cn(
                             'auth-role',
                             role === option.value && 'auth-role-selected',
@@ -267,6 +273,7 @@ export function AuthExperience() {
                   type="submit"
                   size="lg"
                   className="auth-submit"
+                  data-glow
                   disabled={isSubmitting}
                 >
                   {mode === 'sign-up' ? 'Crear cuenta' : 'Ingresar'}

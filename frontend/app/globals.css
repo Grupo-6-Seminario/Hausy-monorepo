@@ -86,6 +86,7 @@
   --sidebar-ring: #3a7e4f;
   --surface-glass: rgb(249 251 234 / 88%);
   --shadow-color: rgb(42 90 58 / 14%);
+  --glow-on-primary: color-mix(in srgb, var(--primary-foreground) 22%, transparent);
   --page-max-width: 1360px;
   --space-unit: 4px;
   --space-element: 16px;
@@ -134,6 +135,7 @@
     --sidebar-ring: #6fbe91;
     --surface-glass: rgb(23 51 34 / 90%);
     --shadow-color: rgb(4 16 9 / 32%);
+    --glow-on-primary: color-mix(in srgb, var(--foreground) 38%, transparent);
   }
 }
 
@@ -260,12 +262,89 @@
 
 .results-link:hover,
 .results-link:focus-visible {
-  border-color: var(--primary);
-  background: var(--muted);
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  transform: translateY(-1px);
 }
 
 .results-link:active {
   transform: translateY(1px);
+}
+
+/*
+ * Pointer glow: the luminary's quieter sibling for interactive surfaces.
+ * pointer-glow.ts writes --glow-x/--glow-y; a soft light fills the control
+ * and a thin edge light traces the border nearest the pointer. Hover and
+ * focus only; nothing moves at rest.
+ */
+[data-glow] {
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --glow-size: 140px;
+  --glow-fill: color-mix(in srgb, var(--accent) 20%, transparent);
+  --glow-edge: color-mix(in srgb, var(--ring) 75%, transparent);
+  position: relative;
+  isolation: isolate;
+}
+
+[data-glow]::before,
+[data-glow]::after {
+  position: absolute;
+  border-radius: inherit;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms var(--motion-focus);
+}
+
+[data-glow]::before {
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(
+    var(--glow-size) circle at var(--glow-x) var(--glow-y),
+    var(--glow-fill),
+    transparent 70%
+  );
+}
+
+[data-glow]::after {
+  inset: -1px;
+  padding: 1px;
+  background: radial-gradient(
+    calc(var(--glow-size) * 0.6) circle at var(--glow-x) var(--glow-y),
+    var(--glow-edge),
+    transparent 70%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box xor,
+    linear-gradient(#000 0 0);
+}
+
+[data-glow]:hover::before,
+[data-glow]:hover::after,
+[data-glow]:focus-visible::before,
+[data-glow]:focus-visible::after {
+  opacity: 1;
+}
+
+/* Large surfaces take a wider, fainter light so cards never compete with the prompt. */
+.property-card[data-glow] {
+  --glow-size: 420px;
+  --glow-fill: color-mix(in srgb, var(--accent) 9%, transparent);
+  --glow-edge: color-mix(in srgb, var(--ring) 55%, transparent);
+}
+
+.auth-role[data-glow] {
+  --glow-size: 260px;
+  --glow-fill: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.auth-submit[data-glow],
+.auth-primary-link[data-glow] {
+  --glow-fill: var(--glow-on-primary);
+  --glow-edge: var(--glow-on-primary);
 }
 
 .experience-frame {
@@ -1707,6 +1786,12 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* A still, centred light instead of one that chases the pointer. */
+  [data-glow] {
+    --glow-x: 50% !important;
+    --glow-y: 50% !important;
   }
 }
 
