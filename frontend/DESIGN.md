@@ -69,6 +69,61 @@ All transparency, shadows, gradients, focus treatments, and shader colors must b
 
 The page follows the system theme. A rendered page stays entirely within that theme.
 
+### Semantic signal colors
+
+Approved by the project owner as an addition to the palette above. The cozy green tables stay
+closed and unchanged; these three families exist only to encode meaning the UI already has to
+convey, and were chosen to sit with the greens rather than against them:
+
+- **Clay/amber (~35°)** completes the warm-olive lean the surfaces already have at 73°.
+- **Teal (~185°)** is adjacent enough to the green family to stay in brand, but reads as
+  unmistakably cooler.
+- **Stone grey** is a genuine low-chroma neutral. Because every other neutral here is
+  green-tinted, it reads as "no information" and makes the surrounding greens look more saturated.
+
+Each family is a pair: an ink for text, borders, and icons, and a surface used only as the fill of
+a state chip behind its own ink. Contrast figures for the ink are measured against `--card`; the
+figure for a surface is that family's own ink on that fill.
+
+#### Light theme
+
+| Role | Value | Token | Contrast |
+| ---- | ----- | ----- | -------- |
+| Conditional ink | `#8a5a18` | `--signal-conditional` | 5.63:1 on card — AA |
+| Conditional fill | `#f0e0bd` | `--signal-conditional-surface` | 4.53:1 with its ink — AA |
+| Evidence ink | `#1f5f63` | `--signal-evidence` | 6.96:1 on card |
+| Evidence fill | `#d3e7e6` | `--signal-evidence-surface` | 5.68:1 with its ink |
+| Unknown ink | `#5f6660` | `--signal-unknown` | 5.63:1 on card |
+| Unknown fill | `#e4e6e0` | `--signal-unknown-surface` | 4.69:1 with its ink |
+
+#### Dark theme
+
+| Role | Value | Token | Contrast |
+| ---- | ----- | ----- | -------- |
+| Conditional ink | `#e0b464` | `--signal-conditional` | 7.10:1 on card |
+| Conditional fill | `#523f1e` | `--signal-conditional-surface` | 5.21:1 with its ink |
+| Evidence ink | `#6cc2bd` | `--signal-evidence` | 6.58:1 on card |
+| Evidence fill | `#1d4749` | `--signal-evidence-surface` | 4.92:1 with its ink |
+| Unknown ink | `#aeb6ae` | `--signal-unknown` | 6.59:1 on card |
+| Unknown fill | `#3a423c` | `--signal-unknown-surface` | 4.99:1 with its ink |
+
+These colors may only be used to encode a documented state. They are never decoration, never a
+surface, and never used to reorder or rank.
+
+Color is always a second channel. Every state a signal color marks must also be legible without
+it, so the distinction survives greyscale and a colorblind viewer.
+
+Currently documented states:
+
+| State | Family | Where |
+| ----- | ------ | ----- |
+| Published fact | Evidence | Solid left border on a `.property-evidence` item |
+| Model inference | Unknown | Dashed left border and label on a `.property-evidence` item |
+
+`--signal-conditional` is defined but deliberately unconsumed. It is reserved for the
+`conditionally_eligible` verdict, which no endpoint returns yet; wiring it before then would be
+speculative.
+
 ## Typography
 
 - Use DM Sans for interface and display text. It is the humanist substitute selected from the Refero guide.

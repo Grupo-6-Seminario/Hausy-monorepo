@@ -178,10 +178,15 @@ export function PropertyCard({
             {attributes.map((attribute, index) => {
               const isStated = attribute.provenance === 'stated';
               return (
-                <li key={`${attribute.type}-${attribute.value}-${index}`}>
+                <li
+                  key={`${attribute.type}-${attribute.value}-${index}`}
+                  className={isStated ? 'is-published' : 'is-inferred'}
+                >
                   <div>
                     <span>{formatAttributeLabel(attribute)}</span>
-                    <small>
+                    <small
+                      className={isStated ? undefined : 'evidence-provenance'}
+                    >
                       {isStated ? 'Publicado' : 'Inferido por Hausy'}
                     </small>
                   </div>

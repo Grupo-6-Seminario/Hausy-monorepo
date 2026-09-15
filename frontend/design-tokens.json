@@ -4,7 +4,7 @@
     "light": {
       "background": { "$type": "color", "$value": "#f5f9e6" },
       "foreground": { "$type": "color", "$value": "#193724" },
-      "card": { "$type": "color", "$value": "#f9fbea" },
+      "card": { "$type": "color", "$value": "#fdfefa" },
       "primary": { "$type": "color", "$value": "#2a5a3a" },
       "secondary": { "$type": "color", "$value": "#d3e0b8" },
       "muted": { "$type": "color", "$value": "#e7edcf" },
@@ -13,12 +13,18 @@
       "border": { "$type": "color", "$value": "#b8c99c" },
       "input": { "$type": "color", "$value": "#9eb487" },
       "ring": { "$type": "color", "$value": "#3a7e4f" },
-      "error": { "$type": "color", "$value": "#a73b3b" }
+      "error": { "$type": "color", "$value": "#a73b3b" },
+      "signalConditional": { "$type": "color", "$value": "#8a5a18" },
+      "signalConditionalSurface": { "$type": "color", "$value": "#f0e0bd" },
+      "signalEvidence": { "$type": "color", "$value": "#1f5f63" },
+      "signalEvidenceSurface": { "$type": "color", "$value": "#d3e7e6" },
+      "signalUnknown": { "$type": "color", "$value": "#5f6660" },
+      "signalUnknownSurface": { "$type": "color", "$value": "#e4e6e0" }
     },
     "dark": {
       "background": { "$type": "color", "$value": "#102218" },
       "foreground": { "$type": "color", "$value": "#eef4df" },
-      "card": { "$type": "color", "$value": "#173322" },
+      "card": { "$type": "color", "$value": "#1c3b28" },
       "primary": { "$type": "color", "$value": "#6fbe91" },
       "secondary": { "$type": "color", "$value": "#284a34" },
       "muted": { "$type": "color", "$value": "#203d2b" },
@@ -26,7 +32,13 @@
       "border": { "$type": "color", "$value": "#3d5d46" },
       "input": { "$type": "color", "$value": "#56745d" },
       "ring": { "$type": "color", "$value": "#6fbe91" },
-      "error": { "$type": "color", "$value": "#e27d72" }
+      "error": { "$type": "color", "$value": "#e27d72" },
+      "signalConditional": { "$type": "color", "$value": "#e0b464" },
+      "signalConditionalSurface": { "$type": "color", "$value": "#523f1e" },
+      "signalEvidence": { "$type": "color", "$value": "#6cc2bd" },
+      "signalEvidenceSurface": { "$type": "color", "$value": "#1d4749" },
+      "signalUnknown": { "$type": "color", "$value": "#aeb6ae" },
+      "signalUnknownSurface": { "$type": "color", "$value": "#3a423c" }
     }
   },
   "font": {
