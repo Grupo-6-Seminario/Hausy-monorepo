@@ -249,16 +249,16 @@ export function SearchExperience() {
           aria-busy={isWorking}
         >
           <div className="experience-intro">
-            <p className="eyebrow">Búsqueda inmobiliaria personal</p>
+            <p className="eyebrow">Tu próximo hogar, en CABA</p>
             <h1 id="experience-title">
               {isWorkspace
-                ? 'Tu búsqueda, en conversación.'
-                : 'Encontrá el lugar que encaja con tu vida.'}
+                ? 'Sigamos con tu búsqueda.'
+                : 'Un lugar para tu forma de vivir.'}
             </h1>
             <p className="hero-subtitle">
               {isWorkspace
-                ? 'Afiná prioridades, preguntá por una propiedad o cambiá una condición sin empezar de nuevo.'
-                : 'Contanos cómo vivís. Hausy separa requisitos, preferencias e inferencias antes de comparar opciones.'}
+                ? 'Ajustá tus prioridades. Conservamos el contexto.'
+                : 'Contanos qué necesitás. Comparemos opciones, con lo que sabemos y lo que falta confirmar.'}
             </p>
           </div>
 
@@ -267,7 +267,6 @@ export function SearchExperience() {
               <div className="panel-heading">
                 <Bot aria-hidden="true" />
                 <div>
-                  <p>Agente comprador</p>
                   <h2>Respuesta de Hausy</h2>
                 </div>
               </div>
@@ -363,7 +362,7 @@ export function SearchExperience() {
                       ? 'Ejemplo: priorizá silencio aunque quede un poco más lejos del subte.'
                       : 'Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena.'
                   }
-                  rows={isWorkspace ? 2 : 4}
+                  rows={2}
                 />
                 {isWorking ? (
                   <Button
