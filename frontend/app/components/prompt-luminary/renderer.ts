@@ -99,8 +99,12 @@ export function startPromptLuminary(canvas: HTMLCanvasElement): () => void {
     targetHover = 0;
   };
 
-  const onFocus = () => { focused = true; };
-  const onBlur = () => { focused = false; };
+  const onFocus = () => {
+    focused = true;
+  };
+  const onBlur = () => {
+    focused = false;
+  };
   host.addEventListener('focusin', onFocus);
   host.addEventListener('focusout', onBlur);
   host.addEventListener('pointerenter', onPointerEnter);
@@ -128,7 +132,10 @@ export function startPromptLuminary(canvas: HTMLCanvasElement): () => void {
     delete canvas.dataset.fallback;
     stopGpuErrors = gpu.onError(() => queueMicrotask(useFallback));
 
-    const output = surface(gpu, canvas, { dpr: [1, 2], alphaMode: 'premultiplied' });
+    const output = surface(gpu, canvas, {
+      dpr: [1, 2],
+      alphaMode: 'premultiplied',
+    });
     let pixelRatio = 1;
     let metrics: PromptBoxMetrics = {
       box: [0, 0, 0, 0],
@@ -136,7 +143,8 @@ export function startPromptLuminary(canvas: HTMLCanvasElement): () => void {
     };
 
     const measurePrompt = () => {
-      pixelRatio = output.size[0] / Math.max(canvas.getBoundingClientRect().width, 1);
+      pixelRatio =
+        output.size[0] / Math.max(canvas.getBoundingClientRect().width, 1);
       const radius = Number.parseFloat(
         getComputedStyle(control).borderTopLeftRadius,
       );
@@ -175,8 +183,16 @@ export function startPromptLuminary(canvas: HTMLCanvasElement): () => void {
         x: approach(currentPointer.x, targetPointer.x, delta),
         y: approach(currentPointer.y, targetPointer.y, delta),
       };
-      currentHover = approach(currentHover, Math.max(targetHover, focused ? 0.85 : 0), delta);
-      currentActive = approach(currentActive, host.dataset.active === 'true' ? 1 : 0, delta);
+      currentHover = approach(
+        currentHover,
+        Math.max(targetHover, focused ? 0.85 : 0),
+        delta,
+      );
+      currentActive = approach(
+        currentActive,
+        host.dataset.active === 'true' ? 1 : 0,
+        delta,
+      );
       luminary.set({
         luminary: uniforms(
           output.size,
@@ -188,7 +204,9 @@ export function startPromptLuminary(canvas: HTMLCanvasElement): () => void {
           pixelRatio,
         ),
       });
-      currentFrame.pass({ target: output, clear: [0, 0, 0, 0] }, (pass) => pass.draw(luminary));
+      currentFrame.pass({ target: output, clear: [0, 0, 0, 0] }, (pass) =>
+        pass.draw(luminary),
+      );
     };
     const drawStill = () => {
       cancelAnimationFrame(stillFrame);

@@ -127,12 +127,12 @@ export function AuthExperience() {
       <div className="auth-frame">
         <section className="auth-intro" aria-labelledby="auth-title">
           <p className="eyebrow">Cuenta Hausy</p>
-          <h1 id="auth-title">Buscá sin cuenta. Volvé con una.</h1>
+          <h1 id="auth-title">Tu cuenta en Hausy.</h1>
           <p className="hero-subtitle">
-            Para buscar no hace falta ingresar. Con una cuenta, tu agente
-            recuerda lo que te importa; si sos agente inmobiliario, gestionás tus
-            propiedades.
+            Ingresá o creá una cuenta. También podés buscar sin registrarte.
           </p>
+          {/* oxlint-disable-next-line next/no-html-link-for-pages */}
+          <a className="conversation-return" href="/">Continuar sin cuenta</a>
         </section>
 
         <section className="auth-panel" aria-label="Acceso a tu cuenta">
