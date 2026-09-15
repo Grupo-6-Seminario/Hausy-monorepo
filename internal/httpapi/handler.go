@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 )
 
@@ -18,15 +19,13 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-// NewHandler returns the local HTTP boundary for the buyer agent.
-func NewHandler(agent buyer.Agent) http.Handler {
+// NewHandler returns the local HTTP boundary for the buyer agent and accounts.
+func NewHandler(agent buyer.Agent, provider auth.Provider) http.Handler {
 	mux := http.NewServeMux()
+	registerAuth(mux, provider)
 	mux.HandleFunc("POST /api/messages", func(w http.ResponseWriter, r *http.Request) {
 		var input messageRequest
-		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&input); err != nil {
-			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "La solicitud no es válida."})
+		if !decodeJSON(w, r, &input) {
 			return
 		}
 
