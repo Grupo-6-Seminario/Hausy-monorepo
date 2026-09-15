@@ -144,11 +144,13 @@ go run ./cmd/listings parse    # slow, resumable, non-deterministic — delibera
 
 ## Engineering workflow
 
-Every task runs these steps in order. Skills named here are mandatory, not suggestions.
+Every task runs these steps in order. The steps are mandatory; skills are personal (see
+[Skills](#skills)). When a named skill is installed, use it for that step; otherwise follow the
+step as written.
 
 ### 1. Comprehend — always
 
-- Invoke **`codebase-design`** at the start of every task.
+- Use **`codebase-design`** at the start of every task.
 - Before writing any code, trace the affected flow end to end: every module, caller, and test it
   touches.
 - Read the relevant docs (`docs/DATA_MODEL.md`, `specs/`, `frontend/DESIGN.md`).
@@ -158,14 +160,14 @@ Every task runs these steps in order. Skills named here are mandatory, not sugge
 
 ### 2. Bugs — always diagnose first
 
-- Any bug, failure, regression, or "this is wrong" invokes **`diagnosing-bugs`**.
+- Any bug, failure, regression, or "this is wrong" uses **`diagnosing-bugs`**.
 - Build a red-capable feedback loop before forming a hypothesis.
 - Fix the root cause at the shared seam, not the reported caller.
 - State the confirmed hypothesis in the PR.
 
 ### 3. Build — TDD
 
-- Invoke **`tdd`**: red → green, one vertical slice at a time.
+- Use **`tdd`**: red → green, one vertical slice at a time.
 - Tests live at the seams agreed in step 1.
 - Expected values come from an independent source (literal, worked example, spec). Never
   recompute them the way the code does.
@@ -187,10 +189,17 @@ Every task runs these steps in order. Skills named here are mandatory, not sugge
 - Work on feature branches in Orca worktrees based on `dev`. Never commit to `dev` or `main`.
 - `/ship` runs tests, commits, pushes, and opens (or updates) a PR into `dev`. PRs are never
   drafts.
-- Every PR body has a `## Diagram` from **`show-me`** (Mermaid, call tree, file tree, or diff
-  sketch).
+- Every PR body has a `## Diagram` (Mermaid, call tree, file tree, or diff sketch), drawn with
+  **`show-me`**.
 
 ### Skills
+
+Skills are personal: each teammate installs their own, and none are committed except `ship`
+(team workflow). Install at user level (`~/.claude/skills/`) or locally, hidden from git via
+`.git/info/exclude`. Orca worktrees only contain committed files, so link local skills in with
+the Orca repo setup script. Never commit a skill you are trying out.
+
+Skills this workflow refers to:
 
 | Skill | When |
 | --- | --- |

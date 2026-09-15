@@ -65,8 +65,8 @@ gh pr view --json url,state,baseRefName
   diagram, how it was verified (test command and result), and anything a reviewer should look
   at. Follow any PR attribution instructions present in your context.
 
-  **Diagram (required):** use the `show-me` skill against the branch diff
-  (`git diff origin/dev...HEAD`) and paste its smallest useful view into the body under a
+  **Diagram (required):** from the branch diff (`git diff origin/dev...HEAD`), draw the smallest
+  useful view (use the `show-me` skill if installed) and paste it into the body under a
   `## Diagram` heading — a Mermaid block, call tree, file tree, or `diff` sketch. Only use
   formats that render in GitHub markdown; never an HTML file.
 
