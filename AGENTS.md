@@ -105,6 +105,7 @@ Other files cite 46/48 responses (earlier export cuts).
 scrape → data/listings.jsonl → parse (local LLM) → data/listings.parsed.jsonl → load → Postgres
                                                                                    ↓
 frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer → internal/search tools
+frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Postgres
 ```
 
 | Path | Role |
@@ -116,6 +117,7 @@ frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer → in
 | `internal/tools` | Provider-neutral tool registry and call loop |
 | `internal/llm` · `internal/local` | Vendor-neutral LLM types · OpenAI-compatible client |
 | `internal/listing` | Listing model, deterministic parsers |
+| `internal/agency` | Transport-neutral realtor catalog commands and contact-intent contract; HTTP and a future A2A adapter share this seam |
 | `internal/auth` | Account seam: `Provider` (sign-up/in/out, bearer tokens), `Local` + memory store; a Cognito `Provider` plugs in at `cmd/hausy` |
 | `internal/pipeline` · `internal/store/postgres` | Parse/load steps · persistence (listings, users, sessions) |
 | `internal/agentcore` | Bedrock AgentCore harness (not imported by any command) |
@@ -124,6 +126,7 @@ frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer → in
 | `experiments/` | Throwaway spikes; `web-scraper/` is its own module |
 
 - Schema and attribute vocabulary: [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
+- Realtor catalog and contact-intent API: [docs/AGENCY_CATALOG.md](./docs/AGENCY_CATALOG.md).
 - Account-specific values live in `.env` (see `.env.example`).
 - No IaC, no CI.
 

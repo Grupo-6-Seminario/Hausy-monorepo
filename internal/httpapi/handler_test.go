@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
@@ -26,7 +27,7 @@ func (a *recordingAgent) HandleMessage(_ context.Context, sessionID, message str
 
 func TestHandler_PostMessageReturnsAgentReply(t *testing.T) {
 	agent := &recordingAgent{}
-	handler := httpapi.NewHandler(agent, auth.NewLocal(auth.NewMemoryStore()))
+	handler := httpapi.NewHandler(agent, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog())
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/messages",

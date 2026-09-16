@@ -58,6 +58,9 @@ describe('AuthExperience', () => {
       await screen.findByRole('heading', { name: 'Hola, Marta.' }),
     ).toBeVisible();
     expect(screen.getByText('Agente inmobiliario')).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: /ir al catálogo/i }),
+    ).toHaveAttribute('href', '/inmobiliaria');
     expect(bodyOf(fetchMock, '/api/auth/sign-in')).toEqual({
       email: marta.email,
       password: 'alquileres-caba',

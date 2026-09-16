@@ -53,8 +53,34 @@ deduplication is deliberately not attempted yet.
 | `parsed_at` | timestamptz | yes | NULL = attributes were never extracted for this row |
 | `parser_model` | text | yes | which model produced the attributes |
 | `ingested_at` | timestamptz | no | |
+| `owner_user_id` | bigint | yes | FK → `users.id`; set only for account-managed catalog entries |
+| `catalog_status` | text | no | `active` \| `archived`; archived rows never appear in buyer search |
 
-Indexes: `neighborhood`, `(price_currency, price_amount)`, `bedrooms`, unique `url`.
+Indexes: `neighborhood`, `(price_currency, price_amount)`, `bedrooms`,
+`(owner_user_id, catalog_status)`, unique `url`.
+
+`owner_user_id` is authorization state, while `agency_id` is listing content.
+They must not be treated as interchangeable. An authenticated realtor account
+owns mutations today; a future organization or A2A identity adapter can map its
+principal to the same catalog owner without changing the listing contract.
+
+Removing an entry from a realtor catalog sets `catalog_status = 'archived'`.
+It does not delete the canonical facts or contact history.
+
+### `listing_contact_intents` — immutable contact-button activations
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| `intent_id` | uuid | no | PK; caller-generated idempotency key |
+| `listing_id` | bigint | no | FK → `listings.id`, `ON DELETE CASCADE` |
+| `source` | text | no | currently `search_result_card` |
+| `created_at` | timestamptz | no | server timestamp |
+
+The realtor-facing `contact_count` is derived with `count(intent_id)`; no
+client can submit or overwrite the aggregate. A retried `intent_id` for the
+same listing is a successful replay, while reusing it for another listing is a
+conflict. This measures deliberate Contactar activations, not unique people or
+delivered inquiries.
 
 ### `listing_attributes` — parsed qualities
 

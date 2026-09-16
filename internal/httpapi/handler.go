@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 )
@@ -19,10 +20,13 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-// NewHandler returns the local HTTP boundary for the buyer agent and accounts.
-func NewHandler(agent buyer.Agent, provider auth.Provider) http.Handler {
+// NewHandler returns the local HTTP boundary for buyer search, accounts, and
+// the realtor catalog. The catalog is a typed application seam, so another
+// transport such as A2A can reuse it without entering through HTTP.
+func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalog) http.Handler {
 	mux := http.NewServeMux()
 	registerAuth(mux, provider)
+	registerAgency(mux, provider, catalog)
 	mux.HandleFunc("POST /api/messages", func(w http.ResponseWriter, r *http.Request) {
 		var input messageRequest
 		if !decodeJSON(w, r, &input) {

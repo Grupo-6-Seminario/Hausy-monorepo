@@ -38,6 +38,11 @@ const roleWelcome = (role: AuthRole) =>
     ? 'Desde acá vas a poder gestionar tus propiedades y los requisitos de cada una.'
     : 'Tu agente va a recordar tus preferencias la próxima vez que busques.';
 
+const roleDestination = (role: AuthRole) =>
+  role === 'realtor'
+    ? { href: '/inmobiliaria', label: 'Ir al catálogo' }
+    : { href: '/', label: 'Ir a la búsqueda' };
+
 export function AuthExperience() {
   const [mode, setMode] = useState<Mode>('sign-in');
   const [role, setRole] = useState<AuthRole>('searcher');
@@ -83,7 +88,9 @@ export function AuthExperience() {
     setIsSubmitting(true);
 
     const body =
-      mode === 'sign-up' ? { name, email, password, role } : { email, password };
+      mode === 'sign-up'
+        ? { name, email, password, role }
+        : { email, password };
 
     try {
       const response = await fetch(`/api/auth/${mode}`, {
@@ -102,7 +109,9 @@ export function AuthExperience() {
       setPassword('');
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : 'No pudimos procesar tu cuenta.',
+        cause instanceof Error
+          ? cause.message
+          : 'No pudimos procesar tu cuenta.',
       );
     } finally {
       setIsSubmitting(false);
@@ -137,7 +146,9 @@ export function AuthExperience() {
             Ingresá o creá una cuenta. También podés buscar sin registrarte.
           </p>
           {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-          <a className="conversation-return" href="/">Continuar sin cuenta</a>
+          <a className="conversation-return" href="/">
+            Continuar sin cuenta
+          </a>
         </section>
 
         <section className="auth-panel" aria-label="Acceso a tu cuenta">
@@ -150,8 +161,12 @@ export function AuthExperience() {
               <p className="auth-session-email">{user.email}</p>
               <div className="auth-session-actions">
                 {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-                <a className="auth-primary-link" href="/" data-glow>
-                  Ir a la búsqueda
+                <a
+                  className="auth-primary-link"
+                  href={roleDestination(user.role).href}
+                  data-glow
+                >
+                  {roleDestination(user.role).label}
                   <ArrowRight aria-hidden="true" />
                 </a>
                 <Button type="button" variant="outline" onClick={signOut}>
