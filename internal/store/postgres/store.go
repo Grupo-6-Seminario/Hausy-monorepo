@@ -199,7 +199,7 @@ SELECT l.source, l.url, l.neighborhood, COALESCE(a.name, ''), COALESCE(l.address
        l.scraped_at, l.parsed_at, COALESCE(l.parser_model, ''), l.id
 FROM listings l
 LEFT JOIN agencies a ON a.id = l.agency_id
-WHERE l.url = $1`
+WHERE l.url = $1 AND l.catalog_status = 'active'`
 
 // ByURL reads back a single listing with its attributes.
 func (s *Store) ByURL(ctx context.Context, url string) (listing.Listing, error) {

@@ -48,7 +48,10 @@ export function unreachable() {
 }
 
 export async function passThrough(response: Response) {
-  return new Response(await response.text(), {
+  const body = [204, 205, 304].includes(response.status)
+    ? null
+    : await response.text();
+  return new Response(body, {
     status: response.status,
     headers: {
       'Content-Type':
@@ -66,10 +69,26 @@ export function postToBackend(path: string, body: string) {
   });
 }
 
-export function withBearer(path: string, token: string, method = 'GET') {
+export function withBearer(
+  path: string,
+  token: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET',
+  body?: string,
+) {
+  if (method === 'GET') {
+    return fetch(`${backendURL}${path}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: timeout(),
+    });
+  }
   return fetch(`${backendURL}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    ...(body === undefined ? {} : { body }),
     signal: timeout(),
   });
 }

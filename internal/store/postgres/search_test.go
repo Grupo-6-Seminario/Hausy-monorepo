@@ -393,4 +393,3 @@ func TestSearch_AssignsExplicitSequentialRankToMatches(t *testing.T) {
 		}
 	}
 }
-

@@ -48,6 +48,7 @@ func (b *builder) whereClause() string {
 // and how many were dropped for never publishing one -- and they need the same
 // base with different price predicates.
 func applyBaseConditions(b *builder, query search.Query) {
+	b.where("l.catalog_status = 'active'")
 	if len(query.Neighborhoods) > 0 {
 		b.where("l.neighborhood = ANY(" + b.param(query.Neighborhoods) + ")")
 	}
@@ -256,6 +257,7 @@ SELECT neighborhood,
        min(price_amount) FILTER (WHERE price_currency = 'USD'),
        min(price_amount) FILTER (WHERE price_currency = 'ARS')
 FROM listings
+WHERE catalog_status = 'active'
 GROUP BY neighborhood
 ORDER BY count(*) DESC, neighborhood ASC`
 
@@ -289,6 +291,7 @@ func (s *Store) PriceStats(ctx context.Context, query search.StatsQuery) (search
 	b.where("l.operation = " + b.param(query.Operation))
 	b.where("l.price_currency = " + b.param(query.Currency))
 	b.where("l.price_amount IS NOT NULL")
+	b.where("l.catalog_status = 'active'")
 	if query.Bedrooms != nil {
 		b.where("l.bedrooms = " + b.param(*query.Bedrooms))
 	}

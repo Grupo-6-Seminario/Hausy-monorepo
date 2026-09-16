@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
 
 func newAuthHandler() http.Handler {
-	return httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()))
+	return httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog())
 }
 
 func send(t *testing.T, handler http.Handler, method, path, token, body string) *httptest.ResponseRecorder {

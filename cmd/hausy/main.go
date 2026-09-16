@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
@@ -49,6 +50,7 @@ func main() {
 	// a fresh clone failing to boot before anything has been ingested.
 	var options []buyer.Option
 	var accounts auth.Store = auth.NewMemoryStore()
+	var catalog agency.Catalog = agency.NewMemoryCatalog()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	store, err := postgres.Open(ctx, config.databaseURI)
 	if err == nil {
@@ -64,6 +66,7 @@ func main() {
 		defer store.Close()
 		options = append(options, buyer.WithInventory(store))
 		accounts = store
+		catalog = store
 		log.Printf("listing store connected at %s", config.databaseURI)
 	}
 
@@ -73,7 +76,7 @@ func main() {
 	provider := auth.NewLocal(accounts)
 	server := &http.Server{
 		Addr:              config.address,
-		Handler:           httpapi.NewHandler(agent, provider),
+		Handler:           httpapi.NewHandler(agent, provider, catalog),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
