@@ -96,6 +96,60 @@ test('welcome, shortlist and return to conversation remain usable', async ({
   expect(errors).toEqual([]);
 });
 
+test('Contactar records one intent and still opens the publication', async ({
+  page,
+}, info) => {
+  await page.route('**/api/agent', (route) =>
+    route.fulfill({ json: { reply: 'Una opción.', listings: [listing] } }),
+  );
+
+  const intents: { url: string; body: unknown }[] = [];
+  await page.route('**/api/listings/*/contact-intents', async (route) => {
+    const body = JSON.parse(route.request().postData() ?? '{}');
+    intents.push({ url: route.request().url(), body });
+    await route.fulfill({
+      status: 201,
+      json: { intent_id: body.intent_id, listing_id: '101', recorded: true },
+    });
+  });
+
+  await openSearch(page);
+  await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
+  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+
+  const contact = page.getByRole('link', { name: /Contactar/ });
+  await expect(contact).toBeVisible();
+  await expect(contact).toHaveAttribute('href', listing.url);
+  await page
+    .locator('.property-card-footer')
+    .first()
+    .screenshot({
+      path: info.outputPath('contact-action.png'),
+      animations: 'disabled',
+    });
+
+  // The link opens the publication in a new tab; the intent goes out alongside.
+  const [publication] = await Promise.all([
+    page.context().waitForEvent('page'),
+    contact.click(),
+  ]);
+  await publication.close();
+
+  await expect.poll(() => intents.length).toBe(1);
+  expect(new URL(intents[0].url).pathname).toBe(
+    '/api/listings/101/contact-intents',
+  );
+  expect(Object.keys(intents[0].body as object).sort()).toEqual([
+    'intent_id',
+    'source',
+  ]);
+  expect((intents[0].body as { source: string }).source).toBe(
+    'search_result_card',
+  );
+  await expect(page.locator('.listing-contact-note')).toHaveText('');
+  await expectNoOverflow(page);
+});
+
 test('a new turn is readable from its beginning in a long history', async ({
   page,
 }) => {
@@ -178,7 +232,9 @@ test('sign in and sign up fit the same visual system', async ({
   await page.goto('/ingresar');
   await hydrated;
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ingresar', exact: true })).toBeInViewport();
+  await expect(
+    page.getByRole('button', { name: 'Ingresar', exact: true }),
+  ).toBeInViewport();
   // Exercise the actual keyboard path after the session effect has started.
   await page.getByRole('tab', { name: 'Crear cuenta' }).focus();
   await page.getByRole('tab', { name: 'Crear cuenta' }).press('Enter');

@@ -1,13 +1,18 @@
+'use client';
+
 import {
   Bath,
   BedDouble,
   Building2,
   ExternalLink,
+  Handshake,
   Layers,
   MapPin,
   Maximize2,
 } from 'lucide-react';
+import { useState } from 'react';
 
+import { recordContactIntent, stableListingID } from '@/lib/contact-intent';
 import type { Listing, ListingAttribute } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +90,26 @@ export function PropertyCard({
     floor,
     attributes = [],
   } = listing;
+
+  // Recording interest must never stand between the searcher and the agency, so
+  // "Contactar" stays a plain link to the publication: the browser navigates
+  // whatever the intent request does. A listing with no stable id gets the same
+  // link and no event at all — an untraceable count is worse than no count.
+  const listingID = stableListingID(listing);
+  const [trackingFailed, setTrackingFailed] = useState(false);
+
+  const recordInterest = async () => {
+    if (!listingID) {
+      setTrackingFailed(true);
+      return;
+    }
+    try {
+      await recordContactIntent(listingID, 'search_result_card');
+      setTrackingFailed(false);
+    } catch {
+      setTrackingFailed(true);
+    }
+  };
 
   const hasExpenses = expenses?.amount != null;
   const isRental = operation.toLowerCase().includes('alquiler');
@@ -203,16 +228,42 @@ export function PropertyCard({
           <Building2 aria-hidden="true" />
           Publicado en {sourceName}
         </span>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-glow
-          aria-label={`Ver en ${sourceName}`}
+        <div className="property-card-actions">
+          <a
+            className="listing-contact"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-glow
+            data-contact-tracking={listingID ? 'ready' : 'unavailable'}
+            aria-label={`Contactar por esta publicación en ${sourceName}`}
+            onClick={() => {
+              void recordInterest();
+            }}
+          >
+            <Handshake aria-hidden="true" />
+            Contactar
+          </a>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-glow
+            aria-label={`Ver en ${sourceName}`}
+          >
+            Ver publicación
+            <ExternalLink aria-hidden="true" />
+          </a>
+        </div>
+        <p
+          className="listing-contact-note"
+          aria-live="polite"
+          aria-atomic="true"
         >
-          Ver publicación
-          <ExternalLink aria-hidden="true" />
-        </a>
+          {trackingFailed
+            ? 'No pudimos registrar tu interés. Podés seguir con el contacto.'
+            : ''}
+        </p>
       </footer>
     </article>
   );

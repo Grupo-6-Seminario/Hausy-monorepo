@@ -175,7 +175,7 @@ Every animation must communicate hierarchy, feedback, or state.
 - Loading uses a skeletal or linear shimmer that matches the final shape, not a generic spinner.
 - Animate opacity and transform for DOM transitions. The luminary is the only continuous canvas animation.
 - Honor `prefers-reduced-motion`; render a static green light when motion is reduced.
-- Interactive surfaces marked `data-glow` (header pills, example chips, property cards, publication links, account roles and actions) carry a pointer glow: the luminary's quieter sibling. A soft `--accent` light fills the control under the pointer and a thin `--ring` light traces the nearest edge. It appears only on hover or focus, is fainter on large surfaces, and centres itself when motion is reduced.
+- Interactive surfaces marked `data-glow` (header pills, example chips, property cards, contact and publication links, account roles and actions) carry a pointer glow: the luminary's quieter sibling. A soft `--accent` light fills the control under the pointer and a thin `--ring` light traces the nearest edge. It appears only on hover or focus, is fainter on large surfaces, and centres itself when motion is reduced.
 - The pointer glow is CSS driven by `--glow-x`/`--glow-y`. `usePointerGlow` listens with one delegated `pointerover` on the page root and tracks `pointermove` only on the hovered control. It ignores touch and never uses React state.
 
 ### vgpu prompt luminary
@@ -214,6 +214,16 @@ Render headings, lists, and emphasis semantically. Raw Markdown markers must nev
 - Do not repeat every card's price, address, and features in the agent response.
 - Keep the original publication link visible and secondary to the search conversation.
 - Hover movement can reinforce that a card is interactive, but it must not imply a better ranking.
+- Every card carries one primary action, `Contactar`, filled with `--primary` in the shared pill
+  shape, ahead of the quieter publication link. It is a real link to the publication, because that
+  is where contact happens: Hausy never stands between the searcher and the agency. Activating it
+  also records one contact intent, and because the navigation is the browser's, a failed recording
+  can never block it.
+- The card never renders an interest counter. The aggregate belongs to the backend and to the
+  agency view; showing a client-side tally here would invite ranking by popularity.
+- Contact feedback is one `aria-live="polite"` line under the actions, mounted before it has
+  anything to say and collapsed while empty. It does not take `role="status"`: the search
+  workspace owns the page's single status announcement.
 
 ## Brand asset
 
