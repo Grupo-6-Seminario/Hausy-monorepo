@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Listing } from '@/lib/types';
 import { PropertyCard } from './property-card';
@@ -173,5 +174,197 @@ describe('PropertyCard', () => {
 
     rerender(<PropertyCard listing={{ ...sampleListing, rank: 1 }} />);
     expect(screen.queryByText('Destacada por Hausy')).toBeNull();
+  });
+});
+
+describe('PropertyCard contact intent', () => {
+  const UUID_V4 =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function recordingBackend(status = 201) {
+    return vi.fn(async (_path: string, init: RequestInit) => {
+      const sent = JSON.parse(init.body as string) as { intent_id: string };
+      return new Response(
+        JSON.stringify({
+          intent_id: sent.intent_id,
+          listing_id: '101',
+          recorded: true,
+        }),
+        { status, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+  }
+
+  const contactControl = () => screen.getByRole('link', { name: /contactar/i });
+
+  // A polite live region, mounted before it has anything to say so the message
+  // is announced. It deliberately avoids role="status": the search workspace
+  // owns the page's single status announcement.
+  const contactNote = () => {
+    const note = document.querySelector('.listing-contact-note');
+    expect(note).not.toBeNull();
+    expect(note).toHaveAttribute('aria-live', 'polite');
+    return note as HTMLElement;
+  };
+
+  it('offers a visible, keyboard-reachable Contactar control on the card', async () => {
+    vi.stubGlobal('fetch', recordingBackend());
+    render(<PropertyCard listing={sampleListing} />);
+
+    const contact = contactControl();
+    expect(contact).toBeVisible();
+    expect(contact).toHaveAttribute('href', sampleListing.url);
+    expect(contact).toHaveAttribute('rel', 'noopener noreferrer');
+
+    // Reachable by keyboard alone, and Enter activates it like a click.
+    await userEvent.tab();
+    expect(contact).toHaveFocus();
+  });
+
+  it('sends exactly {intent_id, source} to the listing contact-intents path', async () => {
+    const fetchMock = recordingBackend();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<PropertyCard listing={sampleListing} />);
+
+    await userEvent.click(contactControl());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [requestPath, init] = fetchMock.mock.calls[0];
+    expect(requestPath).toBe('/api/listings/101/contact-intents');
+    expect(init.method).toBe('POST');
+
+    const body = JSON.parse(init.body as string);
+    expect(Object.keys(body).sort()).toEqual(['intent_id', 'source']);
+    expect(body.source).toBe('search_result_card');
+    expect(body.intent_id).toMatch(UUID_V4);
+  });
+
+  it('emits one event per deliberate activation, each with a new intent id', async () => {
+    const fetchMock = recordingBackend();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<PropertyCard listing={sampleListing} />);
+
+    await userEvent.click(contactControl());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await userEvent.click(contactControl());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    const ids = fetchMock.mock.calls.map(
+      ([, init]) => JSON.parse(init.body as string).intent_id,
+    );
+    expect(new Set(ids).size).toBe(2);
+
+    // The card never keeps its own tally: the backend owns the aggregate.
+    expect(screen.queryByText(/\b[12] interesad/i)).toBeNull();
+  });
+
+  it('keeps the contact path open but emits nothing when the listing has no stable id', async () => {
+    const fetchMock = recordingBackend();
+    vi.stubGlobal('fetch', fetchMock);
+    const { id: _id, ...untraceable } = sampleListing;
+    render(<PropertyCard listing={untraceable} />);
+
+    const contact = contactControl();
+    expect(contact).toHaveAttribute('href', sampleListing.url);
+    expect(contact).toHaveAttribute('data-contact-tracking', 'unavailable');
+
+    await userEvent.click(contact);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(contactNote()).toHaveTextContent(
+        /no pudimos registrar tu interés/i,
+      ),
+    );
+  });
+
+  it('never derives the listing id from the publication URL', async () => {
+    const fetchMock = recordingBackend();
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          id: 'zonaprop-77',
+          url: 'https://example.com/9999',
+        }}
+      />,
+    );
+
+    await userEvent.click(contactControl());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/listings/zonaprop-77/contact-intents',
+    );
+  });
+
+  it('surfaces a lightweight notice when tracking fails, without blocking contact', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<PropertyCard listing={sampleListing} />);
+
+    const contact = contactControl();
+    await userEvent.click(contact);
+
+    await waitFor(() =>
+      expect(contactNote()).toHaveTextContent(
+        /no pudimos registrar tu interés/i,
+      ),
+    );
+    // The searcher is not trapped: no dialog, no disabled control, and the link
+    // to the publication is untouched.
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(contact).toHaveAttribute('href', sampleListing.url);
+    expect(contact).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('keeps the contact control inside the cozy-green palette and pill shape', () => {
+    const css = readFileSync(
+      path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '..',
+        'globals.css',
+      ),
+      'utf8',
+    );
+
+    const rule = (selector: string) => {
+      const at = css.indexOf(selector);
+      expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
+      return css.slice(at, css.indexOf('}', at));
+    };
+
+    const contact = rule('.property-card-footer .listing-contact');
+    expect(contact).toMatch(/background:\s*var\(--primary\)/);
+    expect(contact).toMatch(/color:\s*var\(--primary-foreground\)/);
+    // No literal colors sneak in beside the tokens.
+    expect(contact).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+
+    // Shape comes from the shared footer-action rule: one soft pill system.
+    expect(rule('.property-card-footer a')).toMatch(
+      /border-radius:\s*var\(--radius-pill\)/,
+    );
+  });
+
+  it('clears the failure notice once a later activation is recorded', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockImplementation(recordingBackend());
+    vi.stubGlobal('fetch', fetchMock);
+    render(<PropertyCard listing={sampleListing} />);
+
+    await userEvent.click(contactControl());
+    await waitFor(() =>
+      expect(contactNote()).toHaveTextContent(/no pudimos registrar/i),
+    );
+
+    await userEvent.click(contactControl());
+    await waitFor(() => expect(contactNote()).toHaveTextContent(''));
   });
 });

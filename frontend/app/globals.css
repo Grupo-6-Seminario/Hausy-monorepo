@@ -1197,6 +1197,7 @@
 }
 
 .property-card-footer {
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1.25rem;
@@ -1237,6 +1238,41 @@
 
 .property-card-footer a:active {
   transform: translateY(1px);
+}
+
+.property-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Contacting is the searcher's action on a card; the publication link stays the
+   quieter, secondary way back to the portal. Same pill shape, same greens. */
+.property-card-footer .listing-contact {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.property-card-footer .listing-contact:hover,
+.property-card-footer .listing-contact:focus-visible {
+  border-color: var(--ring);
+  background: color-mix(in srgb, var(--primary) 88%, var(--foreground));
+}
+
+/* Tracking feedback only. It takes a full row so it never resizes the controls,
+   and collapses entirely while there is nothing to say. */
+.listing-contact-note {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.listing-contact-note:empty {
+  display: none;
 }
 
 .property-list-loading {
