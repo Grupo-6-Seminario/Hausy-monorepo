@@ -67,7 +67,11 @@ All transparency, shadows, gradients, focus treatments, and shader colors must b
 | Focus ring          | `#6fbe91` | `--ring`               |
 | Error               | `#e27d72` | `--destructive`        |
 
-The page follows the system theme. A rendered page stays entirely within that theme.
+The page follows the system theme until the reader says otherwise. A switch in the header
+chooses a theme explicitly: a sun while the page is light, a moon while it is dark. The choice
+is written to `data-theme` on `<html>`, which outranks the `prefers-color-scheme` query, and is
+remembered between visits and applied before first paint so a remembered dark page never flashes
+light. A rendered page stays entirely within one theme.
 
 ### Semantic signal colors
 

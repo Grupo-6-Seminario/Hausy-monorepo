@@ -24,6 +24,7 @@ import type { AgencyProperty, AgencyPropertyInput } from '@/lib/agency';
 import type { AuthUser } from '@/lib/auth';
 
 import { usePointerGlow } from './pointer-glow';
+import { ThemeToggle } from './theme-toggle';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -273,12 +274,15 @@ export function AgencyDashboard() {
           <img src="/hausy_logo.png" alt="Hausy" width="40" height="40" />
           <span>Hausy</span>
         </a>
-        {user ? (
-          <span className="agency-account" data-glow>
-            <Building2 aria-hidden="true" />
-            {user.name}
-          </span>
-        ) : null}
+        <div className="header-actions">
+          {user ? (
+            <span className="agency-account" data-glow>
+              <Building2 aria-hidden="true" />
+              {user.name}
+            </span>
+          ) : null}
+          <ThemeToggle />
+        </div>
       </header>
 
       {state === 'loading' ? (

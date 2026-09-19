@@ -20,6 +20,7 @@ import { AgentReply } from './agent-reply';
 import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
 import { PromptLuminary } from './prompt-luminary';
+import { ThemeToggle } from './theme-toggle';
 
 const exampleQueries = [
   {
@@ -243,18 +244,22 @@ export function SearchExperience() {
           <span>Hausy</span>
         </a>
         <p className="prototype-note">Prototipo de búsqueda</p>
-        <nav className="header-actions" aria-label="Accesos">
-          {hasSearched ? (
-            <a className="results-link" href="#resultados" data-glow>
-              Ver selección <span aria-hidden="true">({listings.length})</span>
+        <div className="header-actions">
+          <nav className="header-nav" aria-label="Accesos">
+            {hasSearched ? (
+              <a className="results-link" href="#resultados" data-glow>
+                Ver selección{' '}
+                <span aria-hidden="true">({listings.length})</span>
+              </a>
+            ) : null}
+            {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
+            {/* oxlint-disable-next-line next/no-html-link-for-pages */}
+            <a className="results-link" href="/ingresar" data-glow>
+              Ingresar
             </a>
-          ) : null}
-          {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
-          {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-          <a className="results-link" href="/ingresar" data-glow>
-            Ingresar
-          </a>
-        </nav>
+          </nav>
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="experience-frame">

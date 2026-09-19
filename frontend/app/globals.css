@@ -113,7 +113,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  /* The system asks for dark. An explicit light choice opts back out. */
+  :root:not([data-theme='light']) {
     --background: #102218;
     --foreground: #eef4df;
     --card: #1c3b28;
@@ -157,6 +158,52 @@
     --shadow-color: rgb(4 16 9 / 32%);
     --glow-on-primary: color-mix(in srgb, var(--foreground) 38%, transparent);
   }
+}
+
+/* A deliberate dark choice, whatever the system prefers. */
+:root[data-theme='dark'] {
+  --background: #102218;
+  --foreground: #eef4df;
+  --card: #1c3b28;
+  --card-foreground: #eef4df;
+  --popover: #1c3b28;
+  --popover-foreground: #eef4df;
+  --primary: #6fbe91;
+  --primary-foreground: #102218;
+  --secondary: #284a34;
+  --secondary-foreground: #eef4df;
+  --muted: #203d2b;
+  --muted-foreground: #b8c9ad;
+  --accent: #6fbe91;
+  --accent-foreground: #102218;
+  --destructive: #e27d72;
+  --border: #3d5d46;
+  --input: #56745d;
+  --ring: #6fbe91;
+  /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+  --signal-conditional: #e0b464;
+  --signal-conditional-surface: #523f1e;
+  --signal-evidence: #6cc2bd;
+  --signal-evidence-surface: #1d4749;
+  --signal-unknown: #aeb6ae;
+  --signal-unknown-surface: #3a423c;
+  /* Hue- and luminance-separated ramp: green, amber, teal, deep green, stone. */
+  --chart-1: #c0e5d0;
+  --chart-2: #e0b579;
+  --chart-3: #45acb5;
+  --chart-4: #47905f;
+  --chart-5: #5d6d5a;
+  --sidebar: #1c3b28;
+  --sidebar-foreground: #eef4df;
+  --sidebar-primary: #6fbe91;
+  --sidebar-primary-foreground: #102218;
+  --sidebar-accent: #284a34;
+  --sidebar-accent-foreground: #eef4df;
+  --sidebar-border: #3d5d46;
+  --sidebar-ring: #6fbe91;
+  --surface-glass: rgb(23 51 34 / 90%);
+  --shadow-color: rgb(4 16 9 / 32%);
+  --glow-on-primary: color-mix(in srgb, var(--foreground) 38%, transparent);
 }
 
 @layer base {
@@ -288,6 +335,76 @@
 
 .results-link:active {
   transform: translateY(1px);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/*
+ * Theme switch. It shows the theme you are in: a sun in light, a moon in dark.
+ * Which icon is visible is decided in CSS, on the same cascade that picks the
+ * palette, so the server-rendered button is already correct before any script
+ * runs and never flips after hydration.
+ */
+.theme-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  transform: translateY(-1px);
+}
+
+.theme-toggle:active {
+  transform: translateY(1px);
+}
+
+.theme-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--primary);
+  stroke-width: 1.8;
+}
+
+.theme-toggle [data-theme-icon='dark'] {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .theme-toggle [data-theme-icon='light'] {
+    display: none;
+  }
+
+  :root:not([data-theme='light']) .theme-toggle [data-theme-icon='dark'] {
+    display: block;
+  }
+}
+
+:root[data-theme='dark'] .theme-toggle [data-theme-icon='light'] {
+  display: none;
+}
+
+:root[data-theme='dark'] .theme-toggle [data-theme-icon='dark'] {
+  display: block;
 }
 
 /*

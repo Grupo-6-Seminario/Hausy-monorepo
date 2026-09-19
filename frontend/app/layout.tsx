@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Geist_Mono } from 'next/font/google';
 
+import { themeBootScript } from '@/lib/theme';
+
 import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -50,7 +52,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    // The boot script writes `data-theme` on this element before first paint,
+    // so a remembered dark page never flashes light. React sees the attribute
+    // it did not render; that difference is the point, not a mismatch.
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className={`${hausySans.variable} ${geistMono.variable}`}>
         {children}
       </body>

@@ -9,6 +9,7 @@ import type { AuthRole, AuthUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 import { usePointerGlow } from './pointer-glow';
+import { ThemeToggle } from './theme-toggle';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -136,6 +137,9 @@ export function AuthExperience() {
           <span>Hausy</span>
         </a>
         <p className="prototype-note">Prototipo de acceso</p>
+        <div className="header-actions">
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="auth-frame">

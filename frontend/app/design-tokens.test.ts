@@ -45,9 +45,17 @@ function themeBlock(theme: Theme): string {
   const media = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{/.exec(css);
   if (!media) throw new Error('no prefers-color-scheme: dark block');
   const inner = braceBlock(css, media.index + media[0].length - 1);
-  const root = /:root\s*\{/.exec(inner);
-  if (!root) throw new Error('no :root inside the dark media query');
+  // The system route opts out when the reader has explicitly chosen light.
+  const root = /:root:not\(\[data-theme=['"]light['"]\]\)\s*\{/.exec(inner);
+  if (!root) throw new Error('no guarded :root inside the dark media query');
   return braceBlock(inner, root.index + root[0].length - 1);
+}
+
+/** The dark palette as applied by an explicit choice, not by the system. */
+function chosenDarkBlock(): string {
+  const match = /^:root\[data-theme=['"]dark['"]\]\s*\{/m.exec(css);
+  if (!match) throw new Error('no :root[data-theme="dark"] block');
+  return braceBlock(css, match.index + match[0].length - 1);
 }
 
 function declarations(theme: Theme): Map<string, string> {
@@ -170,6 +178,27 @@ describe('surface ladder', () => {
       }
     },
   );
+});
+
+/*
+ * CSS cannot union a media condition with a selector condition in one rule, so
+ * the dark palette is written twice: once for the system preference and once
+ * for a deliberate choice. This is the test that keeps the second copy honest.
+ */
+describe('chosen dark theme', () => {
+  it('declares exactly what the system dark theme declares', () => {
+    const chosen = new Map<string, string>();
+    for (const [, name, value] of chosenDarkBlock().matchAll(
+      /(--[\w-]+)\s*:\s*([^;]+);/g,
+    )) {
+      chosen.set(name, value.trim());
+    }
+
+    expect([...chosen.keys()].sort()).toEqual(
+      [...declarations('dark').keys()].sort(),
+    );
+    expect(chosen).toEqual(declarations('dark'));
+  });
 });
 
 describe('globals.css and design-tokens.json', () => {
