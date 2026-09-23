@@ -528,7 +528,7 @@
 .panel-heading > div > p,
 .property-list-heading > div > p,
 .conversation-speaker,
-.property-evidence h4 {
+.property-evidence h5 {
   margin: 0;
   color: var(--muted-foreground);
   font-size: 0.8125rem;
@@ -1074,7 +1074,8 @@
   line-height: 1.5;
 }
 
-.property-list > ol {
+.property-list > ol,
+.eligibility-section > ol {
   display: grid;
   gap: 1rem;
   margin: 0;
@@ -1095,11 +1096,13 @@
     transform 320ms var(--motion-focus);
 }
 
-.property-list > ol > li:nth-child(2) .property-card {
+.property-list > ol > li:nth-child(2) .property-card,
+.eligibility-section > ol > li:nth-child(2) .property-card {
   animation-delay: 70ms;
 }
 
-.property-list > ol > li:nth-child(3) .property-card {
+.property-list > ol > li:nth-child(3) .property-card,
+.eligibility-section > ol > li:nth-child(3) .property-card {
   animation-delay: 140ms;
 }
 
@@ -1192,7 +1195,7 @@
   margin-top: 1.25rem;
 }
 
-.property-summary h3 {
+.property-summary h4 {
   overflow-wrap: anywhere;
   margin: 0;
   color: var(--foreground);
@@ -2607,4 +2610,74 @@
   .form-meta {
     font-size: 0.75rem;
   }
+}
+
+/* Eligibility sections (specs/002): the list reads in eligibility order. */
+.eligibility-section + .eligibility-section {
+  margin-top: 1.5rem;
+}
+
+.eligibility-section h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.eligibility-condition {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--signal-conditional);
+  background: var(--signal-conditional-surface);
+  font-size: 0.875rem;
+}
+
+.eligibility-section[data-state='unknown'] h3 {
+  color: var(--signal-unknown);
+}
+
+.relaxation-line {
+  margin: 1.25rem 0 0;
+  font-weight: 600;
+}
+
+.qualification-panel {
+  margin-bottom: 1rem;
+}
+
+.qualification-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.qualification-panel summary span {
+  display: block;
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+
+.qualification-panel fieldset {
+  border: 0;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.qualification-panel legend,
+.qualification-income {
+  font-size: 0.875rem;
+}
+
+.qualification-income {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.qualification-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }

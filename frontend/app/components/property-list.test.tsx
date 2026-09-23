@@ -17,7 +17,9 @@ const mockListings: Listing[] = [
     rooms: 2,
     bedrooms: 1,
     bathrooms: 1,
-    attributes: [{ type: 'natural_light', value: 'high', provenance: 'stated' }],
+    attributes: [
+      { type: 'natural_light', value: 'high', provenance: 'stated' },
+    ],
   },
   {
     id: 2,
@@ -31,7 +33,9 @@ const mockListings: Listing[] = [
     rooms: 3,
     bedrooms: 2,
     bathrooms: 2,
-    attributes: [{ type: 'noise_level', value: 'quiet', provenance: 'inferred' }],
+    attributes: [
+      { type: 'noise_level', value: 'quiet', provenance: 'inferred' },
+    ],
   },
 ];
 
@@ -39,7 +43,9 @@ describe('PropertyList', () => {
   it('renders a list of property cards with count', () => {
     render(<PropertyList listings={mockListings} />);
 
-    expect(screen.getByRole('region', { name: /propiedades encontradas/i })).toBeVisible();
+    expect(
+      screen.getByRole('region', { name: /propiedades encontradas/i }),
+    ).toBeVisible();
     expect(screen.getByText(/2 propiedades seleccionadas/i)).toBeVisible();
     expect(screen.getByText(/Humboldt 1900/i)).toBeVisible();
     expect(screen.getByText(/Cabildo 2000/i)).toBeVisible();
@@ -59,5 +65,56 @@ describe('PropertyList', () => {
     render(<PropertyList listings={[]} isLoading={true} />);
 
     expect(screen.getByLabelText(/buscando propiedades/i)).toBeVisible();
+  });
+});
+
+describe('PropertyList eligibility sections', () => {
+  const withState = (
+    listing: Listing,
+    rank: number,
+    eligibility: Listing['eligibility'],
+  ): Listing => ({ ...listing, rank, eligibility });
+
+  it('groups listings by eligibility, names the condition and keeps ranks continuous', () => {
+    render(
+      <PropertyList
+        listings={[
+          withState(mockListings[0], 1, { state: 'eligible' }),
+          withState(mockListings[1], 2, {
+            state: 'conditionally_eligible',
+            conditions: [
+              {
+                reason: 'discretionary',
+                rule: {
+                  fact: 'guarantee',
+                  evidence:
+                    'Garantía CABA o caución (ver cuáles permite la propietaria)',
+                },
+              },
+            ],
+          }),
+          withState(
+            { ...mockListings[0], url: 'u3', address: 'Gorriti 4000' },
+            3,
+            { state: 'unknown' },
+          ),
+        ]}
+        relaxations={[{ fact: 'guarantee', value: 'caucion', count: 2 }]}
+      />,
+    );
+
+    const headings = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual([
+      'Podés aplicar',
+      'Depende de la inmobiliaria',
+      'Sin datos de requisitos',
+    ]);
+    expect(screen.getByText(/ver cuáles permite la propietaria/)).toBeVisible();
+    expect(screen.getByText('#3')).toBeVisible();
+    expect(
+      screen.getByText(/Si conseguís seguro de caución, vuelven 2 propiedades/),
+    ).toBeVisible();
   });
 });

@@ -1,0 +1,166 @@
+package postgres
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+)
+
+// SaveEligibility replaces a listing's eligibility rules, so loading the same
+// file twice leaves the same database.
+func (s *Store) SaveEligibility(ctx context.Context, url string, rules []eligibility.Rule) error {
+	return s.inTx(ctx, func(tx pgx.Tx) error {
+		var id int64
+		if err := tx.QueryRow(ctx, `SELECT id FROM listings WHERE url = $1`, url).Scan(&id); err != nil {
+			return fmt.Errorf("postgres: eligibility for unknown listing %s: %w", url, err)
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM listing_eligibility_rules WHERE listing_id = $1`, id); err != nil {
+			return err
+		}
+		for _, r := range rules {
+			values, _ := json.Marshal(r.Values)
+			if _, err := tx.Exec(ctx,
+				`INSERT INTO listing_eligibility_rules (listing_id, fact, operator, "values", hardness, visibility, source, evidence)
+				 VALUES ($1, $2, $3, $4, $5, COALESCE(NULLIF($6, ''), 'public'), COALESCE(NULLIF($7, ''), 'parsed'), $8)`,
+				id, r.Fact, r.Operator, values, r.Hardness, r.Visibility, r.Source, r.Evidence); err != nil {
+				return fmt.Errorf("postgres: save eligibility rule for %s: %w", url, err)
+			}
+		}
+		return nil
+	})
+}
+
+// Candidates returns every active listing satisfying the query's hard
+// constraints, whole, with its eligibility rules. Unlike Search it has no
+// limit: ordering by eligibility needs the whole population.
+// ponytail: one ByURL per match; batch it if a branch outgrows a few hundred rows.
+func (s *Store) Candidates(ctx context.Context, query search.Query) ([]eligibility.Candidate, error) {
+	b := &builder{}
+	applyBaseConditions(b, query)
+	applyPriceCondition(b, query)
+	rows, err := s.pool.Query(ctx, `SELECT l.id, l.url FROM listings l WHERE `+b.whereClause()+` ORDER BY l.id`, b.args...)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: candidates: %w", err)
+	}
+	var ids []int64
+	var urls []string
+	for rows.Next() {
+		var id int64
+		var url string
+		if err := rows.Scan(&id, &url); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids, urls = append(ids, id), append(urls, url)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	rules, err := s.rulesFor(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]eligibility.Candidate, 0, len(urls))
+	for i, url := range urls {
+		item, err := s.ByURL(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, eligibility.Candidate{Listing: item, Rules: rules[ids[i]]})
+	}
+	return out, nil
+}
+
+func (s *Store) rulesFor(ctx context.Context, ids []int64) (map[int64][]eligibility.Rule, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT listing_id, fact, operator, "values", hardness, visibility, source, evidence
+		 FROM listing_eligibility_rules WHERE listing_id = ANY($1) ORDER BY id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: eligibility rules: %w", err)
+	}
+	defer rows.Close()
+	out := map[int64][]eligibility.Rule{}
+	for rows.Next() {
+		var id int64
+		var r eligibility.Rule
+		var values []byte
+		if err := rows.Scan(&id, &r.Fact, &r.Operator, &values, &r.Hardness, &r.Visibility, &r.Source, &r.Evidence); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(values, &r.Values); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], r)
+	}
+	return out, rows.Err()
+}
+
+// AdmissibleFacts reads which facts rules and qualifications may reference.
+func (s *Store) AdmissibleFacts(ctx context.Context) (map[string]bool, error) {
+	rows, err := s.pool.Query(ctx, `SELECT name, admissible FROM eligibility_facts`)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: eligibility facts: %w", err)
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var name string
+		var admissible bool
+		if err := rows.Scan(&name, &admissible); err != nil {
+			return nil, err
+		}
+		out[name] = admissible
+	}
+	return out, rows.Err()
+}
+
+// SaveQualification replaces what a user declared. Inadmissible facts are
+// refused, not silently dropped.
+func (s *Store) SaveQualification(ctx context.Context, userID string, q eligibility.Qualification) error {
+	admissible, err := s.AdmissibleFacts(ctx)
+	if err != nil {
+		return err
+	}
+	for fact := range q {
+		if !admissible[fact] {
+			return fmt.Errorf("postgres: %q is not an admissible qualification fact", fact)
+		}
+	}
+	return s.inTx(ctx, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM user_qualifications WHERE user_id = $1::bigint`, userID); err != nil {
+			return err
+		}
+		for fact, values := range q {
+			for _, v := range values {
+				if _, err := tx.Exec(ctx, `INSERT INTO user_qualifications (user_id, fact, value) VALUES ($1::bigint, $2, $3) ON CONFLICT DO NOTHING`, userID, fact, v); err != nil {
+					return fmt.Errorf("postgres: save qualification: %w", err)
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (s *Store) Qualification(ctx context.Context, userID string) (eligibility.Qualification, error) {
+	rows, err := s.pool.Query(ctx, `SELECT fact, value FROM user_qualifications WHERE user_id = $1::bigint ORDER BY fact, value`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: qualification: %w", err)
+	}
+	defer rows.Close()
+	out := eligibility.Qualification{}
+	for rows.Next() {
+		var fact, value string
+		if err := rows.Scan(&fact, &value); err != nil {
+			return nil, err
+		}
+		out[fact] = append(out[fact], value)
+	}
+	return out, rows.Err()
+}

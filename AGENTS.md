@@ -102,19 +102,22 @@ Other files cite 46/48 responses (earlier export cuts).
 ## Repo
 
 ```
-scrape → data/listings.jsonl → parse (local LLM) → data/listings.parsed.jsonl → load → Postgres
-                                                                                   ↓
-frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer → internal/search tools
+scrape → data/listings.jsonl → parse (local LLM) → data/listings.parsed.jsonl ─┬→ load → Postgres
+                                  eligibility (Jev) → data/listings.eligibility.jsonl ─┘      ↓
+frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer pipeline:
+    internal/intake plan → Postgres candidates → internal/eligibility → order → reply (local LLM)
 frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Postgres
 ```
 
 | Path | Role |
 | --- | --- |
 | `cmd/hausy` | HTTP API serving the buyer agent |
-| `cmd/listings` | `parse` and `load` subcommands |
-| `internal/buyer` | Buyer agent: requirement extraction, inventory-backed turns |
-| `internal/search` | Read side: query + tools `list_neighborhoods`, `search_listings`, `get_listing`, `neighborhood_price_stats` |
-| `internal/tools` | Provider-neutral tool registry and call loop |
+| `cmd/listings` | `parse`, `eligibility` and `load` subcommands |
+| `internal/buyer` | Buyer turn: plan → candidates per branch → eligibility → order → one reply call |
+| `internal/intake` | Planner: conversation → typed plan (branches, sort, volunteered qualification); Jev or local model, `HAUSY_PLANNER` |
+| `internal/eligibility` | Pure eligibility evaluator (four states), zero-results relaxations, rule extraction at load time ([ADR 0001](./docs/adr/0001-eligibility-rules-as-data.md)) |
+| `internal/jev` | Vercel AI Gateway transport for Jev: retries, sanitized errors |
+| `internal/search` | Read side: `search.Query`, validation, store read contract |
 | `internal/llm` · `internal/local` | Vendor-neutral LLM types · OpenAI-compatible client |
 | `internal/listing` | Listing model, deterministic parsers |
 | `internal/agency` | Transport-neutral realtor catalog commands and contact-intent contract; HTTP and a future A2A adapter share this seam |
@@ -122,9 +125,10 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 | `internal/pipeline` · `internal/store/postgres` | Parse/load steps · persistence (listings, users, sessions) |
 | `internal/agentcore` | Bedrock AgentCore harness (not imported by any command) |
 | `frontend/` | Next.js via vinext; proxies to `HAUSY_BACKEND_URL` (default `127.0.0.1:8080`). Design: `frontend/DESIGN.md` |
-| `specs/` | Feature specs (`001-search-ui`) |
+| `specs/` | Feature specs (`001-search-ui`, `002-eligibility-first-search`) |
 | `experiments/` | Throwaway spikes; `web-scraper/` is its own module |
 
+- Domain glossary: [CONTEXT.md](./CONTEXT.md). Decisions: [docs/adr/](./docs/adr/).
 - Schema and attribute vocabulary: [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
 - Realtor catalog and contact-intent API: [docs/AGENCY_CATALOG.md](./docs/AGENCY_CATALOG.md).
 - Account-specific values live in `.env` (see `.env.example`).
@@ -132,7 +136,7 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 
 ### Data rules
 
-- **Both JSONL files are committed.** Model parsing is not reproducible; `load` alone must rebuild
+- **All three JSONL files are committed.** Model parsing is not reproducible; `load` alone must rebuild
   an identical database.
 - **Deterministic fields** (price, expensas, m², rooms, baths, parking, age, disposition) are
   parsed by pure functions in `internal/listing`.
@@ -144,6 +148,7 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 docker compose up -d
 go run ./cmd/listings load     # fast, idempotent
 go run ./cmd/listings parse    # slow, resumable, non-deterministic — deliberate only
+go run ./cmd/listings eligibility  # Jev; slow, resumable, non-deterministic — deliberate only
 ```
 
 ## Engineering workflow

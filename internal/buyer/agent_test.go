@@ -33,7 +33,7 @@ func TestAgent_HandleMessage_ExtractsRequirements(t *testing.T) {
 	agent := buyer.NewAgent(mockClient)
 	ctx := context.Background()
 
-	resp, err := agent.HandleMessage(ctx, "session-123", "Busco un departamento luminoso en la zona de Palermo")
+	resp, err := agent.HandleMessage(ctx, "session-123", "Busco un departamento luminoso en la zona de Palermo", nil)
 	if err != nil {
 		t.Fatalf("HandleMessage returned unexpected error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestAgent_HandleMessage_AccumulatesRequirementsAcrossTurns(t *testing.T) {
 	sessionID := "session-accumulate"
 
 	// Turn 1
-	resp1, err := agent.HandleMessage(ctx, sessionID, "Busco un departamento en Palermo")
+	resp1, err := agent.HandleMessage(ctx, sessionID, "Busco un departamento en Palermo", nil)
 	if err != nil {
 		t.Fatalf("Turn 1 failed: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestAgent_HandleMessage_AccumulatesRequirementsAcrossTurns(t *testing.T) {
 	}
 
 	// Turn 2
-	resp2, err := agent.HandleMessage(ctx, sessionID, "Tambien quiero que tenga balcon")
+	resp2, err := agent.HandleMessage(ctx, sessionID, "Tambien quiero que tenga balcon", nil)
 	if err != nil {
 		t.Fatalf("Turn 2 failed: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestAgent_HandleMessage_HandlesMarkdownFences(t *testing.T) {
 	}
 
 	agent := buyer.NewAgent(mockClient)
-	resp, err := agent.HandleMessage(context.Background(), "session-fence", "Busco un PH")
+	resp, err := agent.HandleMessage(context.Background(), "session-fence", "Busco un PH", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

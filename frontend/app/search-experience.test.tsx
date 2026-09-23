@@ -175,6 +175,38 @@ describe('SearchExperience', () => {
     );
   });
 
+  it('sends the declared qualification with every message and shows the zero-results line', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
+      .mockResolvedValue(
+        Response.json({
+          reply: 'Respuesta del agente.',
+          listings: [
+            { ...sampleListing, rank: 1, eligibility: { state: 'eligible' } },
+          ],
+          relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    await user.click(screen.getByText(/¿Qué garantía tenés\?/));
+    await user.click(screen.getByLabelText('Garantía propietaria'));
+    await user.click(screen.getByRole('button', { name: 'Usar estos datos' }));
+    await user.type(screen.getByRole('textbox'), 'Alquiler en Palermo{Enter}');
+
+    expect(await screen.findByText('Podés aplicar')).toBeVisible();
+    expect(
+      screen.getByText(
+        /Si conseguís seguro de caución, vuelven 14 propiedades/,
+      ),
+    ).toBeVisible();
+    const body = JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body as string);
+    expect(body.qualification).toEqual({ guarantee: ['propietaria'] });
+  });
+
   it('starts a new line on Shift+Enter without sending', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();

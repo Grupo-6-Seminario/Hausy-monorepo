@@ -12,6 +12,37 @@ export interface Money {
   currency?: string | null;
 }
 
+export type EligibilityState =
+  | 'eligible'
+  | 'conditionally_eligible'
+  | 'unknown'
+  | 'ineligible';
+
+export interface EligibilityCondition {
+  reason: string;
+  rule: {
+    fact: string;
+    values?: string[];
+    hardness?: string;
+    evidence?: string;
+  };
+}
+
+export interface Eligibility {
+  state: EligibilityState;
+  conditions?: EligibilityCondition[];
+}
+
+// Zero-results line: declaring `value` for `fact` brings `count` listings back.
+export interface Relaxation {
+  fact: string;
+  value: string;
+  count: number;
+}
+
+// What the searcher declared: fact name -> values (see CONTEXT.md, Qualification).
+export type Qualification = Record<string, string[]>;
+
 export interface Listing {
   id?: number | string;
   rank?: number;
@@ -36,6 +67,7 @@ export interface Listing {
   attributes?: ListingAttribute[];
   parsed_at?: string;
   parser_model?: string;
+  eligibility?: Eligibility;
 }
 
 export interface Requirement {
@@ -47,5 +79,6 @@ export interface AgentResponse {
   reply?: string;
   listings?: Listing[];
   requirements?: Requirement[];
+  relaxations?: Relaxation[];
   error?: string;
 }

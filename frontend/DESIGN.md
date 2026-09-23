@@ -123,10 +123,11 @@ Currently documented states:
 | ----- | ------ | ----- |
 | Published fact | Evidence | Solid left border on a `.property-evidence` item |
 | Model inference | Unknown | Dashed left border and label on a `.property-evidence` item |
+| Conditionally eligible | Conditional | Left border and surface on `.eligibility-condition`, quoting the listing's condition |
+| Eligibility unknown | Unknown | `.eligibility-section[data-state='unknown']` heading |
 
-`--signal-conditional` is defined but deliberately unconsumed. It is reserved for the
-`conditionally_eligible` verdict, which no endpoint returns yet; wiring it before then would be
-speculative.
+Results are grouped in eligibility order ("Podés aplicar", "Depende de la inmobiliaria", "Sin datos de
+requisitos"); ranks continue across sections so the reply's `#N` matches the cards.
 
 ## Typography
 

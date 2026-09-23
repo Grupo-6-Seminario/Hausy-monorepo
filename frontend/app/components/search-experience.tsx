@@ -13,12 +13,19 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgentResponse, Listing, Requirement } from '@/lib/types';
+import type {
+  AgentResponse,
+  Listing,
+  Qualification,
+  Relaxation,
+  Requirement,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { AgentReply } from './agent-reply';
 import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
+import { QualificationPanel } from './qualification-panel';
 import { PromptLuminary } from './prompt-luminary';
 import { ThemeToggle } from './theme-toggle';
 
@@ -59,6 +66,9 @@ export function SearchExperience() {
   const [state, setState] = useState<SearchState>('idle');
   const [listings, setListings] = useState<Listing[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [relaxations, setRelaxations] = useState<Relaxation[]>([]);
+  // Read inside startSearch without re-registering the WebMCP tool.
+  const qualificationRef = useRef<Qualification>({});
   const [recommendedRanks, setRecommendedRanks] = useState<number[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
@@ -114,6 +124,7 @@ export function SearchExperience() {
           body: JSON.stringify({
             session_id: sessionRef.current,
             message: normalizedQuery,
+            qualification: qualificationRef.current,
           }),
           signal: controller.signal,
         });
@@ -126,6 +137,7 @@ export function SearchExperience() {
 
         setListings(payload.listings || []);
         setRequirements(payload.requirements || []);
+        setRelaxations(payload.relaxations || []);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
@@ -355,6 +367,12 @@ export function SearchExperience() {
             </div>
           ) : null}
 
+          <QualificationPanel
+            onChange={(next) => {
+              qualificationRef.current = next;
+            }}
+          />
+
           <form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">
               {isWorkspace
@@ -453,6 +471,7 @@ export function SearchExperience() {
           >
             <PropertyList
               listings={listings}
+              relaxations={relaxations}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             />

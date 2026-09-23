@@ -159,7 +159,7 @@ export function PropertyCard({
 
       <div className="property-summary">
         <div>
-          <h3>{address || `Departamento en ${neighborhood}`}</h3>
+          <h4>{address || `Departamento en ${neighborhood}`}</h4>
           {floor ? <p className="listing-floor">Piso {floor}</p> : null}
         </div>
         <div className="listing-price">
@@ -198,7 +198,7 @@ export function PropertyCard({
           className="property-evidence"
           aria-label="Cualidades identificadas"
         >
-          <h4>Cualidades identificadas</h4>
+          <h5>Cualidades identificadas</h5>
           <ul>
             {attributes.map((attribute, index) => {
               const isStated = attribute.provenance === 'stated';

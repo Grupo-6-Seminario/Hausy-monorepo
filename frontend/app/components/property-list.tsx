@@ -8,13 +8,27 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Listing } from '@/lib/types';
+import type { EligibilityState, Listing, Relaxation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { PropertyCard } from './property-card';
 
+// Eligibility order is the product's order (CONTEXT.md, Eligibility);
+// ineligible listings never reach the list.
+const sections: { state: EligibilityState; title: string }[] = [
+  { state: 'eligible', title: 'Podés aplicar' },
+  { state: 'conditionally_eligible', title: 'Depende de la inmobiliaria' },
+  { state: 'unknown', title: 'Sin datos de requisitos' },
+];
+
+const instrumentLabel: Record<string, string> = {
+  propietaria: 'garantía propietaria',
+  caucion: 'seguro de caución',
+};
+
 interface PropertyListProps {
   listings?: Listing[];
+  relaxations?: Relaxation[];
   recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
@@ -22,6 +36,7 @@ interface PropertyListProps {
 
 export function PropertyList({
   listings = [],
+  relaxations = [],
   recommendedRanks = [],
   isLoading = false,
   className,
@@ -104,21 +119,62 @@ export function PropertyList({
           ? 'Las fichas citadas en la lectura de Hausy están señaladas. En todas distinguimos lo publicado de lo interpretado.'
           : 'Usá el número de cada ficha para relacionarla con la lectura de Hausy. Lo publicado y lo interpretado aparecen separados.'}
       </p>
-      <ol>
-        {listings.map((listing, index) => {
-          const rank = listing.rank ?? index + 1;
-          const rankedListing = { ...listing, rank };
-
-          return (
-            <li key={listing.url || listing.id || index}>
-              <PropertyCard
-                isRecommended={recommendedRanks.includes(rank)}
-                listing={rankedListing}
-              />
-            </li>
-          );
-        })}
-      </ol>
+      {listings.some((listing) => listing.eligibility)
+        ? sections.map(({ state, title }) => {
+            const inSection = listings.filter(
+              (listing) => listing.eligibility?.state === state,
+            );
+            if (inSection.length === 0) return null;
+            return (
+              <div
+                key={state}
+                className="eligibility-section"
+                data-state={state}
+              >
+                <h3>{title}</h3>
+                {renderCards(inSection, recommendedRanks)}
+              </div>
+            );
+          })
+        : renderCards(listings, recommendedRanks)}
+      {relaxations.map((relaxation) => (
+        <p
+          key={`${relaxation.fact}-${relaxation.value}`}
+          className="relaxation-line"
+        >
+          Si conseguís {instrumentLabel[relaxation.value] ?? relaxation.value},
+          vuelven {relaxation.count}{' '}
+          {relaxation.count === 1 ? 'propiedad' : 'propiedades'}.
+        </p>
+      ))}
     </section>
+  );
+}
+
+function renderCards(listings: Listing[], recommendedRanks: number[]) {
+  return (
+    <ol start={listings[0]?.rank ?? 1}>
+      {listings.map((listing, index) => {
+        const rank = listing.rank ?? index + 1;
+        const rankedListing = { ...listing, rank };
+        const conditions = (listing.eligibility?.conditions ?? []).filter(
+          (condition) => condition.rule.evidence,
+        );
+
+        return (
+          <li key={listing.url || listing.id || index}>
+            <PropertyCard
+              isRecommended={recommendedRanks.includes(rank)}
+              listing={rankedListing}
+            />
+            {conditions.map((condition, i) => (
+              <p key={i} className="eligibility-condition">
+                {condition.rule.evidence}
+              </p>
+            ))}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

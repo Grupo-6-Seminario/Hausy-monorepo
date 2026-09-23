@@ -98,6 +98,20 @@ A listing carries **multiple rows of the same `type`** where that makes sense
 (`amenity`, `suitable_for`, `transit_access`). Single-valued types
 (`natural_light`, `exposure`) carry at most one row.
 
+### Eligibility — `eligibility_facts`, `listing_eligibility_rules`, `user_qualifications`
+
+Why and how: [ADR 0001](./adr/0001-eligibility-rules-as-data.md); terms: [CONTEXT.md](../CONTEXT.md).
+
+| Table | Holds |
+| --- | --- |
+| `eligibility_facts` | Fact names (`guarantee`, `income_band`, `caucion_quoted`, …), whether each is `admissible`, and the choices the qualification form offers. Protected characteristics (`age`, `nationality`, `gender`) are rows with `admissible = false`. |
+| `listing_eligibility_rules` | A listing's eligibility requirements: `fact`, `operator` (`one_of`, `income_multiple`), `values` (JSON), `hardness` (`hard` / `discretionary`), `visibility` (`public` / `private`), `source` (`parsed` / `declared` / `observed`), and `evidence` in the listing's own words. |
+| `user_qualifications` | What a signed-in searcher declared: one row per `(user, fact, value)`. |
+
+Rules come from `data/listings.eligibility.jsonl` (`cmd/listings eligibility`, then `load`). No
+rules means eligibility is `unknown`, never `eligible`. Instruments are data: adding one means a row
+in `eligibility_facts` plus a pattern in `eligibility.Instruments`, and no evaluator change.
+
 ## The vocabulary is closed
 
 Anything a model emits outside this set is discarded before it reaches the
