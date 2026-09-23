@@ -1,11 +1,13 @@
 // Command listings turns scraped ZonaProp rows into database records.
 //
-// It is two steps, run separately:
+// It is three steps, run separately:
 //
-//	listings parse -in data/listings.jsonl -out data/listings.parsed.jsonl
-//	listings load  -in data/listings.parsed.jsonl
+//	listings parse       -in data/listings.jsonl -out data/listings.parsed.jsonl
+//	listings eligibility -in data/listings.parsed.jsonl -out data/listings.eligibility.jsonl
+//	listings load        -in data/listings.parsed.jsonl
 //
-// parse runs the local model and is slow, non-deterministic and occasional.
+// parse and eligibility run a model; they are slow, non-deterministic and
+// deliberate, and their output is committed. parse runs the local model and is slow, non-deterministic and occasional.
 // load is fast, deterministic and repeatable. Committing the parsed file
 // between them is what lets every teammate build the same database without
 // scraping the site or running a model of their own.
@@ -19,6 +21,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline"
@@ -35,6 +39,8 @@ func main() {
 	switch os.Args[1] {
 	case "parse":
 		err = runParse(os.Args[2:])
+	case "eligibility":
+		err = runEligibility(os.Args[2:])
 	case "load":
 		err = runLoad(os.Args[2:])
 	default:
@@ -49,6 +55,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `usage: listings <command> [flags]
 
   parse  -in <scraped.jsonl> -out <parsed.jsonl>   extract attributes with the local model
+  eligibility -in <parsed.jsonl> -out <eligibility.jsonl>   extract eligibility rules with Jev
   load   -in <parsed.jsonl>                        load parsed listings into Postgres
 `)
 	os.Exit(2)
@@ -118,9 +125,52 @@ func runParse(args []string) error {
 	return nil
 }
 
+func runEligibility(args []string) error {
+	flags := flag.NewFlagSet("eligibility", flag.ExitOnError)
+	in := flags.String("in", "data/listings.parsed.jsonl", "parsed JSONL to read")
+	out := flags.String("out", "data/listings.eligibility.jsonl", "eligibility JSONL to write (appends; resumable)")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	client := jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil)
+	// A batch run can wait out Gateway's rate limit; a chat turn cannot.
+	client.Retries, client.Backoff = 6, time.Second
+	extract := func(ctx context.Context, description string) ([]eligibility.Rule, error) {
+		return eligibility.Extract(ctx, client.Evaluate, description)
+	}
+
+	done := map[string]bool{}
+	if existing, err := os.Open(*out); err == nil {
+		done, err = pipeline.ParsedURLs(existing)
+		existing.Close()
+		if err != nil {
+			return err
+		}
+	}
+	input, err := os.Open(*in)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+	output, err := os.OpenFile(*out, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	defer output.Close()
+
+	report, err := pipeline.ExtractEligibility(context.Background(), input, output, extract, done)
+	if err != nil {
+		return err
+	}
+	log.Printf("examined %d, already done %d, failed %d", report.Parsed, report.AlreadyDone, report.Failed)
+	reportErrors(report)
+	return nil
+}
+
 func runLoad(args []string) error {
 	flags := flag.NewFlagSet("load", flag.ExitOnError)
 	in := flags.String("in", "data/listings.parsed.jsonl", "parsed JSONL to read")
+	eligibilityIn := flags.String("eligibility", "data/listings.eligibility.jsonl", "eligibility JSONL to read; skipped if absent")
 	uri := flags.String("database", envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"), "Postgres URI")
 	fresh := flags.Bool("fresh", false, "empty the listing tables before loading")
 	if err := flags.Parse(args); err != nil {
@@ -166,6 +216,17 @@ func runLoad(args []string) error {
 	}
 
 	log.Printf("loaded %d, skipped %d, failed %d", report.Loaded, report.Skipped, report.Failed)
+	if rules, err := os.Open(*eligibilityIn); err == nil {
+		eligibilityReport, err := pipeline.LoadEligibility(ctx, rules, store)
+		rules.Close()
+		if err != nil {
+			return err
+		}
+		log.Printf("eligibility: loaded %d, failed %d", eligibilityReport.Loaded, eligibilityReport.Failed)
+		reportErrors(eligibilityReport)
+	} else {
+		log.Printf("eligibility: %s not found; every listing stays unknown", *eligibilityIn)
+	}
 	log.Printf("database now holds %d listings across %d agencies", total, agencies)
 	reportErrors(report)
 	return nil

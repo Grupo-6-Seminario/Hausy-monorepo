@@ -12,6 +12,9 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
@@ -49,6 +52,7 @@ func main() {
 	// one it can still take requirements down, and saying so at startup beats
 	// a fresh clone failing to boot before anything has been ingested.
 	var options []buyer.Option
+	var qualifications httpapi.Qualifications
 	var accounts auth.Store = auth.NewMemoryStore()
 	var catalog agency.Catalog = agency.NewMemoryCatalog()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -64,8 +68,9 @@ func main() {
 		log.Printf("no listing store at %s (%v); the agent will collect requirements but cannot search, and accounts are kept in memory until restart", config.databaseURI, err)
 	} else {
 		defer store.Close()
-		options = append(options, buyer.WithInventory(store))
+		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: llmClient}))
 		accounts = store
+		qualifications = store
 		catalog = store
 		log.Printf("listing store connected at %s", config.databaseURI)
 	}
@@ -76,7 +81,7 @@ func main() {
 	provider := auth.NewLocal(accounts)
 	server := &http.Server{
 		Addr:              config.address,
-		Handler:           httpapi.NewHandler(agent, provider, catalog),
+		Handler:           httpapi.NewHandler(agent, provider, catalog, qualifications),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -84,4 +89,17 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+// plannerFromEnv reads HAUSY_PLANNER. "jev" plans with Jev under a 6 s
+// budget and falls back to the local model; anything else plans with the
+// local model alone. Switching Jev off is one environment variable.
+func plannerFromEnv(client llm.Client) intake.Planner {
+	local := intake.Qwen{Client: client}
+	if os.Getenv("HAUSY_PLANNER") != "jev" {
+		return intake.Planner{Primary: local}
+	}
+	gateway := jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil)
+	log.Printf("planner: Jev with local-model fallback")
+	return intake.Planner{Primary: intake.Jev{Evaluate: gateway.Evaluate}, Fallback: local, Budget: 6 * time.Second}
 }

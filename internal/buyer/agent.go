@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/tools"
 )
 
 // EligibilityState defines the four eligibility states outlined in core.md.
@@ -38,12 +38,24 @@ type TurnResponse struct {
 	// Listings are the properties the agent settled on this turn, whole rather
 	// than trimmed: the interface renders them as cards, so it wants the
 	// seller's full prose and the evidence behind every parsed attribute.
-	Listings []listing.Listing `json:"listings,omitempty"`
+	Listings []Result `json:"listings,omitempty"`
+
+	// Relaxations is the zero-results line: hidden ineligible listings that
+	// another qualification would bring back.
+	Relaxations []eligibility.Relaxation `json:"relaxations,omitempty"`
+}
+
+// Result is a shown listing with its eligibility for this searcher.
+type Result struct {
+	listing.Listing
+	Eligibility *eligibility.Verdict `json:"eligibility,omitempty"`
 }
 
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.
 type Agent interface {
-	HandleMessage(ctx context.Context, sessionID string, message string) (*TurnResponse, error)
+	// HandleMessage runs one turn. q is what the searcher declared in the
+	// qualification form or their account; it may be nil.
+	HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification) (*TurnResponse, error)
 }
 
 // session tracks conversational state and accumulated requirements for a searcher.
@@ -52,16 +64,20 @@ type session struct {
 	requirements []Requirement
 	listings     []listing.Listing
 
-	// history is the conversation as the model saw it, tool traffic included.
-	// Used only in inventory mode, where a follow-up question ("¿y más
-	// barato?") is unanswerable without what came before it.
-	history []llm.Message
+	// turns, plan and results belong to the pipeline: every user message so
+	// far, the plan they produced, and what is on screen.
+	turns   []string
+	plan    intake.Plan
+	results []Result
 }
+
+// Option configures an Agent at construction.
+type Option func(*DefaultAgent)
 
 // DefaultAgent implements Agent backed by an llm.Client.
 //
-// It runs in one of two modes. Given an inventory it searches the store through
-// the tools in internal/search; without one it falls back to extracting
+// It runs in one of two modes. With a pipeline (WithPipeline) it plans, searches,
+// assesses eligibility and explains; without one it falls back to extracting
 // requirements from what the user says, which is all it can honestly do when
 // there is nothing to search.
 type DefaultAgent struct {
@@ -69,8 +85,7 @@ type DefaultAgent struct {
 	mu        sync.RWMutex
 	sessions  map[string]*session
 
-	inventory search.Repository
-	runner    *tools.Runner
+	pipeline *pipeline
 }
 
 // NewAgent creates a new Buyer Agent backed by the provided LLM client.
@@ -92,13 +107,13 @@ type extractionResult struct {
 }
 
 // HandleMessage receives a user's input, extracts typed requirements, updates state, and returns the agent's turn response.
-func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string) (*TurnResponse, error) {
+func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification) (*TurnResponse, error) {
 	if sessionID == "" {
 		sessionID = "default"
 	}
 
-	if a.inventory != nil {
-		return a.handleWithInventory(ctx, sessionID, message)
+	if a.pipeline != nil {
+		return a.handlePipeline(ctx, sessionID, message, q)
 	}
 
 	req := llm.ChatRequest{

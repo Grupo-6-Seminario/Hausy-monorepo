@@ -13,7 +13,7 @@ import (
 )
 
 func newAuthHandler() http.Handler {
-	return httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog())
+	return httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)
 }
 
 func send(t *testing.T, handler http.Handler, method, path, token, body string) *httptest.ResponseRecorder {

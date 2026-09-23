@@ -11,6 +11,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
 
@@ -19,7 +20,7 @@ type recordingAgent struct {
 	message   string
 }
 
-func (a *recordingAgent) HandleMessage(_ context.Context, sessionID, message string) (*buyer.TurnResponse, error) {
+func (a *recordingAgent) HandleMessage(_ context.Context, sessionID, message string, _ eligibility.Qualification) (*buyer.TurnResponse, error) {
 	a.sessionID = sessionID
 	a.message = message
 	return &buyer.TurnResponse{Reply: "Respuesta real del agente."}, nil
@@ -27,7 +28,7 @@ func (a *recordingAgent) HandleMessage(_ context.Context, sessionID, message str
 
 func TestHandler_PostMessageReturnsAgentReply(t *testing.T) {
 	agent := &recordingAgent{}
-	handler := httpapi.NewHandler(agent, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog())
+	handler := httpapi.NewHandler(agent, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/messages",

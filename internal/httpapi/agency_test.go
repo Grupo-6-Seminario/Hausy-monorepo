@@ -12,7 +12,7 @@ import (
 
 func TestAgencyCatalog_RealtorAddsAndListsTheirProperty(t *testing.T) {
 	provider := auth.NewLocal(auth.NewMemoryStore())
-	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog())
+	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog(), nil)
 	token := signUpAndSignIn(t, handler, realtorSignUp)
 
 	createdResponse := send(t, handler, http.MethodPost, "/api/agency/catalog", token, `{
@@ -48,7 +48,7 @@ func TestAgencyCatalog_RealtorAddsAndListsTheirProperty(t *testing.T) {
 
 func TestAgencyCatalog_RealtorEditsAndRemovesTheirProperty(t *testing.T) {
 	provider := auth.NewLocal(auth.NewMemoryStore())
-	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog())
+	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog(), nil)
 	token := signUpAndSignIn(t, handler, realtorSignUp)
 	createdResponse := send(t, handler, http.MethodPost, "/api/agency/catalog", token, validPropertyJSON("Humboldt al 1900"))
 	if createdResponse.Code != http.StatusCreated {
@@ -79,7 +79,7 @@ func TestAgencyCatalog_RealtorEditsAndRemovesTheirProperty(t *testing.T) {
 
 func TestAgencyCatalog_RequiresAnAuthenticatedRealtor(t *testing.T) {
 	provider := auth.NewLocal(auth.NewMemoryStore())
-	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog())
+	handler := httpapi.NewHandler(&recordingAgent{}, provider, agency.NewMemoryCatalog(), nil)
 
 	if response := send(t, handler, http.MethodGet, "/api/agency/catalog", "", ""); response.Code != http.StatusUnauthorized {
 		t.Fatalf("anonymous list: expected 401, got %d: %s", response.Code, response.Body.String())
@@ -106,7 +106,7 @@ func TestContactIntent_RecordsOneCountAcrossAnIdempotentReplay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed property: %v", err)
 	}
-	handler := httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), catalog)
+	handler := httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), catalog, nil)
 	body := `{"intent_id":"4c065799-5ad0-4df4-9b09-8dcc541507d2","source":"search_result_card"}`
 
 	first := send(t, handler, http.MethodPost, "/api/listings/"+created.ID+"/contact-intents", "", body)

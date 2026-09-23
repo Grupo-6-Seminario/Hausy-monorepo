@@ -1,0 +1,135 @@
+{
+ "notes": "Hand labels written 2026-09-23 from the listing text, before any extraction run. hardness 'either' = ambiguous text, not scored.",
+ "labels": [
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-de-departamento-monoambiente-con-balcon-en-59127966.html",
+   "accepted": [
+    "propietaria"
+   ],
+   "hardness": "discretionary"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-balvanera-59379959.html",
+   "accepted": [
+    "propietaria"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclappa-congreso-dpto.-2-amb.-59675011.html",
+   "accepted": [
+    "propietaria"
+   ],
+   "hardness": "discretionary"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-amueblado-precio-paquete-pileta-59388489.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-monoambiente-en-alquiler-en-monserrat-59794846.html",
+   "accepted": [
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-palermo-59970933.html",
+   "accepted": [
+    "propietaria"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-en-palermo-3-ambientes-con-cochera!-amoblado-60045336.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-monoambiente-en-congreso-59772156.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-alquiler-1-dormitorio-1-bano-60-m-59659916.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-monoambiente-en-alquiler-huergo-475-59277251.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-2-ambientes.-amoblado.-balcon.-luminoso-59694186.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-monoambiente-en-buen-estado-al-frente-con-balcon.-a-m-59819140.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "either"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-departamento-3-ambientes-excelente-59530580.html",
+   "accepted": [
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-2-amb-amoblado-y-luminoso-monserrat-59857030.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "either"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-2-ambientes-en-monserrat-60047227.html",
+   "accepted": [
+    "propietaria",
+    "caucion"
+   ],
+   "hardness": "hard"
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-venta-departamento-congreso-3-amb-con-dependencia-59615984.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-2-ambientes-amoblado-en-alquiler-con-59449320.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-monoambiente-dividido-quartier-del-bajo-59821143.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-monoambiente-premium-a-estrenar-amoblado-con-59449816.html",
+   "accepted": [],
+   "hardness": null
+  },
+  {
+   "url": "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-2-ambientes.-parana-26-58967695.html",
+   "accepted": [],
+   "hardness": null
+  }
+ ]
+}

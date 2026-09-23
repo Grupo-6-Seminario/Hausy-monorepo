@@ -72,7 +72,7 @@ export function postToBackend(path: string, body: string) {
 export function withBearer(
   path: string,
   token: string,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
   body?: string,
 ) {
   if (method === 'GET') {

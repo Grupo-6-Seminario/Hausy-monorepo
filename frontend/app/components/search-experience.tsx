@@ -13,12 +13,23 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgentResponse, Listing, Requirement } from '@/lib/types';
+import type {
+  AgentResponse,
+  Listing,
+  Qualification,
+  Relaxation,
+  Requirement,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { AgentReply } from './agent-reply';
+import { LandingDiscovery, LandingPortrait } from './landing-discovery';
 import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
+import {
+  describeQualification,
+  QualificationPanel,
+} from './qualification-panel';
 import { PromptLuminary } from './prompt-luminary';
 import { ThemeToggle } from './theme-toggle';
 
@@ -59,6 +70,12 @@ export function SearchExperience() {
   const [state, setState] = useState<SearchState>('idle');
   const [listings, setListings] = useState<Listing[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [relaxations, setRelaxations] = useState<Relaxation[]>([]);
+  // The micro-interview opens with the page and folds away once a search runs.
+  const [qualificationOpen, setQualificationOpen] = useState(true);
+  const [qualification, setQualification] = useState<Qualification>({});
+  // Read inside startSearch without re-registering the WebMCP tool.
+  const qualificationRef = useRef<Qualification>({});
   const [recommendedRanks, setRecommendedRanks] = useState<number[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
@@ -101,6 +118,7 @@ export function SearchExperience() {
 
       setError('');
       setState('loading');
+      setQualificationOpen(false);
       setPendingQuery(normalizedQuery);
       setQuery('');
       requestRef.current?.abort();
@@ -114,6 +132,7 @@ export function SearchExperience() {
           body: JSON.stringify({
             session_id: sessionRef.current,
             message: normalizedQuery,
+            qualification: qualificationRef.current,
           }),
           signal: controller.signal,
         });
@@ -126,6 +145,7 @@ export function SearchExperience() {
 
         setListings(payload.listings || []);
         setRequirements(payload.requirements || []);
+        setRelaxations(payload.relaxations || []);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
@@ -334,6 +354,22 @@ export function SearchExperience() {
                 ) : null}
               </ol>
 
+              <p className="qualification-chips">
+                {describeQualification(qualification) ? (
+                  <span>Usando: {describeQualification(qualification)}</span>
+                ) : (
+                  <span>Sin garantía declarada</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setQualificationOpen(true)}
+                >
+                  {describeQualification(qualification)
+                    ? 'Editar'
+                    : 'Completar'}
+                </button>
+              </p>
+
               {requirements.length > 0 ? (
                 <details className="criteria">
                   <summary>
@@ -354,6 +390,15 @@ export function SearchExperience() {
               ) : null}
             </div>
           ) : null}
+
+          <QualificationPanel
+            open={qualificationOpen}
+            onOpenChange={setQualificationOpen}
+            onChange={(next) => {
+              qualificationRef.current = next;
+              setQualification(next);
+            }}
+          />
 
           <form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">
@@ -436,14 +481,9 @@ export function SearchExperience() {
               ))}
             </div>
           ) : null}
-
-          {!isWorkspace ? (
-            <p className="trust-note">
-              Los datos publicados y las inferencias del modelo aparecen
-              identificados por separado.
-            </p>
-          ) : null}
         </section>
+
+        {!isWorkspace ? <LandingPortrait /> : null}
 
         {isWorkspace ? (
           <section
@@ -453,6 +493,7 @@ export function SearchExperience() {
           >
             <PropertyList
               listings={listings}
+              relaxations={relaxations}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             />
@@ -463,6 +504,7 @@ export function SearchExperience() {
           </section>
         ) : null}
       </div>
+      {!isWorkspace ? <LandingDiscovery onChoose={applyExample} /> : null}
     </main>
   );
 }
