@@ -123,11 +123,17 @@ Currently documented states:
 | ----- | ------ | ----- |
 | Published fact | Evidence | Solid left border on a `.property-evidence` item |
 | Model inference | Unknown | Dashed left border and label on a `.property-evidence` item |
-| Conditionally eligible | Conditional | Left border and surface on `.eligibility-condition`, quoting the listing's condition |
-| Eligibility unknown | Unknown | `.eligibility-section[data-state='unknown']` heading |
+| Eligible | Evidence | `.eligibility-badge` in the card header ("Podés aplicar") |
+| Conditionally eligible | Conditional | `.eligibility-badge` plus `.eligibility-conditions` inside the card, quoting the listing's own condition |
+| Eligibility unknown | Unknown | Dashed `.eligibility-badge` and the `.eligibility-section[data-state='unknown']` heading |
 
 Results are grouped in eligibility order ("Podés aplicar", "Depende de la inmobiliaria", "Sin datos de
 requisitos"); ranks continue across sections so the reply's `#N` matches the cards.
+
+The qualification micro-interview (`QualificationPanel`) opens with the welcome view and folds away when
+a search runs; `.qualification-chips` then shows what the search is using, with "Editar" to reopen it.
+A signed-in searcher's saved answers are prefilled (`lib/session-hint.ts` limits that lookup to browsers
+that signed in).
 
 ## Typography
 
@@ -251,3 +257,28 @@ Use `/hausy_logo.png` as the provisional Hausy mark. Preserve its colors and asp
 - `npm run lint`, `npx tsc --noEmit --incremental false`, and `npm run build` complete the checks.
 
 Browser tests use explicit listing and response fixtures. They verify the frontend, not live model responses or listing accuracy. Browser screenshots and traces are written to ignored `test-results/` output.
+
+## Welcome discovery surface
+
+The welcome view pairs the existing editable search composer with an editorial interior image.
+It uses the full 1360 px page width, with the text/composer column capped at 760 px. Below
+768 px the composer comes first and the image follows in a single column. The search action
+must remain visible in the initial viewport.
+
+`LandingDiscovery` owns the welcome-only feed and guide, with a single `onChoose(query)`
+interface. A card fills and focuses the existing composer; it never submits a search. The
+conversation workspace, result ranking, and backend contracts remain separate.
+
+The “Avisos destacados” prototype feed is explicitly labeled as illustrative inspiration,
+not available inventory. Do not add fabricated prices, addresses, eligibility verdicts, or
+availability. Generated photos are never evidence about a real listing. Replace this feed
+with sourced listing data and corresponding actual photos together when that contract exists.
+
+Motion follows the existing hierarchy: the hero photograph enters once after the headline;
+feed and guide reveal once on entering the viewport (650 ms, 22 px rise, `--motion-focus`).
+Card images scale to 1.035 only when their action is hovered or focused, connecting the action
+to its image. Buttons compress on press. IntersectionObserver is disconnected on unmount;
+content remains visible without it. Reduced motion removes reveals, image scaling, and entry
+motion. All colors inherit the existing theme tokens. No new motion library is required.
+
+The generated image files and prompts are documented in `public/images/landing/README.md`.

@@ -6,6 +6,17 @@ import { QualificationPanel } from './qualification-panel';
 
 afterEach(() => vi.unstubAllGlobals());
 
+// localStorage is not available in this test environment; stub it the way the
+// theme tests do.
+function installStorage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  });
+}
+
 function open() {
   return userEvent.click(screen.getByText(/¿Qué garantía tenés\?/));
 }
@@ -35,10 +46,11 @@ describe('QualificationPanel', () => {
       income_band: ['2000000-3000000'],
       caucion_quoted: ['no'],
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1); // the profile lookup only
+    expect(fetchMock).not.toHaveBeenCalled(); // anonymous: no lookup, no save
   });
 
   it('prefills a signed-in profile and saves changes back to the account', async () => {
+    installStorage({ hausy_signed_in: '1' });
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(Response.json({ guarantee: ['caucion'] }))

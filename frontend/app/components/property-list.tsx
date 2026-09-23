@@ -11,14 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { EligibilityState, Listing, Relaxation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { PropertyCard } from './property-card';
+import { eligibilityLabel, PropertyCard } from './property-card';
 
 // Eligibility order is the product's order (CONTEXT.md, Eligibility);
 // ineligible listings never reach the list.
-const sections: { state: EligibilityState; title: string }[] = [
-  { state: 'eligible', title: 'Podés aplicar' },
-  { state: 'conditionally_eligible', title: 'Depende de la inmobiliaria' },
-  { state: 'unknown', title: 'Sin datos de requisitos' },
+const sections: EligibilityState[] = [
+  'eligible',
+  'conditionally_eligible',
+  'unknown',
 ];
 
 const instrumentLabel: Record<string, string> = {
@@ -112,7 +112,11 @@ export function PropertyList({
           <p>Selección actual</p>
           <h2>{countLabel}</h2>
         </div>
-        <span>Ordenadas por afinidad</span>
+        <span>
+          {listings.some((listing) => listing.eligibility)
+            ? 'Ordenadas por si podés alquilarlas'
+            : 'Ordenadas por afinidad'}
+        </span>
       </div>
       <p className="selection-guide">
         {recommendedRanks.length > 0
@@ -120,7 +124,7 @@ export function PropertyList({
           : 'Usá el número de cada ficha para relacionarla con la lectura de Hausy. Lo publicado y lo interpretado aparecen separados.'}
       </p>
       {listings.some((listing) => listing.eligibility)
-        ? sections.map(({ state, title }) => {
+        ? sections.map((state) => {
             const inSection = listings.filter(
               (listing) => listing.eligibility?.state === state,
             );
@@ -131,7 +135,7 @@ export function PropertyList({
                 className="eligibility-section"
                 data-state={state}
               >
-                <h3>{title}</h3>
+                <h3>{eligibilityLabel[state]}</h3>
                 {renderCards(inSection, recommendedRanks)}
               </div>
             );
@@ -157,9 +161,6 @@ function renderCards(listings: Listing[], recommendedRanks: number[]) {
       {listings.map((listing, index) => {
         const rank = listing.rank ?? index + 1;
         const rankedListing = { ...listing, rank };
-        const conditions = (listing.eligibility?.conditions ?? []).filter(
-          (condition) => condition.rule.evidence,
-        );
 
         return (
           <li key={listing.url || listing.id || index}>
@@ -167,11 +168,6 @@ function renderCards(listings: Listing[], recommendedRanks: number[]) {
               isRecommended={recommendedRanks.includes(rank)}
               listing={rankedListing}
             />
-            {conditions.map((condition, i) => (
-              <p key={i} className="eligibility-condition">
-                {condition.rule.evidence}
-              </p>
-            ))}
           </li>
         );
       })}

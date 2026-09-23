@@ -114,6 +114,9 @@ describe('PropertyList eligibility sections', () => {
     expect(screen.getByText(/ver cuáles permite la propietaria/)).toBeVisible();
     expect(screen.getByText('#3')).toBeVisible();
     expect(
+      screen.getByText('Ordenadas por si podés alquilarlas'),
+    ).toBeVisible();
+    expect(
       screen.getByText(/Si conseguís seguro de caución, vuelven 2 propiedades/),
     ).toBeVisible();
   });

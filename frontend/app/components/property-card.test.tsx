@@ -368,3 +368,32 @@ describe('PropertyCard contact intent', () => {
     await waitFor(() => expect(contactNote()).toHaveTextContent(''));
   });
 });
+
+describe('PropertyCard eligibility', () => {
+  it('carries its eligibility badge and the listing’s condition inside the card', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          rank: 2,
+          eligibility: {
+            state: 'conditionally_eligible',
+            conditions: [
+              {
+                reason: 'discretionary',
+                rule: {
+                  fact: 'guarantee',
+                  evidence: 'ver cuáles permite la propietaria',
+                },
+              },
+            ],
+          },
+        }}
+      />,
+    );
+    const badge = screen.getByText('Depende de la inmobiliaria');
+    const condition = screen.getByText(/ver cuáles permite la propietaria/);
+    expect(badge.closest('article')).not.toBeNull();
+    expect(condition.closest('article')).toBe(badge.closest('article'));
+  });
+});

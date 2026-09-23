@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { wasSignedIn } from '@/lib/session-hint';
 import type { Qualification } from '@/lib/types';
 
 // ponytail: mirrors the eligibility_facts seed (migration 0004); serve the
@@ -24,33 +25,60 @@ const quoted = [
 
 interface QualificationPanelProps {
   onChange: (qualification: Qualification) => void;
+  // Controlled by the page when given; the panel manages itself otherwise.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+// describeQualification renders what a search is using, e.g.
+// "garantía propietaria · $2.000.000 a $3.000.000".
+export function describeQualification(q: Qualification): string {
+  const parts = [
+    ...guarantees
+      .filter((g) => q.guarantee?.includes(g.value))
+      .map((g) => g.label.toLowerCase()),
+    ...incomeBands
+      .filter((b) => q.income_band?.includes(b.value))
+      .map((b) => b.label),
+  ];
+  if (q.caucion_quoted?.includes('yes')) parts.push('caución cotizada');
+  return parts.join(' · ');
 }
 
 // The micro-interview (CONTEXT.md, Qualification): three optional answers that
 // let Hausy order results by whether the searcher can actually rent them.
 // Signed-in searchers get their saved answers back and keep their changes.
-export function QualificationPanel({ onChange }: QualificationPanelProps) {
-  const [open, setOpen] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+export function QualificationPanel({
+  onChange,
+  open: controlledOpen,
+  onOpenChange,
+}: QualificationPanelProps) {
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlledOpen ?? ownOpen;
+  const setOpen = (next: boolean) =>
+    onOpenChange ? onOpenChange(next) : setOwnOpen(next);
   const [signedIn, setSignedIn] = useState(false);
   const [guarantee, setGuarantee] = useState<string[]>([]);
   const [income, setIncome] = useState('');
   const [caucionQuoted, setCaucionQuoted] = useState('');
 
-  async function loadProfile() {
-    setLoaded(true);
-    try {
-      const response = await fetch('/api/me/qualification');
-      if (!response.ok) return;
-      const saved = (await response.json()) as Qualification;
-      setSignedIn(true);
-      setGuarantee(saved.guarantee ?? []);
-      setIncome(saved.income_band?.[0] ?? '');
-      setCaucionQuoted(saved.caucion_quoted?.[0] ?? '');
-    } catch {
-      // Anonymous or offline: the panel still works for this session.
-    }
-  }
+  // A signed-in searcher gets their saved answers back; anonymous visitors
+  // keep the panel for this session only and send no request.
+  useEffect(() => {
+    if (!wasSignedIn()) return;
+    const controller = new AbortController();
+    fetch('/api/me/qualification', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const saved = (await response.json()) as Qualification;
+        setSignedIn(true);
+        setGuarantee(saved.guarantee ?? []);
+        setIncome(saved.income_band?.[0] ?? '');
+        setCaucionQuoted(saved.caucion_quoted?.[0] ?? '');
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   async function submit() {
     const qualification: Qualification = {};
@@ -77,8 +105,7 @@ export function QualificationPanel({ onChange }: QualificationPanelProps) {
       open={open}
       onToggle={(event) => {
         const isOpen = (event.target as HTMLDetailsElement).open;
-        setOpen(isOpen);
-        if (isOpen && !loaded) void loadProfile();
+        if (isOpen !== open) setOpen(isOpen);
       }}
     >
       <summary>

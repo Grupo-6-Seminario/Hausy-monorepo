@@ -6,6 +6,7 @@ import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { AuthRole, AuthUser } from '@/lib/auth';
+import { rememberSignedIn } from '@/lib/session-hint';
 import { cn } from '@/lib/utils';
 
 import { usePointerGlow } from './pointer-glow';
@@ -42,7 +43,7 @@ const roleWelcome = (role: AuthRole) =>
 const roleDestination = (role: AuthRole) =>
   role === 'realtor'
     ? { href: '/inmobiliaria', label: 'Ir al catálogo' }
-    : { href: '/', label: 'Ir a la búsqueda' };
+    : { href: '/', label: 'Completar mi perfil y buscar' };
 
 export function AuthExperience() {
   const [mode, setMode] = useState<Mode>('sign-in');
@@ -61,9 +62,13 @@ export function AuthExperience() {
     const controller = new AbortController();
     fetch('/api/auth/me', { signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response.ok) {
+          rememberSignedIn(false);
+          return;
+        }
         const payload = (await response.json()) as { user: AuthUser };
         setUser(payload.user);
+        rememberSignedIn(true);
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -107,6 +112,7 @@ export function AuthExperience() {
         throw new Error(payload.error || 'No pudimos procesar tu cuenta.');
       }
       setUser(payload.user);
+      rememberSignedIn(true);
       setPassword('');
     } catch (cause) {
       setError(
@@ -124,6 +130,7 @@ export function AuthExperience() {
       () => undefined,
     );
     setUser(null);
+    rememberSignedIn(false);
     setMode('sign-in');
   }
 

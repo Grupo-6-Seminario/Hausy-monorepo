@@ -1,0 +1,294 @@
+/* Welcome-only composition; the conversation workspace keeps its own layout. */
+[data-view='welcome'] .experience-frame {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  min-height: auto;
+  padding-block: 2.75rem 4rem;
+}
+[data-view='welcome'] .conversation-surface {
+  max-width: 760px;
+}
+[data-view='welcome'] .experience-intro h1 {
+  font-size: clamp(2.3rem, 3.8vw, 3.5rem);
+}
+[data-view='welcome'] .hero-subtitle {
+  max-width: 470px;
+}
+[data-view='welcome'] .examples {
+  gap: 0.6rem;
+}
+[data-view='welcome'] .examples > span {
+  flex-basis: 100%;
+}
+.landing-portrait {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+.landing-portrait > img {
+  width: 100%;
+  height: clamp(360px, 40vw, 520px);
+  object-fit: cover;
+  border-radius: var(--radius-card, 22px);
+  display: block;
+}
+.landing-portrait figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.landing-discovery {
+  width: min(calc(100% - 48px), var(--page-max-width));
+  margin-inline: auto;
+}
+.landing-featured {
+  padding-block: 2rem 5rem;
+  border-top: 1px solid var(--border);
+}
+.landing-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.landing-section-icon {
+  background: var(--secondary);
+  border-radius: 50%;
+  padding: 0.75rem;
+}
+.landing-section-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.landing-discovery h2 {
+  font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  margin: 0;
+}
+.landing-section-heading p,
+.landing-guide-intro p {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+  margin: 0.75rem 0 0;
+  max-width: 55ch;
+}
+.landing-feed {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap: 1.5rem;
+}
+.landing-home {
+  min-width: 0;
+}
+.landing-home-photo {
+  overflow: hidden;
+  border-radius: var(--radius-card, 22px);
+  background: var(--muted);
+}
+.landing-home-photo img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+.landing-home-copy {
+  padding: 1.1rem 0.15rem 0;
+}
+.landing-home h3 {
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 0;
+}
+.landing-home p {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0.6rem 0 1rem;
+}
+.landing-home button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.landing-home button svg,
+.landing-footer svg {
+  width: 17px;
+  height: 17px;
+}
+.landing-home button:focus-visible,
+.landing-footer a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+.landing-home button:active {
+  transform: scale(0.98);
+}
+.landing-guide {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 4rem;
+  background: var(--muted);
+  border-radius: var(--radius-card, 22px);
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+.landing-guide-intro {
+  max-width: 350px;
+}
+.landing-guide dl {
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+.landing-guide dt {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+.landing-guide dt svg {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.landing-guide dd {
+  color: var(--muted-foreground);
+  margin: 0.5rem 0 0 2rem;
+  line-height: 1.5;
+}
+.landing-footer {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding-block: 2.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.landing-footer > span {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.landing-footer p {
+  flex: 1;
+}
+.landing-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .landing-portrait {
+    animation: rise-in 800ms var(--motion-focus) 150ms both;
+  }
+  [data-landing-reveal] {
+    transition:
+      opacity 650ms var(--motion-focus),
+      transform 650ms var(--motion-focus);
+  }
+  [data-landing-reveal][data-revealed='false'] {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  .landing-home-photo img {
+    transition: transform 550ms var(--motion-focus);
+  }
+  .landing-home:has(button:hover) img,
+  .landing-home:focus-within img {
+    transform: scale(1.035);
+  }
+  .landing-home button svg {
+    transition: transform 200ms var(--motion-focus);
+  }
+  .landing-home button:hover svg {
+    transform: translate(2px, -2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-landing-reveal][data-revealed] {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 1000px) {
+  [data-view='welcome'] .experience-frame {
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  }
+  .landing-feed {
+    gap: 1rem;
+  }
+  .landing-home-photo img {
+    height: 220px;
+  }
+}
+@media (max-width: 767px) {
+  [data-view='welcome'] .experience-frame {
+    grid-template-columns: 1fr;
+    padding-block: 1.75rem 2rem;
+    gap: 2rem;
+    width: calc(100% - 32px);
+  }
+  [data-view='welcome'] .experience-intro h1 {
+    font-size: clamp(2rem, 8vw, 3rem);
+    max-width: 540px;
+  }
+  [data-view='welcome'] .query-form {
+    margin-top: 1.5rem;
+  }
+  .landing-portrait > img {
+    height: 280px;
+    object-position: center 58%;
+  }
+  .landing-discovery {
+    width: calc(100% - 32px);
+  }
+  .landing-featured {
+    padding-block: 2rem 3rem;
+  }
+  .landing-feed {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .landing-home-photo img {
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+  .landing-guide {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .landing-footer {
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+  }
+  .landing-footer p {
+    flex-basis: 100%;
+    order: 2;
+    margin: 0;
+  }
+  .landing-footer a {
+    margin-left: auto;
+  }
+}

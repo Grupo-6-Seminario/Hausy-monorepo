@@ -246,3 +246,72 @@ test('sign in and sign up fit the same visual system', async ({
     fullPage: true,
   });
 });
+
+test('eligibility sections, the zero-results line and the declared qualification', async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  const bodies: { qualification?: Record<string, string[]> }[] = [];
+  await page.route('**/api/agent', async (route) => {
+    bodies.push(JSON.parse(route.request().postData() ?? '{}'));
+    await route.fulfill({
+      json: {
+        reply: '## Mi lectura\n**#1 Humboldt 1900** acepta tu garantía.',
+        listings: [
+          { ...listing, rank: 1, eligibility: { state: 'eligible' } },
+          {
+            ...listing,
+            id: 102,
+            rank: 2,
+            url: 'https://www.zonaprop.com.ar/102',
+            address: 'Gorriti 4800',
+            eligibility: {
+              state: 'conditionally_eligible',
+              conditions: [
+                {
+                  reason: 'discretionary',
+                  rule: {
+                    fact: 'guarantee',
+                    evidence:
+                      'Garantía CABA o seguro de caución (ver cuáles permite la propietaria)',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
+      },
+    });
+  });
+
+  await openSearch(page);
+  // The micro-interview opens with the page.
+  await page.getByLabel('Garantía propietaria').check();
+  await page.getByRole('button', { name: 'Usar estos datos' }).click();
+  await page.getByRole('textbox').fill('Alquiler en Palermo');
+  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Podés aplicar' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Depende de la inmobiliaria' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/ver cuáles permite la propietaria/),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Si conseguís seguro de caución, vuelven 14 propiedades.'),
+  ).toBeVisible();
+  await expect(page.getByText(/Usando: garantía propietaria/)).toBeVisible();
+  expect(bodies.at(-1)?.qualification).toEqual({ guarantee: ['propietaria'] });
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: info.outputPath('eligibility.png'),
+    animations: 'disabled',
+    fullPage: true,
+  });
+  expect(errors).toEqual([]);
+});

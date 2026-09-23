@@ -2623,12 +2623,59 @@
   font-weight: 600;
 }
 
-.eligibility-condition {
-  margin: 0.5rem 0 0;
+/* Badge text always names the state; color only reinforces it. */
+.eligibility-badge {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--signal-evidence);
+  border-radius: 999px;
+  background: var(--signal-evidence-surface);
+  color: var(--signal-evidence);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.eligibility-badge[data-state='conditionally_eligible'] {
+  border-color: var(--signal-conditional);
+  background: var(--signal-conditional-surface);
+  color: var(--signal-conditional);
+}
+
+.eligibility-badge[data-state='unknown'] {
+  border-style: dashed;
+  border-color: var(--signal-unknown);
+  background: var(--signal-unknown-surface);
+  color: var(--signal-unknown);
+}
+
+.eligibility-conditions {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eligibility-conditions li {
   padding: 0.5rem 0.75rem;
   border-left: 3px solid var(--signal-conditional);
   background: var(--signal-conditional-surface);
   font-size: 0.875rem;
+}
+
+.qualification-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+.qualification-chips button {
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .eligibility-section[data-state='unknown'] h3 {

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { wasSignedIn } from '@/lib/session-hint';
 import { AuthExperience } from './components/auth-experience';
 
 const marta = {
@@ -42,6 +43,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// localStorage is not available in this test environment; stub it the way the
+// theme tests do.
+function installStorage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  });
+}
+
 describe('AuthExperience', () => {
   it('signs in with email and password and greets the user by role', async () => {
     const user = userEvent.setup();
@@ -65,6 +77,25 @@ describe('AuthExperience', () => {
       email: marta.email,
       password: 'alquileres-caba',
     });
+  });
+
+  it('sends a signed-in searcher to complete their profile and remembers the session', async () => {
+    const user = userEvent.setup();
+    installStorage();
+    stubBackend({
+      '/api/auth/sign-in': () =>
+        json({ user: { ...marta, role: 'searcher', name: 'Ana' } }),
+    });
+    render(<AuthExperience />);
+
+    await user.type(screen.getByLabelText('Email'), marta.email);
+    await user.type(screen.getByLabelText('Contraseña'), 'buscando-depto');
+    await user.click(screen.getByRole('button', { name: /^ingresar$/i }));
+
+    expect(
+      await screen.findByRole('link', { name: 'Completar mi perfil y buscar' }),
+    ).toHaveAttribute('href', '/');
+    expect(wasSignedIn()).toBe(true);
   });
 
   it('creates a realtor account with the chosen role', async () => {

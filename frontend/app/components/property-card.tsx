@@ -13,7 +13,7 @@ import {
 import { useState } from 'react';
 
 import { recordContactIntent, stableListingID } from '@/lib/contact-intent';
-import type { Listing, ListingAttribute } from '@/lib/types';
+import type { EligibilityState, Listing, ListingAttribute } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface PropertyCardProps {
@@ -68,6 +68,14 @@ function formatAttributeLabel({ type, value }: ListingAttribute): string {
   }
 }
 
+// The searcher-facing names of the eligibility states (CONTEXT.md, Eligibility).
+export const eligibilityLabel: Record<EligibilityState, string> = {
+  eligible: 'Podés aplicar',
+  conditionally_eligible: 'Depende de la inmobiliaria',
+  unknown: 'Sin datos de requisitos',
+  ineligible: 'No podés aplicar',
+};
+
 export function PropertyCard({
   listing,
   isRecommended = false,
@@ -89,7 +97,11 @@ export function PropertyCard({
     bathrooms,
     floor,
     attributes = [],
+    eligibility,
   } = listing;
+  const conditions = (eligibility?.conditions ?? []).filter(
+    (condition) => condition.rule.evidence,
+  );
 
   // Recording interest must never stand between the searcher and the agency, so
   // "Contactar" stays a plain link to the publication: the browser navigates
@@ -148,6 +160,11 @@ export function PropertyCard({
           {isRecommended ? (
             <span className="listing-fit">Destacada por Hausy</span>
           ) : null}
+          {eligibility ? (
+            <span className="eligibility-badge" data-state={eligibility.state}>
+              {eligibilityLabel[eligibility.state]}
+            </span>
+          ) : null}
           <span className="listing-operation">{operation}</span>
           <span className="listing-neighborhood">
             <MapPin aria-hidden="true" />
@@ -189,6 +206,17 @@ export function PropertyCard({
               <Icon aria-hidden="true" />
               {label}
             </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {conditions.length > 0 ? (
+        <ul
+          className="eligibility-conditions"
+          aria-label="Condiciones del aviso"
+        >
+          {conditions.map((condition, index) => (
+            <li key={index}>{condition.rule.evidence}</li>
           ))}
         </ul>
       ) : null}

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,6 +38,17 @@ afterEach(() => {
   Reflect.deleteProperty(document, 'modelContext');
   vi.unstubAllGlobals();
 });
+
+// localStorage is not available in this test environment; stub it the way the
+// theme tests do.
+function installStorage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  });
+}
 
 describe('SearchExperience', () => {
   it('uses the Hausy company name throughout the primary experience', () => {
@@ -177,27 +194,25 @@ describe('SearchExperience', () => {
 
   it('sends the declared qualification with every message and shows the zero-results line', async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
-      .mockResolvedValue(
-        Response.json({
-          reply: 'Respuesta del agente.',
-          listings: [
-            { ...sampleListing, rank: 1, eligibility: { state: 'eligible' } },
-          ],
-          relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        reply: 'Respuesta del agente.',
+        listings: [
+          { ...sampleListing, rank: 1, eligibility: { state: 'eligible' } },
+        ],
+        relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     render(<SearchExperience />);
 
-    await user.click(screen.getByText(/¿Qué garantía tenés\?/));
     await user.click(screen.getByLabelText('Garantía propietaria'));
     await user.click(screen.getByRole('button', { name: 'Usar estos datos' }));
     await user.type(screen.getByRole('textbox'), 'Alquiler en Palermo{Enter}');
 
-    expect(await screen.findByText('Podés aplicar')).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'Podés aplicar' }),
+    ).toBeVisible();
     expect(
       screen.getByText(
         /Si conseguís seguro de caución, vuelven 14 propiedades/,
@@ -205,6 +220,55 @@ describe('SearchExperience', () => {
     ).toBeVisible();
     const body = JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body as string);
     expect(body.qualification).toEqual({ guarantee: ['propietaria'] });
+  });
+
+  it('opens with the qualification questions and prefills a signed-in profile', async () => {
+    installStorage({ hausy_signed_in: '1' });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ guarantee: ['caucion'] }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    expect(screen.getByLabelText('Garantía propietaria')).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByLabelText('Seguro de caución')).toBeChecked(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/me/qualification',
+      expect.anything(),
+    );
+  });
+
+  it('shows the qualification in use and lets the user edit it', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        reply: 'Respuesta del agente.',
+        listings: [
+          { ...sampleListing, rank: 1, eligibility: { state: 'eligible' } },
+        ],
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<SearchExperience />);
+
+    await user.click(screen.getByLabelText('Garantía propietaria'));
+    await user.selectOptions(
+      screen.getByLabelText('Ingresos mensuales'),
+      '2000000-3000000',
+    );
+    await user.click(screen.getByRole('button', { name: 'Usar estos datos' }));
+    await user.type(screen.getByRole('textbox'), 'Alquiler en Palermo{Enter}');
+
+    expect(
+      await screen.findByText(
+        /Usando: garantía propietaria · \$2\.000\.000 a \$3\.000\.000/i,
+      ),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Garantía propietaria')).not.toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByLabelText('Garantía propietaria')).toBeVisible();
   });
 
   it('starts a new line on Shift+Enter without sending', async () => {
