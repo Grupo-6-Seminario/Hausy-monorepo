@@ -32,6 +32,13 @@ experiments/web-scraper/scraper
 data/sample*.jsonl
 experiments/web-scraper/probe.json
 
+# --- Terraform ----------------------------------------------------------------
+# State lives in S3. infra/.terraform.lock.hcl IS committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
 # --- OS & editor junk -------------------------------------------------------
 .DS_Store
 **/.DS_Store

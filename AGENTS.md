@@ -126,12 +126,13 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 | `frontend/` | Next.js via vinext; proxies to `HAUSY_BACKEND_URL` (default `127.0.0.1:8080`). Design: `frontend/DESIGN.md` |
 | `specs/` | Feature specs (`001-search-ui`, `002-eligibility-first-search`) |
 | `experiments/` | Throwaway spikes; `web-scraper/` is its own module |
+| `infra/` | Terraform for the AWS account: one root module, state in S3; apply from `dev` after merge |
 
 - Domain glossary: [CONTEXT.md](./CONTEXT.md). Decisions: [docs/adr/](./docs/adr/).
 - Schema and attribute vocabulary: [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
 - Realtor catalog and contact-intent API: [docs/AGENCY_CATALOG.md](./docs/AGENCY_CATALOG.md).
 - Account-specific values live in `.env` (see `.env.example`).
-- No IaC, no CI.
+- AWS infrastructure is Terraform under `infra/` ([ADR 0002](./docs/adr/0002-infrastructure-as-terraform-in-this-repo.md)). No CI.
 
 ### Data rules
 
