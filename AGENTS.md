@@ -105,7 +105,7 @@ Other files cite 46/48 responses (earlier export cuts).
 scrape → data/listings.jsonl → parse (local LLM) → data/listings.parsed.jsonl ─┬→ load → Postgres
                                   eligibility (Jev) → data/listings.eligibility.jsonl ─┘      ↓
 frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer pipeline:
-    internal/intake plan → Postgres candidates → internal/eligibility → order → reply (local LLM)
+    internal/intake plan → Postgres candidates → internal/eligibility → order → reply (HAUSY_LLM)
 frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Postgres
 ```
 
@@ -114,16 +114,15 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 | `cmd/hausy` | HTTP API serving the buyer agent |
 | `cmd/listings` | `parse`, `eligibility` and `load` subcommands |
 | `internal/buyer` | Buyer turn: plan → candidates per branch → eligibility → order → one reply call |
-| `internal/intake` | Planner: conversation → typed plan (branches, sort, volunteered qualification); Jev or local model, `HAUSY_PLANNER` |
+| `internal/intake` | Planner: conversation → typed plan (branches, sort, volunteered qualification); Jev with the `HAUSY_LLM` model as fallback, or that model alone (`HAUSY_PLANNER`) |
 | `internal/eligibility` | Pure eligibility evaluator (four states), zero-results relaxations, rule extraction at load time ([ADR 0001](./docs/adr/0001-eligibility-rules-as-data.md)) |
 | `internal/jev` | Vercel AI Gateway transport for Jev: retries, sanitized errors |
 | `internal/search` | Read side: `search.Query`, validation, store read contract |
-| `internal/llm` · `internal/local` | Vendor-neutral LLM types · OpenAI-compatible client |
+| `internal/llm` · `internal/local` · `internal/bedrock` | Vendor-neutral LLM types · OpenAI-compatible client · Bedrock Converse client; `HAUSY_LLM` picks one |
 | `internal/listing` | Listing model, deterministic parsers |
 | `internal/agency` | Transport-neutral realtor catalog commands and contact-intent contract; HTTP and a future A2A adapter share this seam |
 | `internal/auth` | Account seam: `Provider` (sign-up/in/out, bearer tokens), `Local` + memory store; a Cognito `Provider` plugs in at `cmd/hausy` |
 | `internal/pipeline` · `internal/store/postgres` | Parse/load steps · persistence (listings, users, sessions) |
-| `internal/agentcore` | Bedrock AgentCore harness (not imported by any command) |
 | `frontend/` | Next.js via vinext; proxies to `HAUSY_BACKEND_URL` (default `127.0.0.1:8080`). Design: `frontend/DESIGN.md` |
 | `specs/` | Feature specs (`001-search-ui`, `002-eligibility-first-search`) |
 | `experiments/` | Throwaway spikes; `web-scraper/` is its own module |

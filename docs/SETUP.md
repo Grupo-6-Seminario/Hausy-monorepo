@@ -44,16 +44,28 @@ cp .env.example .env
 ```
 
 For the local Hausy flow, set `LOCAL_LLM_TOKEN` when your OpenAI-compatible model requires
-authentication. `AGENTCORE_HARNESS_ARN` is only needed for the separate AgentCore harness path;
-it remains deliberately absent from the repo because it is account-specific.
+authentication. To use Claude on Bedrock instead, set `HAUSY_LLM=bedrock` and your own
+`AWS_PROFILE` (section 4).
 
 ## 4. AWS credentials
 
-The `aws-mcp` server and the Go program both use your ambient AWS credentials.
+The `aws-mcp` server and the Go program both use your ambient AWS credentials. Sign in with
+your own IAM user, never the account root:
 
 ```bash
-aws configure sso        # or: aws configure
-aws sts get-caller-identity
+aws login --profile <your-profile>
+AWS_PROFILE=<your-profile> aws sts get-caller-identity   # must print arn:aws:iam::<account>:user/<you>
+```
+
+If the browser is signed in to the console as root, `aws login` asks whether to switch the
+profile to root: sign out and sign back in as your IAM user instead. A command run through
+Claude Code's `!` prefix cannot answer that prompt.
+
+Bedrock calls are recorded in CloudTrail under your IAM user name. To check that your
+credentials can reach the model:
+
+```bash
+HAUSY_BEDROCK_LIVE=1 AWS_PROFILE=<your-profile> go test ./internal/bedrock -run Live
 ```
 
 `get-caller-identity` must print the **project** account. Confirm the account id with a
@@ -139,7 +151,8 @@ go run ./cmd/hausy
 
 By default, the API listens at `http://127.0.0.1:8080` and sends messages to the
 OpenAI-compatible model at `http://127.0.0.1:8000`. Set `LOCAL_LLM_TOKEN` when the local model
-requires authentication.
+requires authentication. With `HAUSY_LLM=bedrock`, it sends them to `BEDROCK_MODEL_ID` on
+Bedrock instead, signed with `AWS_PROFILE`; Jev still plans when `HAUSY_PLANNER=jev`.
 
 In a second terminal, start the frontend:
 
