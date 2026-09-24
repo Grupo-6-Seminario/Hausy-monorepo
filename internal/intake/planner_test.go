@@ -82,6 +82,30 @@ func TestUnstatedOperationDefaultsToRent(t *testing.T) {
 	}
 }
 
+// Seen live: "…hasta 900 mil, tengo garantía propietaria" never says rent or
+// buy, and Jev picked venta over alquiler (0.58 / 0.20) in 3 of 3 runs; the sale
+// search under ARS 900.000 came back empty. Only the user's words make it a sale.
+func TestASaleTheUserNeverStatedIsARent(t *testing.T) {
+	venta := jev.Answer{Type: "choice", Choice: "venta", Probabilities: map[string]float64{"alquiler": 0.20, "venta": 0.58, "unspecified": 0.22}}
+	implied := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "operation": venta, "num_0": pick("rooms_exact"), "num_1": pick("max_price"), "has_propietaria": yes()}}
+	got, err := intake.Planner{Primary: intake.Jev{Evaluate: implied.evaluate}}.Plan(context.Background(), []string{"Busco un 2 ambientes hasta 900 mil, tengo garantía propietaria"}, intake.Plan{})
+	if err != nil || got.Branches[0].Operation != "alquiler" || *got.Branches[0].MaxPrice != 900000 {
+		t.Fatalf("an implied rental must search rentals, got %+v, %v", got.Branches, err)
+	}
+
+	for _, turns := range [][]string{
+		{"Busco comprar en Palermo, hasta USD 150.000, 3 ambientes"},
+		{"Alquiler en Palermo hasta 800 mil", "¿y si quisiera comprar?"},
+		{"Departamento en venta en Belgrano"},
+	} {
+		stated := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "operation": pick("venta")}}
+		got, err := intake.Planner{Primary: intake.Jev{Evaluate: stated.evaluate}}.Plan(context.Background(), turns, intake.Plan{})
+		if err != nil || got.Branches[0].Operation != "venta" {
+			t.Fatalf("%q states a sale, got %+v, %v", turns, got.Branches, err)
+		}
+	}
+}
+
 // Seen live: Jev read "hasta 500" as ARS 500, which no CABA rental matches, and
 // the turn came back empty. A peso amount that small means thousands.
 func TestABarePesoAmountMeansThousands(t *testing.T) {

@@ -1,6 +1,12 @@
 package main
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
+)
 
 func TestServerConfigFromEnvUsesLocalDefaults(t *testing.T) {
 	t.Setenv("HAUSY_API_ADDR", "")
@@ -25,5 +31,49 @@ func TestServerConfigFromEnvDefaultsToTheLocalDatabase(t *testing.T) {
 
 	if got := serverConfigFromEnv().databaseURI; got != "postgresql://hausy:hausy@localhost:5432/hausy" {
 		t.Fatalf("expected the local development database, got %q", got)
+	}
+}
+
+func TestServerConfigFromEnvDefaultsToTheLocalModel(t *testing.T) {
+	t.Setenv("HAUSY_LLM", "")
+	t.Setenv("BEDROCK_MODEL_ID", "")
+
+	config := serverConfigFromEnv()
+
+	if config.llmProvider != "local" {
+		t.Fatalf("expected the local model provider, got %q", config.llmProvider)
+	}
+	if config.bedrockModel != "us.anthropic.claude-sonnet-4-6" {
+		t.Fatalf("expected the approved Sonnet 4.6 inference profile, got %q", config.bedrockModel)
+	}
+}
+
+func TestNewLLMClientPicksTheConfiguredProvider(t *testing.T) {
+	t.Setenv("AWS_REGION", "us-east-1")
+	config := serverConfigFromEnv()
+
+	config.llmProvider = "local"
+	if client, err := newLLMClient(context.Background(), config); err != nil {
+		t.Fatalf("local: %v", err)
+	} else if _, ok := client.(*local.Client); !ok {
+		t.Fatalf("local: got %T", client)
+	}
+
+	config.llmProvider = "bedrock"
+	if client, err := newLLMClient(context.Background(), config); err != nil {
+		t.Fatalf("bedrock: %v", err)
+	} else if _, ok := client.(*bedrock.Client); !ok {
+		t.Fatalf("bedrock: got %T", client)
+	}
+}
+
+// A typo must not quietly fall back to the local model: a benchmark or a demo
+// would then measure the wrong provider.
+func TestNewLLMClientRejectsAnUnknownProvider(t *testing.T) {
+	config := serverConfigFromEnv()
+	config.llmProvider = "bedrok"
+
+	if _, err := newLLMClient(context.Background(), config); err == nil {
+		t.Fatal("expected an error for an unknown provider")
 	}
 }

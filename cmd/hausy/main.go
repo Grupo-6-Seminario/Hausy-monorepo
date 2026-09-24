@@ -3,13 +3,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
@@ -20,21 +25,47 @@ import (
 )
 
 type serverConfig struct {
-	address     string
-	llmURL      string
-	llmToken    string
-	llmModel    string
-	databaseURI string
+	address      string
+	llmProvider  string
+	llmURL       string
+	llmToken     string
+	llmModel     string
+	bedrockModel string
+	databaseURI  string
 }
 
 func serverConfigFromEnv() serverConfig {
 	return serverConfig{
-		address:     envOrDefault("HAUSY_API_ADDR", "127.0.0.1:8080"),
-		llmURL:      envOrDefault("LOCAL_LLM_URL", "http://127.0.0.1:8000"),
-		llmToken:    os.Getenv("LOCAL_LLM_TOKEN"),
-		llmModel:    envOrDefault("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"),
-		databaseURI: envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"),
+		address:      envOrDefault("HAUSY_API_ADDR", "127.0.0.1:8080"),
+		llmProvider:  envOrDefault("HAUSY_LLM", "local"),
+		llmURL:       envOrDefault("LOCAL_LLM_URL", "http://127.0.0.1:8000"),
+		llmToken:     os.Getenv("LOCAL_LLM_TOKEN"),
+		llmModel:     envOrDefault("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"),
+		bedrockModel: envOrDefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6"),
+		databaseURI:  envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"),
 	}
+}
+
+// newLLMClient returns the model behind the writer, the planner's fallback and
+// the no-database chat. HAUSY_LLM picks it: "local" (the default) or
+// "bedrock", which signs with the ambient AWS credentials (AWS_PROFILE) and
+// defaults to us-east-1. Any other value is an error, so a typo never
+// silently measures the wrong model.
+func newLLMClient(ctx context.Context, c serverConfig) (llm.Client, error) {
+	switch c.llmProvider {
+	case "local":
+		return local.NewClient(c.llmURL, c.llmToken, c.llmModel), nil
+	case "bedrock":
+		cfg, err := awsconfig.LoadDefaultConfig(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("load AWS config: %w", err)
+		}
+		if cfg.Region == "" {
+			cfg.Region = "us-east-1"
+		}
+		return bedrock.New(bedrockruntime.NewFromConfig(cfg), c.bedrockModel), nil
+	}
+	return nil, fmt.Errorf("HAUSY_LLM=%q: want local or bedrock", c.llmProvider)
 }
 
 func envOrDefault(key, fallback string) string {
@@ -46,7 +77,11 @@ func envOrDefault(key, fallback string) string {
 
 func main() {
 	config := serverConfigFromEnv()
-	llmClient := local.NewClient(config.llmURL, config.llmToken, config.llmModel)
+	llmClient, err := newLLMClient(context.Background(), config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("model: %s", config.llmProvider)
 
 	// A missing database degrades the agent rather than stopping it: without
 	// one it can still take requirements down, and saying so at startup beats
@@ -100,6 +135,6 @@ func plannerFromEnv(client llm.Client) intake.Planner {
 		return intake.Planner{Primary: local}
 	}
 	gateway := jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil)
-	log.Printf("planner: Jev with local-model fallback")
+	log.Printf("planner: Jev with model fallback")
 	return intake.Planner{Primary: intake.Jev{Evaluate: gateway.Evaluate}, Fallback: local, Budget: 6 * time.Second}
 }
