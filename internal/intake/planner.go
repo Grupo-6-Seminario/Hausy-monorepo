@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
@@ -76,20 +78,27 @@ func (p Planner) try(ctx context.Context, source Source, turns []string, previou
 	if err != nil {
 		return Plan{}, err
 	}
-	return resolve(plan, previous)
+	return resolve(plan, previous, turns)
 }
 
+// saleCue is the user saying they want to buy. Seen live: Jev read a bare
+// "hasta 900 mil" as a sale price, but in CABA a peso amount is a monthly rent
+// and sales are quoted in dollars.
+var saleCue = regexp.MustCompile(`\b(compr(a|as|o|ar|arme|amos|aria)|venta|adquirir|invertir|inversion)\b`)
+
 // resolve applies the turn rules both sources share: a question about a
-// listing never changes the search, rent is the default operation, a bare
-// peso amount means thousands, and no branch reaches SQL without validating.
-func resolve(plan, previous Plan) (Plan, error) {
+// listing never changes the search, rent is the default operation and a sale
+// is only what the user says, a bare peso amount means thousands, and no
+// branch reaches SQL without validating.
+func resolve(plan, previous Plan, turns []string) (Plan, error) {
 	if plan.Intent == "ask_about_listing" && len(previous.Branches) > 0 {
 		frozen := previous
 		frozen.Intent = plan.Intent
 		return frozen, nil
 	}
+	stated := saleCue.MatchString(normalize(strings.Join(turns, "\n")))
 	for i, branch := range plan.Branches {
-		if branch.Operation == "" {
+		if branch.Operation == "" || branch.Operation == "venta" && !stated {
 			branch.Operation = "alquiler"
 		}
 		barePesos(&branch)

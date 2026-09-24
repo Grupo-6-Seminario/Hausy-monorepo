@@ -67,6 +67,12 @@ This run found three bugs, now fixed with regression tests in `internal/intake`:
 - The Qwen planner invented `income_band` for users who never mentioned income.
 - The Jev planner produced a search branch for a greeting.
 
-Still open: Jev reads "departamento luminoso… hasta 900 mil" as `venta`; Qwen confuses
-dormitorios with ambientes once and "que no sea interno" once. The numbers above predate the
-income fix.
+Still open: Qwen confuses dormitorios with ambientes once and "que no sea interno" once. The
+numbers above predate the income fix.
+
+2026-09-24: Jev read an unstated operation with a peso price ("…hasta 900 mil", with or without
+"tengo garantía propietaria") as `venta`, top choice at 0.38–0.58, in 7 of 8 live runs. The plan now
+keeps a sale only when a user message says so (`saleCue` in `internal/intake/planner.go`); the
+same three cases plus a `comprar` control went 12/12 afterwards. `op=alquiler` is now expected on
+implied rentals, and `implied_rent_guarantee` is the reported conversation. Full Jev run after the
+fix, 24 cases, one run: 24/24 exact.
