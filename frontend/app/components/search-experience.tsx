@@ -1,11 +1,10 @@
 'use client';
 
-import { ArrowRight, Bot, MoveUpRight, Square } from 'lucide-react';
+import { ArrowRight, Bot, MoveUpRight, RotateCcw, Square } from 'lucide-react';
 import {
   KeyboardEvent,
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -14,12 +13,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type {
-  AgentResponse,
   Listing,
   Qualification,
   Relaxation,
   Requirement,
 } from '@/lib/types';
+import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
 
 import { AgentReply } from './agent-reply';
@@ -80,13 +79,17 @@ export function SearchExperience() {
   const [hasSearched, setHasSearched] = useState(false);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
   const [pendingQuery, setPendingQuery] = useState('');
+  // The reply as it streams in, until the turn is done.
+  const [pendingReply, setPendingReply] = useState('');
 
-  const reactSessionID = useId();
   const shellRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const requestRef = useRef<AbortController | null>(null);
-  const sessionRef = useRef(`browser-${reactSessionID}`);
+  // One conversation per page load. useId would not do: it is derived from the
+  // component's place in the tree, so every load and every visitor would share
+  // one backend session and inherit each other's requirements.
+  const sessionRef = useRef('');
   const turnIDRef = useRef(0);
   const isWorking = state === 'loading';
   const isWorkspace = hasSearched || isWorking;
@@ -120,15 +123,20 @@ export function SearchExperience() {
       setState('loading');
       setQualificationOpen(false);
       setPendingQuery(normalizedQuery);
+      setPendingReply('');
       setQuery('');
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
 
+      sessionRef.current ||= `browser-${crypto.randomUUID()}`;
       try {
         const response = await fetch('/api/agent', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/x-ndjson',
+          },
           body: JSON.stringify({
             session_id: sessionRef.current,
             message: normalizedQuery,
@@ -136,7 +144,15 @@ export function SearchExperience() {
           }),
           signal: controller.signal,
         });
-        const payload = (await response.json()) as AgentResponse;
+        const payload = await readTurn(response, {
+          onResults(partial) {
+            setListings(partial.listings || []);
+            setRequirements(partial.requirements || []);
+            setRelaxations(partial.relaxations || []);
+            setHasSearched(true);
+          },
+          onReply: (delta) => setPendingReply((text) => text + delta),
+        });
         if (!response.ok || (!payload.reply && !payload.listings)) {
           throw new Error(
             payload.error || 'El agente local no pudo responder.',
@@ -157,6 +173,7 @@ export function SearchExperience() {
           },
         ]);
         setPendingQuery('');
+        setPendingReply('');
         setState('idle');
         if (returnFocus) inputRef.current?.focus();
 
@@ -174,6 +191,7 @@ export function SearchExperience() {
             : 'El agente local no pudo responder.';
         setError(message);
         setPendingQuery('');
+        setPendingReply('');
         setQuery(normalizedQuery);
         setState('idle');
         if (returnFocus) inputRef.current?.focus();
@@ -242,6 +260,26 @@ export function SearchExperience() {
     requestRef.current?.abort();
     setQuery(pendingQuery);
     setPendingQuery('');
+    setPendingReply('');
+    setState('idle');
+    inputRef.current?.focus();
+  }
+
+  // A fresh backend session, so the planner stops reading the earlier search.
+  // The qualification stays: it describes the searcher, not the search.
+  function startOver() {
+    requestRef.current?.abort();
+    sessionRef.current = '';
+    setTurns([]);
+    setListings([]);
+    setRequirements([]);
+    setRelaxations([]);
+    setRecommendedRanks([]);
+    setHasSearched(false);
+    setPendingQuery('');
+    setPendingReply('');
+    setQuery('');
+    setError('');
     setState('idle');
     inputRef.current?.focus();
   }
@@ -312,6 +350,16 @@ export function SearchExperience() {
                 <div>
                   <h2>Respuesta de Hausy</h2>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="new-search rounded-full"
+                  onClick={startOver}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  Nueva búsqueda
+                </Button>
               </div>
 
               <ol
@@ -343,10 +391,14 @@ export function SearchExperience() {
                       </div>
                       <div className="message message-agent message-working">
                         <p className="conversation-speaker">Hausy</p>
-                        <p>
-                          Consultando el inventario y comparando tus
-                          prioridades...
-                        </p>
+                        {pendingReply ? (
+                          <AgentReply reply={pendingReply} />
+                        ) : (
+                          <p>
+                            Consultando el inventario y comparando tus
+                            prioridades...
+                          </p>
+                        )}
                         <span className="working-line" aria-hidden="true" />
                       </div>
                     </output>

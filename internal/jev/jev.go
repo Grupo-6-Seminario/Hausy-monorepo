@@ -5,14 +5,19 @@ package jev
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
+	"reflect"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -46,6 +51,12 @@ type Client struct {
 	// deadline always wins.
 	Retries int
 	Backoff time.Duration
+	// MaxWeight bounds one Gateway request by how many options it asks Jev
+	// to weigh: the sum of each question's criteria, 1 when it has none.
+	// Larger sets are split into chunks sent concurrently, each retried on
+	// its own. Measured 2026-09-23 on the planner's questions: ~50 options
+	// always answered, ~90 mostly, ~150 and up never (HTTP 503).
+	MaxWeight int
 }
 
 // New disables redirects so credentials are never forwarded elsewhere.
@@ -58,7 +69,7 @@ func New(baseURL, key string, client *http.Client) *Client {
 	}
 	copy := *client
 	copy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return &Client{url: strings.TrimRight(baseURL, "/"), key: key, http: &copy, Retries: 3, Backoff: 500 * time.Millisecond}
+	return &Client{url: strings.TrimRight(baseURL, "/"), key: key, http: &copy, Retries: 3, Backoff: 500 * time.Millisecond, MaxWeight: 80}
 }
 
 // transient marks failures worth another attempt.
@@ -70,6 +81,70 @@ func (c *Client) Evaluate(ctx context.Context, state any, questions map[string]Q
 	if c.key == "" {
 		return nil, errors.New("jev: AI_GATEWAY_API_KEY is required")
 	}
+	chunks := split(questions, c.MaxWeight)
+	if len(chunks) == 1 {
+		return c.evaluate(ctx, state, chunks[0])
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	results := make([]map[string]Answer, len(chunks))
+	errs := make([]error, len(chunks))
+	var wg sync.WaitGroup
+	for i, chunk := range chunks {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if results[i], errs[i] = c.evaluate(ctx, state, chunk); errs[i] != nil {
+				cancel() // every answer is required; the rest are wasted
+			}
+		}()
+	}
+	wg.Wait()
+	// Report the failure, not the cancellations it caused.
+	var first error
+	for _, err := range errs {
+		if err != nil && (first == nil || errors.Is(first, context.Canceled)) {
+			first = err
+		}
+	}
+	if first != nil {
+		return nil, first
+	}
+	answers := map[string]Answer{}
+	for _, r := range results {
+		maps.Copy(answers, r)
+	}
+	return answers, nil
+}
+
+// split packs questions into chunks of at most max weight, heaviest first so
+// the packing is stable. A question heavier than max goes alone.
+func split(questions map[string]Question, max int) []map[string]Question {
+	ids := slices.Sorted(maps.Keys(questions))
+	slices.SortStableFunc(ids, func(a, b string) int { return cmp.Compare(weight(questions[b]), weight(questions[a])) })
+	chunks := []map[string]Question{{}}
+	load := 0
+	for _, id := range ids {
+		w := weight(questions[id])
+		if max > 0 && load > 0 && load+w > max {
+			chunks = append(chunks, map[string]Question{})
+			load = 0
+		}
+		chunks[len(chunks)-1][id] = questions[id]
+		load += w
+	}
+	return chunks
+}
+
+// weight is how many options a question asks Jev to weigh.
+func weight(q Question) int {
+	if v := reflect.ValueOf(q.Criteria); (v.Kind() == reflect.Map || v.Kind() == reflect.Slice) && v.Len() > 0 {
+		return v.Len()
+	}
+	return 1
+}
+
+func (c *Client) evaluate(ctx context.Context, state any, questions map[string]Question) (map[string]Answer, error) {
 	payload, err := json.Marshal(map[string]any{"model": "typesafe-ai/jev", "state": state, "questions": questions})
 	if err != nil {
 		return nil, fmt.Errorf("jev: encode request: %w", err)

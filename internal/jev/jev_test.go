@@ -101,3 +101,50 @@ func TestTransportErrorsKeepTheirCauseAndCancellationWins(t *testing.T) {
 		t.Fatalf("cancellation lost: %v", err)
 	}
 }
+
+// Seen live: the planner's 21 questions (189 options) got HTTP 503 on every
+// try, while requests of ~50 options answered. Large sets go out in parallel
+// chunks, each within the limit, and come back as one answer set.
+func TestLargeQuestionSetsAreSplitAndSentConcurrently(t *testing.T) {
+	four := map[string]string{"a": "", "b": "", "c": "", "d": ""}
+	questions := map[string]jev.Question{}
+	for _, id := range []string{"q1", "q2", "q3", "q4", "q5"} {
+		questions[id] = jev.Question{Type: "choice", Instructions: id, Criteria: four}
+	}
+	var arrived atomic.Int32
+	all := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Questions map[string]struct {
+				Criteria map[string]string `json:"criteria"`
+			} `json:"questions"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+		weight := 0
+		answers := map[string]jev.Answer{}
+		for id, q := range req.Questions {
+			weight += len(q.Criteria)
+			answers[id] = jev.Answer{Type: "choice", Choice: "a"}
+		}
+		if weight > 8 {
+			t.Errorf("a request weighed %d options, over the limit of 8", weight)
+		}
+		if arrived.Add(1) == 3 {
+			close(all)
+		}
+		select {
+		case <-all:
+		case <-time.After(time.Second):
+			w.WriteHeader(400) // chunks were sent one after another
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"answers": answers})
+	}))
+	defer server.Close()
+	c := client(server.URL)
+	c.MaxWeight = 8
+	got, err := c.Evaluate(context.Background(), "s", questions)
+	if err != nil || len(got) != 5 || got["q5"].Choice != "a" || arrived.Load() != 3 {
+		t.Fatalf("want 5 answers from 3 concurrent requests, got %d answers from %d requests: %v", len(got), arrived.Load(), err)
+	}
+}

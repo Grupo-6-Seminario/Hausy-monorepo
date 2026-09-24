@@ -43,7 +43,7 @@ func TestAgent_LiveLocalModel_Integration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	res, err := agent.HandleMessage(ctx, "live-session-1", "Busco un departamento de dos ambientes luminoso en Palermo", nil)
+	res, err := agent.HandleMessage(ctx, "live-session-1", "Busco un departamento de dos ambientes luminoso en Palermo", nil, buyer.Events{})
 	if err != nil {
 		t.Fatalf("agent.HandleMessage failed against live model: %v", err)
 	}

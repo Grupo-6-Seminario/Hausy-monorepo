@@ -217,3 +217,38 @@ func TestClient_Chat_SendsToolResultsInWireShape(t *testing.T) {
 		t.Errorf("unexpected tool result message: %+v", result)
 	}
 }
+
+// The writer streams its reply so the searcher reads it as it is written. The
+// chunks below are omlx's, keepalive and empty deltas included.
+func TestClient_Chat_StreamsTextWhenAsked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Stream bool `json:"stream"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+		if !req.Stream {
+			t.Error(`want "stream": true`)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		for _, chunk := range []string{
+			`{"model":"keepalive","choices":[{"index":0,"delta":{"role":"assistant","content":""}}]}`,
+			`{"choices":[{"index":0,"delta":{"role":"assistant"}}]}`,
+			`{"choices":[{"index":0,"delta":{"content":"¡Hola! ¿En qué puedo"}}]}`,
+			`{"choices":[{"index":0,"delta":{"content":" ayudarte"}}]}`,
+			`{"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}`,
+		} {
+			io.WriteString(w, "data: "+chunk+"\n\n")
+		}
+		io.WriteString(w, "data: [DONE]\n\n")
+	}))
+	defer server.Close()
+
+	var deltas []string
+	resp, err := local.NewClient(server.URL, "", "m").Chat(context.Background(), llm.ChatRequest{
+		Messages: []llm.Message{{Role: "user", Content: "Decí hola"}},
+		Stream:   func(delta string) { deltas = append(deltas, delta) },
+	})
+	if err != nil || resp.Content != "¡Hola! ¿En qué puedo ayudarte" || strings.Join(deltas, "|") != "¡Hola! ¿En qué puedo| ayudarte" {
+		t.Fatalf("got %q (deltas %q), %v", resp, deltas, err)
+	}
+}

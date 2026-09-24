@@ -36,14 +36,21 @@ type Source interface {
 }
 
 // Planner runs Primary within Budget and falls back when it is slow, fails,
-// or returns a plan that does not validate.
+// or returns a plan that does not validate. Budget bounds Primary only: the
+// fallback is the last planner left and gets the caller's full deadline.
 type Planner struct {
 	Primary, Fallback Source
 	Budget            time.Duration
 }
 
 func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan, error) {
-	plan, err := p.try(ctx, p.Primary, turns, previous)
+	primaryCtx := ctx
+	if p.Budget > 0 {
+		var cancel context.CancelFunc
+		primaryCtx, cancel = context.WithTimeout(ctx, p.Budget)
+		defer cancel()
+	}
+	plan, err := p.try(primaryCtx, p.Primary, turns, previous)
 	if err == nil {
 		plan.PlannedBy = "primary"
 		return plan, nil
@@ -65,11 +72,6 @@ func (p Planner) try(ctx context.Context, source Source, turns []string, previou
 	if source == nil {
 		return Plan{}, errors.New("intake: no planner configured")
 	}
-	if p.Budget > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, p.Budget)
-		defer cancel()
-	}
 	plan, err := source.Plan(ctx, turns)
 	if err != nil {
 		return Plan{}, err
@@ -78,8 +80,8 @@ func (p Planner) try(ctx context.Context, source Source, turns []string, previou
 }
 
 // resolve applies the turn rules both sources share: a question about a
-// listing never changes the search, rent is the default operation, and no
-// branch reaches SQL without validating.
+// listing never changes the search, rent is the default operation, a bare
+// peso amount means thousands, and no branch reaches SQL without validating.
 func resolve(plan, previous Plan) (Plan, error) {
 	if plan.Intent == "ask_about_listing" && len(previous.Branches) > 0 {
 		frozen := previous
@@ -90,6 +92,7 @@ func resolve(plan, previous Plan) (Plan, error) {
 		if branch.Operation == "" {
 			branch.Operation = "alquiler"
 		}
+		barePesos(&branch)
 		valid, err := branch.Validate()
 		if err != nil {
 			return Plan{}, fmt.Errorf("intake: branch %d: %w", i, err)
@@ -100,4 +103,21 @@ func resolve(plan, previous Plan) (Plan, error) {
 		plan.Sort = "relevance"
 	}
 	return plan, nil
+}
+
+// barePesos reads a peso price or expensas bound under 10.000 as thousands:
+// "hasta 500" is 500 mil, since nothing in CABA rents or charges expensas for
+// ARS 500. Dollar amounts are left as said.
+func barePesos(q *search.Query) {
+	scale := func(f **float64) {
+		if *f != nil && **f < 10000 {
+			thousands := **f * 1000
+			*f = &thousands
+		}
+	}
+	if q.Currency == "ARS" {
+		scale(&q.MinPrice)
+		scale(&q.MaxPrice)
+	}
+	scale(&q.MaxExpensesARS)
 }

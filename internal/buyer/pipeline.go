@@ -23,9 +23,10 @@ type Inventory interface {
 	AdmissibleFacts(ctx context.Context) (map[string]bool, error)
 }
 
-// Writer explains a finished ranking. It cannot search or reorder.
+// Writer explains a finished ranking. It cannot search or reorder. reply,
+// when not nil, receives the text as it is written.
 type Writer interface {
-	Write(ctx context.Context, p Packet) (string, error)
+	Write(ctx context.Context, p Packet, reply func(delta string)) (string, error)
 }
 
 // Packet is everything the writer may use, and nothing else.
@@ -65,7 +66,7 @@ const maxShown = 10
 
 var section = map[eligibility.State]int{eligibility.Eligible: 0, eligibility.ConditionallyEligible: 1, eligibility.Unknown: 2}
 
-func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message string, declared eligibility.Qualification) (*TurnResponse, error) {
+func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message string, declared eligibility.Qualification, events Events) (*TurnResponse, error) {
 	p := a.pipeline
 	a.mu.Lock()
 	sess, ok := a.sessions[sessionID]
@@ -111,7 +112,10 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		packet.Shown = results[:3]
 	}
 
-	reply, err := p.writer.Write(ctx, packet)
+	if events.Results != nil {
+		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations})
+	}
+	reply, err := p.writer.Write(ctx, packet, events.Reply)
 	if err != nil {
 		// The ranking is already done; a writer outage must not lose it.
 		reply = templateReply(packet)

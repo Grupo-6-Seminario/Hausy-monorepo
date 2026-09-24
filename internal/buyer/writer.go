@@ -27,7 +27,7 @@ Reglas:
 - Si intent es "ask_about_listing", respondé la pregunta usando sólo los datos de esas propiedades.
 - Formato: "## Mi lectura" (una o dos frases), "## Por qué las elegí" (hasta tres propiedades), "## Qué falta confirmar" (sólo si hace falta, hasta dos puntos). Sin tablas. Español rioplatense.`
 
-func (w LocalWriter) Write(ctx context.Context, p Packet) (string, error) {
+func (w LocalWriter) Write(ctx context.Context, p Packet, reply func(delta string)) (string, error) {
 	data, err := json.Marshal(p)
 	if err != nil {
 		return "", err
@@ -36,6 +36,7 @@ func (w LocalWriter) Write(ctx context.Context, p Packet) (string, error) {
 		Messages:    []llm.Message{{Role: "system", Content: writerPrompt}, {Role: "user", Content: string(data)}},
 		Temperature: 0,
 		MaxTokens:   900,
+		Stream:      reply,
 	})
 	if err != nil {
 		return "", err
