@@ -19,7 +19,7 @@ Qwen, in a single structured call, is the default and the 6 s fallback.
 | # | Decision |
 | --- | --- |
 | Q1, Q24 | `HAUSY_PLANNER=jev\|qwen` (default `qwen`) selects only the planner. Everyone gets the new pipeline; the tool loop is retired. |
-| Q7 | Jev planner has a 6 s budget; on timeout or error the turn falls back to the Qwen planner. |
+| Q7 | Jev planner has a 6 s budget; on timeout or error the turn falls back to the Qwen planner, which is not bound by that budget. |
 | Q6 | The local model only (a) fills the plan in the Qwen planner and (b) writes the reply. No tools. |
 | Q8 | On an `ask_about_listing` turn the plan is frozen; the reply answers from that listing's record. |
 | Q9 | "Olvidate de X" means exclude X. |
@@ -42,7 +42,7 @@ Qwen, in a single structured call, is the default and the 6 s fallback.
 | `search.Repository` | + `Candidates(ctx, Query) ([]eligibility.Candidate, error)` | Postgres: every hard-filter match with its rules, uncapped. `ponytail:` cap at 500 with `complete=false` if the inventory outgrows it. |
 | `internal/buyer` | `HandleMessage(ctx, sessionID, message, Qualification) (*TurnResponse, error)` | Turn = plan → candidates per branch → assess → order → packet → writer. `TurnResponse.Listings[].Eligibility`, `+Relaxations`. |
 | `cmd/listings` | + `eligibility` subcommand; `load` also reads `data/listings.eligibility.jsonl` | Extraction output committed, like the parse output. |
-| `internal/httpapi` | `POST /api/messages` accepts `qualification`; `GET/PUT /api/me/qualification` | Account storage in `user_qualifications (user_id, fact, value)`. |
+| `internal/httpapi` | `POST /api/messages` accepts `qualification`, and streams NDJSON (`results` → `reply`… → `done`/`error`) on `Accept: application/x-ndjson`; `GET/PUT /api/me/qualification` | Account storage in `user_qualifications (user_id, fact, value)`. |
 | frontend | qualification form · eligibility sections · named conditions | `--signal-conditional` finally consumed. `#N` parsing in `search-experience.tsx` unchanged. |
 
 Parked, not wired: `internal/matching` (preference assessment by Jev) stays in the repo behind nothing
@@ -100,6 +100,25 @@ Live checks:
 
 Deferred on purpose: the Belgrano/Monserrat branch case depends on Jev's per-neighborhood answers
 and needs more labeled cases before trusting it.
+
+## Follow-up — 2026-09-23 (context leak and latency)
+
+Diagnosed from "requirements never said (subte A), zero results" and "Jev did not make it faster":
+
+- **Shared session.** The browser's session ID came from `useId()`, which is identical on every page load,
+  so every visitor shared one backend session and the planner read every message since startup. Now a
+  random ID per page load, and "Nueva búsqueda" starts a new one.
+- **Fallback bound by Jev's budget.** Jev spent its 6 s on Gateway 503s and the Qwen fallback, needing
+  5–7 s, was cut off too: the turn failed. The budget now bounds Jev only.
+- **Gateway 503 on large requests.** The planner's 21 questions (189 options) failed 10/10; ~50 options
+  answered. `jev.Client` now splits requests over `MaxWeight` (80 options) into concurrent chunks, each
+  retried on its own. Live: Jev plans in 1–4 s instead of falling back.
+- **Bare prices.** "hasta 500" became ARS 500 under Jev. An ARS price or expensas bound under 10.000 now
+  means thousands, for both planners. Per-neighborhood number questions now quote the number.
+- **Writer latency is output-bound** (~300 tokens, 5–10 s; halving its input did not change it). The turn
+  now streams as NDJSON when asked (`Accept: application/x-ndjson`): ranking first, then the reply as it
+  is written, then `done` whose reply is authoritative. Live, through the proxy: cards at ~1–4 s, first
+  words at ~6–8 s, done at ~11–13 s, versus 17.6 s (Qwen) and 23 s (Jev before the fix) with nothing shown.
 
 ## Risks
 

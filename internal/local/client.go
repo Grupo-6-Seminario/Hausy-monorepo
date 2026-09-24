@@ -2,6 +2,7 @@
 package local
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -58,6 +59,7 @@ type chatCompletionRequest struct {
 	Temperature        float64        `json:"temperature"`
 	MaxTokens          int            `json:"max_tokens,omitempty"`
 	Tools              []wireTool     `json:"tools,omitempty"`
+	Stream             bool           `json:"stream,omitempty"`
 	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
 }
 
@@ -171,12 +173,15 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 		maxTokens = 4096
 	}
 
+	// Tool calls arrive whole; only plain text is streamed.
+	stream := req.Stream != nil && len(req.Tools) == 0
 	payload := chatCompletionRequest{
 		Model:       model,
 		Messages:    toWireMessages(req.Messages),
 		Temperature: req.Temperature,
 		MaxTokens:   maxTokens,
 		Tools:       toWireTools(req.Tools),
+		Stream:      stream,
 		ChatTemplateKwargs: map[string]any{
 			"enable_thinking": false,
 		},
@@ -204,6 +209,10 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 	}
 	defer httpResp.Body.Close()
 
+	if stream && httpResp.StatusCode >= 200 && httpResp.StatusCode < 300 {
+		return readStream(httpResp.Body, req.Stream)
+	}
+
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
@@ -226,4 +235,43 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 		Content:   chatResp.Choices[0].Message.Content,
 		ToolCalls: fromWireToolCalls(chatResp.Choices[0].Message.ToolCalls),
 	}, nil
+}
+
+// readStream collects an OpenAI-style server-sent event stream, handing each
+// piece of text to onDelta as it arrives. A stream cut before [DONE] is an
+// error: the text so far is not the whole completion.
+func readStream(body io.Reader, onDelta func(string)) (*llm.ChatResponse, error) {
+	var content strings.Builder
+	lines := bufio.NewScanner(body)
+	lines.Buffer(make([]byte, 64<<10), 1<<20)
+	for lines.Scan() {
+		data, ok := strings.CutPrefix(lines.Text(), "data:")
+		if !ok {
+			continue
+		}
+		data = strings.TrimSpace(data)
+		if data == "[DONE]" {
+			return &llm.ChatResponse{Content: content.String()}, nil
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stream chunk: %w", err)
+		}
+		for _, choice := range chunk.Choices {
+			if choice.Delta.Content != "" {
+				content.WriteString(choice.Delta.Content)
+				onDelta(choice.Delta.Content)
+			}
+		}
+	}
+	if err := lines.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read response stream: %w", err)
+	}
+	return nil, fmt.Errorf("response stream ended before [DONE]")
 }

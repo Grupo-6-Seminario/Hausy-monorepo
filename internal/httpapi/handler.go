@@ -52,14 +52,58 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 			return
 		}
 
-		response, err := agent.HandleMessage(r.Context(), input.SessionID, input.Message, input.Qualification)
+		if strings.Contains(r.Header.Get("Accept"), "application/x-ndjson") {
+			streamTurn(w, r, agent, input)
+			return
+		}
+		response, err := agent.HandleMessage(r.Context(), input.SessionID, input.Message, input.Qualification, buyer.Events{})
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, errorResponse{Error: "El agente local no pudo responder."})
+			writeJSON(w, http.StatusBadGateway, errorResponse{Error: agentUnavailable})
 			return
 		}
 		writeJSON(w, http.StatusOK, response)
 	})
 	return mux
+}
+
+const agentUnavailable = "El agente local no pudo responder."
+
+// turnEvent is one line of a streamed turn: "results" (the ranking, before
+// the reply), "reply" (a piece of it), then "done" (the whole turn, whose
+// reply replaces the streamed one) or "error".
+type turnEvent struct {
+	Type  string `json:"type"`
+	Delta string `json:"delta,omitempty"`
+	Error string `json:"error,omitempty"`
+	*buyer.TurnResponse
+}
+
+// streamTurn answers one turn as NDJSON, so the interface shows the cards and
+// the reply while it is written. Before the first event a failure is the
+// plain 502; after it, only an error event can report it.
+func streamTurn(w http.ResponseWriter, r *http.Request, agent buyer.Agent, input messageRequest) {
+	started := false
+	send := func(event turnEvent) {
+		if !started {
+			w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			started = true
+		}
+		_ = json.NewEncoder(w).Encode(event)
+		_ = http.NewResponseController(w).Flush()
+	}
+	response, err := agent.HandleMessage(r.Context(), input.SessionID, input.Message, input.Qualification, buyer.Events{
+		Results: func(turn buyer.TurnResponse) { send(turnEvent{Type: "results", TurnResponse: &turn}) },
+		Reply:   func(delta string) { send(turnEvent{Type: "reply", Delta: delta}) },
+	})
+	switch {
+	case err == nil:
+		send(turnEvent{Type: "done", TurnResponse: response})
+	case started:
+		send(turnEvent{Type: "error", Error: agentUnavailable})
+	default:
+		writeJSON(w, http.StatusBadGateway, errorResponse{Error: agentUnavailable})
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

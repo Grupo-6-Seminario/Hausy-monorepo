@@ -15,7 +15,7 @@ import (
 
 type qualifiedAgent struct{ got eligibility.Qualification }
 
-func (a *qualifiedAgent) HandleMessage(_ context.Context, _, _ string, q eligibility.Qualification) (*buyer.TurnResponse, error) {
+func (a *qualifiedAgent) HandleMessage(_ context.Context, _, _ string, q eligibility.Qualification, _ buyer.Events) (*buyer.TurnResponse, error) {
 	a.got = q
 	return &buyer.TurnResponse{Reply: "ok"}, nil
 }

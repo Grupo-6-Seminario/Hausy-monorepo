@@ -77,8 +77,9 @@ func TestProviderFailureIsReportedPerCaseWithoutStopping(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
-	if len(*bodies) != 4 || len(report.Cases) != 4 {
-		t.Fatalf("want 4 requests and 4 reported cases, got %d and %d", len(*bodies), len(report.Cases))
+	// A case may span several requests: jev splits large question sets.
+	if len(*bodies) < 4 || len(report.Cases) != 4 {
+		t.Fatalf("want a request per case and 4 reported cases, got %d and %d", len(*bodies), len(report.Cases))
 	}
 	for _, c := range report.Cases {
 		if c.Passed || !strings.Contains(c.Error, "HTTP 400") {

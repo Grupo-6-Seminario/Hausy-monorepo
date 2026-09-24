@@ -58,6 +58,10 @@ type ChatRequest struct {
 
 	// Tools the model may call on this turn. Empty means plain chat.
 	Tools []ToolDefinition `json:"tools,omitempty"`
+
+	// Stream, when set on a plain chat, receives the completion's text as it
+	// is generated. The response still carries all of it.
+	Stream func(delta string) `json:"-"`
 }
 
 // ChatResponse is one completion. Content and ToolCalls are not exclusive: a

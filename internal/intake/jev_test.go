@@ -3,6 +3,7 @@ package intake_test
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
@@ -13,14 +14,19 @@ import (
 // fakeJev answers by question ID; unlisted questions get a zero answer, which
 // reads as "not mentioned". It records every ID it was asked.
 type fakeJev struct {
-	answers map[string]jev.Answer
-	asked   []string
+	answers   map[string]jev.Answer
+	asked     []string
+	questions map[string]jev.Question
 }
 
 func (f *fakeJev) evaluate(_ context.Context, _ any, qs map[string]jev.Question) (map[string]jev.Answer, error) {
 	out := map[string]jev.Answer{}
-	for id := range qs {
+	if f.questions == nil {
+		f.questions = map[string]jev.Question{}
+	}
+	for id, q := range qs {
 		f.asked = append(f.asked, id)
+		f.questions[id] = q
 		out[id] = f.answers[id]
 	}
 	return out, nil
@@ -67,6 +73,27 @@ func TestRequirementsTiedToOneNeighborhoodBecomeSeparateBranches(t *testing.T) {
 	cochera := search.AttributeFilter{Type: "amenity", Value: "cochera"}
 	if !slices.Contains(byHood["belgrano"].ExcludedAttributes, cochera) || !slices.Contains(byHood["monserrat"].RequiredAttributes, cochera) {
 		t.Fatalf("got %+v", byHood)
+	}
+}
+
+// Seen in the live request: "Does this number (num_0) apply to the
+// neighborhood palermo?" Jev never saw which number that was.
+func TestAScopedNumberIsAskedAboutByItsText(t *testing.T) {
+	f := &fakeJev{answers: map[string]jev.Answer{
+		"intent": pick("new_search"), "hood_palermo": yes(), "hood_monserrat": yes(), "scoped": yes(), "num_0": pick("max_price"),
+		"palermo:num_0": yes(),
+	}}
+	p := planOf(t, f, "Dos ambientes en palermo, hasta 500, o sino dos ambientes en monserrat pero que tenga pileta")
+	if q := f.questions["palermo:num_0"].Instructions; !strings.Contains(q, `"500"`) {
+		t.Fatalf("the per-neighborhood question must quote the number, got %q", q)
+	}
+	for _, b := range p.Branches {
+		if slices.Equal(b.Neighborhoods, []string{"palermo"}) && (b.MaxPrice == nil || *b.MaxPrice != 500) {
+			t.Fatalf("palermo carries the price, got %+v", b)
+		}
+		if slices.Equal(b.Neighborhoods, []string{"monserrat"}) && b.MaxPrice != nil {
+			t.Fatalf("monserrat does not, got %+v", b)
+		}
 	}
 }
 

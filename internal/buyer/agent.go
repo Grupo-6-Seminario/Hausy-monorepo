@@ -54,8 +54,20 @@ type Result struct {
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.
 type Agent interface {
 	// HandleMessage runs one turn. q is what the searcher declared in the
-	// qualification form or their account; it may be nil.
-	HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification) (*TurnResponse, error)
+	// qualification form or their account; it may be nil. events may be zero.
+	HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification, events Events) (*TurnResponse, error)
+}
+
+// Events lets a caller watch a turn while it runs, so the searcher sees the
+// cards before the reply is done. Both hooks are optional.
+type Events struct {
+	// Results fires once the ranking is ready, before the reply is written;
+	// its Reply is empty.
+	Results func(TurnResponse)
+	// Reply receives the reply as the writer produces it. The returned
+	// TurnResponse.Reply is still the authority: after a writer failure it is
+	// a template that replaces whatever was streamed.
+	Reply func(delta string)
 }
 
 // session tracks conversational state and accumulated requirements for a searcher.
@@ -107,13 +119,13 @@ type extractionResult struct {
 }
 
 // HandleMessage receives a user's input, extracts typed requirements, updates state, and returns the agent's turn response.
-func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification) (*TurnResponse, error) {
+func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification, events Events) (*TurnResponse, error) {
 	if sessionID == "" {
 		sessionID = "default"
 	}
 
 	if a.pipeline != nil {
-		return a.handlePipeline(ctx, sessionID, message, q)
+		return a.handlePipeline(ctx, sessionID, message, q, events)
 	}
 
 	req := llm.ChatRequest{

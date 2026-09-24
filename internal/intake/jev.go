@@ -71,6 +71,7 @@ func boolean(instructions string) jev.Question {
 type item struct {
 	id       string
 	question jev.Question // re-asked per neighborhood when scoped (nil for numbers)
+	text     string       // a number as the user wrote it
 	apply    func(q *search.Query, a jev.Answer)
 }
 
@@ -168,7 +169,7 @@ func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
 			continue
 		}
 		m := m
-		items = append(items, item{id: fmt.Sprintf("num_%d", i), apply: func(q *search.Query, _ jev.Answer) { applyNumber(q, role, m) }})
+		items = append(items, item{id: fmt.Sprintf("num_%d", i), text: m.Text, apply: func(q *search.Query, _ jev.Answer) { applyNumber(q, role, m) }})
 	}
 	if len(plan.Qualification) == 0 {
 		plan.Qualification = nil
@@ -201,7 +202,7 @@ func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
 				q.Instructions = fmt.Sprintf("For the neighborhood %q only: ", h) + q.Instructions
 				perHood[h+":"+it.id] = q
 			} else {
-				perHood[h+":"+it.id] = boolean(fmt.Sprintf("Does this number (%s) apply to the neighborhood %q?", it.id, h) + now)
+				perHood[h+":"+it.id] = boolean(fmt.Sprintf("Does the user's %q apply to the neighborhood %q?", it.text, h) + now)
 			}
 		}
 	}

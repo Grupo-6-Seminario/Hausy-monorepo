@@ -44,7 +44,7 @@ func (stock) AdmissibleFacts(context.Context) (map[string]bool, error) {
 
 type fakeWriter struct{ packets []buyer.Packet }
 
-func (f *fakeWriter) Write(_ context.Context, p buyer.Packet) (string, error) {
+func (f *fakeWriter) Write(_ context.Context, p buyer.Packet, _ func(string)) (string, error) {
 	f.packets = append(f.packets, p)
 	return "respuesta", nil
 }
@@ -77,7 +77,7 @@ func palermoPlan(sort string) intake.Plan {
 
 func turn(t *testing.T, agent *buyer.DefaultAgent, message string, q eligibility.Qualification) *buyer.TurnResponse {
 	t.Helper()
-	resp, err := agent.HandleMessage(context.Background(), "s", message, q)
+	resp, err := agent.HandleMessage(context.Background(), "s", message, q, buyer.Events{})
 	if err != nil {
 		t.Fatal(err)
 	}

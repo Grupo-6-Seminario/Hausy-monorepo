@@ -9,7 +9,11 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(`${backendURL}/api/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Accept carries the browser's choice of a streamed (NDJSON) or whole reply.
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: request.headers.get('Accept') ?? 'application/json',
+      },
       body,
       signal: AbortSignal.timeout(65_000),
     });
