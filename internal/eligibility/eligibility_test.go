@@ -21,6 +21,14 @@ func TestAcceptedGuaranteeIsEligible(t *testing.T) {
 	}
 }
 
+// The searcher is told why they can apply, in the listing's own words.
+func TestEligibleVerdictNamesTheRequirementTheSearcherClears(t *testing.T) {
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, admissible)
+	if got.State != eligibility.Eligible || len(got.Met) != 1 || got.Met[0].Evidence != "Garantía propietaria" {
+		t.Fatalf("want eligible naming the cleared requirement, got %+v", got)
+	}
+}
+
 func TestHardGuaranteeTheSearcherLacksIsIneligible(t *testing.T) {
 	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"caucion"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, admissible)
 	if got.State != eligibility.Ineligible || len(got.Conditions) != 1 || got.Conditions[0].Reason != "not_met" {
