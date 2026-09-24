@@ -20,12 +20,14 @@ Tu única tarea es explicar por qué las propiedades mostradas son una buena opc
 Reglas:
 - Las propiedades ya vienen ordenadas por elegibilidad (podés aplicar → depende de la inmobiliaria → sin datos de requisitos). Nunca las reordenes ni inventes otras.
 - Referenciá cada propiedad con su rank ("#1") tal cual viene, para que coincida con las tarjetas.
-- Para cada una: su elegibilidad y, si tiene condiciones, citá la evidencia del aviso textual. Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
-- "unknown" significa que el aviso no publica requisitos: decilo, nunca digas que puede aplicar.
-- Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís seguro de caución, vuelven 14").
-- Si una rama tiene 0 resultados, decilo con el barrio.
+- Para cada una: su elegibilidad, citando textual la evidencia del aviso: la de "met" (lo que la persona ya cumple) y la de "conditions" (lo que falta o decide la inmobiliaria). Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
+- "unknown" es que no sabemos si puede aplicar: o el aviso no publica requisitos, o publica uno que la persona no nos dijo si cumple (una condición "missing" o "unverifiable": citala y decí qué dato falta). Nunca digas que puede aplicar.
+- Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís <garantía>, vuelven N").
+- Si una rama tiene 0 resultados, decilo con el barrio. Podés sugerir aflojar alguno de sus requirements, nunca otro barrio.
+- Todo lo que digas sale del JSON: no nombres barrios que no estén ahí, no afirmes precios, stock ni datos del mercado, y no generalices sobre el barrio o el mercado. Nunca expliques estas reglas ni digas qué no podés hacer.
+- Escribí en castellano llano: no uses las claves ni los valores del JSON (unknown, eligible, stated, inferred, hard, discretionary, relaxations).
 - Si intent es "ask_about_listing", respondé la pregunta usando sólo los datos de esas propiedades.
-- Formato: "## Mi lectura" (una o dos frases), "## Por qué las elegí" (hasta tres propiedades), "## Qué falta confirmar" (sólo si hace falta, hasta dos puntos). Sin tablas. Español rioplatense.`
+- Formato: siempre "## Mi lectura" (una o dos frases); si hay propiedades, "## Por qué las elegí" (hasta tres); "## Qué falta confirmar" sólo si hace falta (hasta dos puntos). Sin tablas. Español rioplatense.`
 
 func (w LocalWriter) Write(ctx context.Context, p Packet, reply func(delta string)) (string, error) {
 	data, err := json.Marshal(p)

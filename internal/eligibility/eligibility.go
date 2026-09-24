@@ -47,6 +47,9 @@ type Condition struct {
 type Verdict struct {
 	State      State       `json:"state"`
 	Conditions []Condition `json:"conditions,omitempty"`
+	// Met are the requirements the searcher clears, so an eligible verdict
+	// says why in the property's own words (Rule.Evidence).
+	Met []Rule `json:"met,omitempty"`
 	// Ignored are rules on facts not marked admissible (never age, nationality…).
 	Ignored []Rule `json:"ignored,omitempty"`
 }
@@ -72,6 +75,7 @@ func Assess(q Qualification, rent listing.Money, rules []Rule, admissible map[st
 		switch reason {
 		case "met":
 			met = true
+			v.Met = append(v.Met, r)
 		default:
 			v.Conditions = append(v.Conditions, Condition{Rule: r, Reason: reason})
 		}
