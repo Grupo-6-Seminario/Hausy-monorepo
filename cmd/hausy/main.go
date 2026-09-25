@@ -21,6 +21,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
+	matchingjev "github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
@@ -104,6 +105,9 @@ func main() {
 	} else {
 		defer store.Close()
 		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: llmClient}))
+		if key := os.Getenv("AI_GATEWAY_API_KEY"); key != "" {
+			options = append(options, buyer.WithMatching(matchingjev.New(matchingjev.GatewayURL, key, nil)))
+		}
 		accounts = store
 		qualifications = store
 		catalog = store

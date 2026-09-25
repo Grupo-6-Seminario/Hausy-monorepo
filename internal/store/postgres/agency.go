@@ -35,12 +35,12 @@ INSERT INTO listings (
     source, url, neighborhood, agency_id, address, description,
     operation, price_amount, price_currency, expenses_amount, expenses_currency,
     total_area_m2, covered_area_m2, rooms, bedrooms, bathrooms, parking_spaces,
-    age_years, floor, scraped_at, owner_user_id, catalog_status
+    age_years, floor, scraped_at, owner_user_id, catalog_status, quality_status
 ) VALUES (
     'agency', $1, $2, $3, $4, $5,
     $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16,
-    $17, $18, now(), $19, 'active'
+    $17, $18, now(), $19, 'active', 'pending'
 ) RETURNING id`,
 			input.URL, input.Neighborhood, agencyID, nullable(input.Address), input.Description,
 			input.Operation, input.Price.Amount, nullable(input.Price.Currency),

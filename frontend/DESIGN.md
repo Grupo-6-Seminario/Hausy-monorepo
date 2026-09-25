@@ -183,7 +183,7 @@ Every animation must communicate hierarchy, feedback, or state.
 - The green luminary beneath the prompt follows the mouse locally and brightens on hover, focus, and active search.
 - New conversation turns and property cards rise into place once.
 - Buttons compress on press. Directional icons move only when their control is engaged.
-- Loading uses a skeletal or linear shimmer that matches the final shape, not a generic spinner.
+- Loading uses a skeletal or linear shimmer that matches the final shape. Search results keep the existing ghost property cards while the final ranking is prepared. Never use a loading spinner.
 - Animate opacity and transform for DOM transitions. The luminary is the only continuous canvas animation.
 - Honor `prefers-reduced-motion`; render a static green light when motion is reduced.
 - Interactive surfaces marked `data-glow` (header pills, example chips, property cards, contact and publication links, account roles and actions) carry a pointer glow: the luminary's quieter sibling. A soft `--accent` light fills the control under the pointer and a thin `--ring` light traces the nearest edge. It appears only on hover or focus, is fainter on large surfaces, and centres itself when motion is reduced.
@@ -220,6 +220,7 @@ Render headings, lists, and emphasis semantically. Raw Markdown markers must nev
 ## Property results
 
 - Keep the shortlist visible while follow-up requests run.
+- For a required prose-only quality, show evidenced matches first and unconfirmed alternatives in a separate group. Avoid a badge for each requested quality on every card.
 - Mark a property as `Destacada por Hausy` only when the agent explicitly cites that card's rank.
 - Show published facts separately from model inference.
 - Do not repeat every card's price, address, and features in the agent response.

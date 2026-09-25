@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
@@ -26,6 +27,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
@@ -43,6 +45,10 @@ func main() {
 		err = runEligibility(os.Args[2:])
 	case "load":
 		err = runLoad(os.Args[2:])
+	case "audit":
+		err = runAudit(os.Args[2:])
+	case "snapshot":
+		err = runSnapshot(os.Args[2:])
 	default:
 		usage()
 	}
@@ -56,9 +62,131 @@ func usage() {
 
   parse  -in <scraped.jsonl> -out <parsed.jsonl>   extract attributes with the local model
   eligibility -in <parsed.jsonl> -out <eligibility.jsonl>   extract eligibility rules with Jev
-  load   -in <parsed.jsonl>                        load parsed listings into Postgres
+  load   -in <parsed.jsonl>                        load parsed listings and committed reviews into Postgres
+  audit  -database <postgres URI> -out <quality.jsonl>  review stored listings and write a snapshot
+  snapshot -database <postgres URI> -out <quality.jsonl>  export completed reviews without model calls
 `)
 	os.Exit(2)
+}
+
+func runSnapshot(args []string) error {
+	flags := flag.NewFlagSet("snapshot", flag.ExitOnError)
+	uri := flags.String("database", envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"), "Postgres URI")
+	in := flags.String("in", "data/listings.parsed.jsonl", "committed listings to include")
+	out := flags.String("out", "data/listings.quality.jsonl", "review snapshot to commit")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, *uri)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	if err := store.Migrate(ctx); err != nil {
+		return err
+	}
+	return writeReviewSnapshot(ctx, store, *in, *out)
+}
+
+func runAudit(args []string) error {
+	flags := flag.NewFlagSet("audit", flag.ExitOnError)
+	uri := flags.String("database", envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"), "Postgres URI")
+	in := flags.String("in", "data/listings.parsed.jsonl", "committed listings to include in snapshot")
+	out := flags.String("out", "data/listings.quality.jsonl", "review snapshot to commit")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if os.Getenv("AI_GATEWAY_API_KEY") == "" {
+		return fmt.Errorf("audit requires AI_GATEWAY_API_KEY")
+	}
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, *uri)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	if err := store.Migrate(ctx); err != nil {
+		return err
+	}
+	queue, err := store.ReviewQueue(ctx)
+	if err != nil {
+		return err
+	}
+	gate := jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil)
+	gate.Retries, gate.Backoff = 3, 2*time.Second
+	model := local.NewClient(envOrDefault("LOCAL_LLM_URL", "http://127.0.0.1:8000"), os.Getenv("LOCAL_LLM_TOKEN"), envOrDefault("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"))
+	passed, withheld, failed := 0, 0, 0
+	for start := 0; start < len(queue); start += 10 {
+		end := min(start+10, len(queue))
+		reviews, errs := quality.AuditBatch(ctx, queue[start:end], gate.Evaluate, model)
+		for i, item := range queue[start:end] {
+			review, err := reviews[i], errs[i]
+			if err == nil {
+				err = store.SaveReview(ctx, item.URL, review)
+			}
+			if err != nil {
+				failed++
+				if failed <= 10 {
+					log.Printf("audit %s: %v", item.URL, err)
+				}
+				continue
+			}
+			if review.Status == quality.Withheld {
+				withheld++
+			} else {
+				passed++
+			}
+		}
+		log.Printf("audit: reviewed %d/%d", end, len(queue))
+		if end < len(queue) {
+			time.Sleep(3 * time.Second)
+		}
+	}
+	quarantined, err := store.QuarantineLegacy(ctx)
+	if err != nil {
+		return err
+	}
+	log.Printf("audit: passed %d, withheld %d, pending %d", passed, withheld, failed)
+	if quarantined > 0 {
+		log.Printf("audit: quarantined %d unresolved legacy listings", quarantined)
+	}
+	if err := writeReviewSnapshot(ctx, store, *in, *out); err != nil {
+		return err
+	}
+	if failed > 0 {
+		return fmt.Errorf("audit left %d listings pending; rerun to resume", failed)
+	}
+	return nil
+}
+
+func writeReviewSnapshot(ctx context.Context, store *postgres.Store, inputPath, path string) error {
+	input, err := os.Open(inputPath)
+	if err != nil {
+		return err
+	}
+	committedURLs, err := pipeline.ParsedURLs(input)
+	input.Close()
+	if err != nil {
+		return err
+	}
+	file, err := os.CreateTemp(filepath.Dir(path), ".quality-*.jsonl")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	count, err := store.ExportReviews(ctx, file, committedURLs)
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(file.Name(), path); err != nil {
+		return err
+	}
+	log.Printf("quality snapshot: wrote %d completed reviews to %s", count, path)
+	return nil
 }
 
 func envOrDefault(key, fallback string) string {
@@ -171,6 +299,7 @@ func runLoad(args []string) error {
 	flags := flag.NewFlagSet("load", flag.ExitOnError)
 	in := flags.String("in", "data/listings.parsed.jsonl", "parsed JSONL to read")
 	eligibilityIn := flags.String("eligibility", "data/listings.eligibility.jsonl", "eligibility JSONL to read; skipped if absent")
+	qualityIn := flags.String("quality", "data/listings.quality.jsonl", "quality review JSONL to read; skipped if absent")
 	uri := flags.String("database", envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"), "Postgres URI")
 	fresh := flags.Bool("fresh", false, "empty the listing tables before loading")
 	if err := flags.Parse(args); err != nil {
@@ -226,6 +355,17 @@ func runLoad(args []string) error {
 		reportErrors(eligibilityReport)
 	} else {
 		log.Printf("eligibility: %s not found; every listing stays unknown", *eligibilityIn)
+	}
+	if reviews, err := os.Open(*qualityIn); err == nil {
+		qualityReport, err := pipeline.LoadQuality(ctx, reviews, store)
+		reviews.Close()
+		if err != nil {
+			return err
+		}
+		log.Printf("quality: loaded %d, failed %d", qualityReport.Loaded, qualityReport.Failed)
+		reportErrors(qualityReport)
+	} else {
+		log.Printf("quality: %s not found; new listings stay pending", *qualityIn)
 	}
 	log.Printf("database now holds %d listings across %d agencies", total, agencies)
 	reportErrors(report)

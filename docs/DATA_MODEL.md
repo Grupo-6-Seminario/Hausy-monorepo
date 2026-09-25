@@ -55,6 +55,9 @@ deduplication is deliberately not attempted yet.
 | `ingested_at` | timestamptz | no | |
 | `owner_user_id` | bigint | yes | FK → `users.id`; set only for account-managed catalog entries |
 | `catalog_status` | text | no | `active` \| `archived`; archived rows never appear in buyer search |
+| `quality_status` | text | no | `legacy` \| `pending` \| `passed` \| `withheld`; buyer search includes only `legacy` and `passed` |
+| `quality_evidence` | jsonb | yes | Two source-backed claims for a withheld listing |
+| `quality_checked_at` | timestamptz | yes | Last completed review |
 
 Indexes: `neighborhood`, `(price_currency, price_amount)`, `bedrooms`,
 `(owner_user_id, catalog_status)`, unique `url`.
@@ -66,6 +69,22 @@ principal to the same catalog owner without changing the listing contract.
 
 Removing an entry from a realtor catalog sets `catalog_status = 'archived'`.
 It does not delete the canonical facts or contact history.
+
+`quality_status` is a separate publication gate. New listings and changes to
+published facts or prose become `pending` and disappear from buyer search until
+reviewed. Repeating an unchanged `load` preserves the prior review. Migration
+marks existing rows `legacy` so the site stays available while the one-time
+audit runs. `go run ./cmd/listings audit` reviews descriptions already in
+Postgres with Jev and checks source quotes for suspected contradictions; it
+does not scrape or parse the JSONL files. Completed decisions for committed
+listings are written to `data/listings.quality.jsonl` and restored by `load`.
+Each decision carries a content fingerprint; a changed listing cannot inherit
+an old approval and stays pending.
+After attempting every legacy row,
+the command moves unresolved rows to `pending`. Re-running it resumes those
+rows. `withheld` means two explicit claims about the same detail, time, and
+scope were verified as incompatible. Geographic district names and simultaneous
+sale/rental claims need additional review before they can establish a conflict.
 
 ### `listing_contact_intents` — immutable contact-button activations
 

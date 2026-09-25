@@ -97,6 +97,8 @@ export function PropertyList({
   }
 
   const count = listings.length;
+
+  const hasQualitativeGroups = listings.some((listing) => listing.qualitative_fit);
   const countLabel =
     count === 1
       ? '1 propiedad seleccionada'
@@ -123,24 +125,20 @@ export function PropertyList({
           ? 'Las fichas citadas en la lectura de Hausy están señaladas. En todas distinguimos lo publicado de lo interpretado.'
           : 'Usá el número de cada ficha para relacionarla con la lectura de Hausy. Lo publicado y lo interpretado aparecen separados.'}
       </p>
-      {listings.some((listing) => listing.eligibility)
-        ? sections.map((state) => {
-            const inSection = listings.filter(
-              (listing) => listing.eligibility?.state === state,
-            );
-            if (inSection.length === 0) return null;
-            return (
-              <div
-                key={state}
-                className="eligibility-section"
-                data-state={state}
-              >
-                <h3>{eligibilityLabel[state]}</h3>
-                {renderCards(inSection, recommendedRanks)}
-              </div>
-            );
-          })
-        : renderCards(listings, recommendedRanks)}
+      {hasQualitativeGroups ? (
+        <>
+          {(['exact', 'unconfirmed'] as const).map((fit) => {
+            const group = listings.filter((listing) => fit === 'exact'
+              ? listing.qualitative_fit !== 'unconfirmed'
+              : listing.qualitative_fit === 'unconfirmed');
+            if (group.length === 0) return null;
+            return <div key={fit} className="qualitative-section">
+              <h3>{fit === 'exact' ? 'Coincidencias con evidencia' : 'Otras opciones por confirmar'}</h3>
+              {renderByEligibility(group, recommendedRanks, true)}
+            </div>;
+          })}
+        </>
+      ) : renderByEligibility(listings, recommendedRanks, false)}
       {relaxations.map((relaxation) => (
         <p
           key={`${relaxation.fact}-${relaxation.value}`}
@@ -153,6 +151,18 @@ export function PropertyList({
       ))}
     </section>
   );
+}
+
+function renderByEligibility(listings: Listing[], recommendedRanks: number[], nested: boolean) {
+  if (!listings.some((listing) => listing.eligibility)) return renderCards(listings, recommendedRanks);
+  return sections.map((state) => {
+    const inSection = listings.filter((listing) => listing.eligibility?.state === state);
+    if (inSection.length === 0) return null;
+    return <div key={state} className="eligibility-section" data-state={state}>
+      {nested ? <h4>{eligibilityLabel[state]}</h4> : <h3>{eligibilityLabel[state]}</h3>}
+      {renderCards(inSection, recommendedRanks)}
+    </div>;
+  });
 }
 
 function renderCards(listings: Listing[], recommendedRanks: number[]) {

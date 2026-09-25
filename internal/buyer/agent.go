@@ -49,6 +49,9 @@ type TurnResponse struct {
 type Result struct {
 	listing.Listing
 	Eligibility *eligibility.Verdict `json:"eligibility,omitempty"`
+	// QualitativeFit distinguishes evidenced matches from results that still
+	// need a human to confirm a required prose-only quality.
+	QualitativeFit string `json:"qualitative_fit,omitempty"`
 }
 
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.

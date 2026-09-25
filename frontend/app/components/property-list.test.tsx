@@ -121,3 +121,23 @@ describe('PropertyList eligibility sections', () => {
     ).toBeVisible();
   });
 });
+
+it('separates evidenced light matches from alternatives without labeling every card', () => {
+  render(<PropertyList listings={[
+    { ...mockListings[0], rank: 1, qualitative_fit: 'exact' },
+    { ...mockListings[1], rank: 2, qualitative_fit: 'unconfirmed' },
+  ]} />);
+  expect(screen.getByRole('heading', { name: 'Coincidencias con evidencia' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Otras opciones por confirmar' })).toBeVisible();
+  expect(screen.getByText('#1')).toBeVisible();
+  expect(screen.getByText('#2')).toBeVisible();
+});
+
+it('keeps a branch without a qualitative requirement visible beside another branch with one', () => {
+  render(<PropertyList listings={[
+    { ...mockListings[0], rank: 1, qualitative_fit: 'exact' },
+    { ...mockListings[1], rank: 2 },
+  ]} />);
+  expect(screen.getByText(/Humboldt 1900/i)).toBeVisible();
+  expect(screen.getByText(/Cabildo 2000/i)).toBeVisible();
+});

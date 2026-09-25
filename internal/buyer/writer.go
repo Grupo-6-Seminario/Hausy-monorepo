@@ -21,6 +21,7 @@ Reglas:
 - Las propiedades ya vienen ordenadas por elegibilidad (podés aplicar → depende de la inmobiliaria → sin datos de requisitos). Nunca las reordenes ni inventes otras.
 - Referenciá cada propiedad con su rank ("#1") tal cual viene, para que coincida con las tarjetas.
 - Para cada una: su elegibilidad y, si tiene condiciones, citá la evidencia del aviso textual. Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
+- "qualitative_fit=exact" significa que hay apoyo textual para la cualidad pedida; "unconfirmed" significa que es sólo una alternativa y debés decir que esa cualidad falta confirmar. Nunca presentes un indicio (frente, orientación, ventanas) como prueba.
 - "unknown" significa que el aviso no publica requisitos: decilo, nunca digas que puede aplicar.
 - Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís seguro de caución, vuelven 14").
 - Si una rama tiene 0 resultados, decilo con el barrio.
@@ -63,7 +64,11 @@ func templateReply(p Packet) string {
 	if len(p.Shown) == 0 {
 		b.WriteString("No encontré propiedades que cumplan todo lo que pediste.\n")
 	} else {
-		b.WriteString("Ordené las propiedades según si podés alquilarlas.\n")
+		if p.Shown[0].QualitativeFit == "unconfirmed" {
+			b.WriteString("No encontré coincidencias exactas con evidencia para todas las cualidades pedidas. Estas son opciones que faltan confirmar.\n")
+		} else {
+			b.WriteString("Ordené las propiedades según si podés alquilarlas.\n")
+		}
 	}
 	if len(p.Shown) > 0 {
 		b.WriteString("\n## Por qué las elegí\n")

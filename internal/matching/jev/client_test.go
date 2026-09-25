@@ -43,6 +43,31 @@ func TestGatewayClassifiesWithReferencesToSuppliedEvidence(t *testing.T) {
 	}
 }
 
+func TestEvaluatorBatchesSeveralCandidatesInOneGatewayRequest(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		var request struct {
+			Questions map[string]json.RawMessage `json:"questions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if len(request.Questions) != 4 {
+			t.Errorf("want four questions in one request, got %d", len(request.Questions))
+		}
+		w.Write([]byte(`{"answers":{"c0_q0":{"type":"choice","choice":"supported","probabilities":{"supported":1,"contradicted":0,"insufficient_evidence":0,"conflicting_evidence":0}},"c0_q0_e0":{"type":"choice","choice":"supports","probabilities":{"supports":1,"opposes":0,"irrelevant":0,"both":0}},"c1_q0":{"type":"choice","choice":"insufficient_evidence","probabilities":{"supported":0,"contradicted":0,"insufficient_evidence":1,"conflicting_evidence":0}},"c1_q0_e0":{"type":"choice","choice":"irrelevant","probabilities":{"supports":0,"opposes":0,"irrelevant":1,"both":0}}}}`))
+	}))
+	defer server.Close()
+	result, err := matching.New(jev.New(server.URL, "key", server.Client())).Evaluate(context.Background(), matching.Request{Criteria: []matching.Criterion{{ID: "light", Text: "Buena luz natural"}}, Candidates: []matching.Candidate{
+		{ID: "a", URL: "a", Evidence: []matching.Evidence{{ID: "description", Text: "Luminoso.", Provenance: "published"}}},
+		{ID: "b", URL: "b", Evidence: []matching.Evidence{{ID: "description", Text: "Al frente.", Provenance: "published"}}},
+	}})
+	if err != nil || calls != 1 || len(result.Matches) != 2 || result.Matches[0].Supported != 1 {
+		t.Fatalf("batch got %+v, %v, calls=%d", result, err, calls)
+	}
+}
+
 func TestOverallAnswerDisagreeingWithEvidenceNeedsReview(t *testing.T) {
 	// Overall "supported", but the only record opposes: evidence implies "contradicted".
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
