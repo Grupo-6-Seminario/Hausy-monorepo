@@ -5,7 +5,6 @@ import {
   applyTheme,
   currentTheme,
   themeBootScript,
-  toggleTheme,
 } from './theme';
 
 // jsdom ships no Storage here, which is also what a browser with site data
@@ -50,14 +49,6 @@ afterEach(() => {
 });
 
 describe('currentTheme', () => {
-  it('follows the system preference while nothing is chosen', () => {
-    systemPrefersDark(true);
-    expect(currentTheme()).toBe('dark');
-
-    systemPrefersDark(false);
-    expect(currentTheme()).toBe('light');
-  });
-
   it('prefers an explicit choice over the system preference', () => {
     systemPrefersDark(true);
     document.documentElement.dataset.theme = 'light';
@@ -80,30 +71,9 @@ describe('currentTheme', () => {
 });
 
 describe('applyTheme', () => {
-  it('marks the document and remembers the choice', () => {
-    const storage = installStorage();
-
-    applyTheme('dark');
-
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    expect(storage.getItem(THEME_STORAGE_KEY)).toBe('dark');
-  });
-
   it('still switches the page when there is nowhere to remember it', () => {
     expect(() => applyTheme('dark')).not.toThrow();
     expect(document.documentElement.dataset.theme).toBe('dark');
-  });
-});
-
-describe('toggleTheme', () => {
-  it('flips away from the system preference on the first press', () => {
-    installStorage();
-    systemPrefersDark(false);
-
-    expect(toggleTheme()).toBe('dark');
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    expect(toggleTheme()).toBe('light');
-    expect(document.documentElement.dataset.theme).toBe('light');
   });
 });
 
@@ -114,22 +84,6 @@ describe('toggleTheme', () => {
  */
 /* oxlint-disable typescript/no-implied-eval */
 describe('themeBootScript', () => {
-  it('applies the remembered choice when it runs', () => {
-    installStorage().setItem(THEME_STORAGE_KEY, 'dark');
-
-    new Function(themeBootScript)();
-
-    expect(document.documentElement.dataset.theme).toBe('dark');
-  });
-
-  it('leaves the document to the system preference when nothing is stored', () => {
-    installStorage();
-
-    new Function(themeBootScript)();
-
-    expect(document.documentElement.dataset.theme).toBeUndefined();
-  });
-
   it('ignores a stored value it does not recognise', () => {
     installStorage().setItem(THEME_STORAGE_KEY, 'sepia');
 

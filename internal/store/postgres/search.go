@@ -11,8 +11,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
-// This file is the read side of the store: the implementation of
-// search.Repository. It stays separate from the write side because the two
+// This file is the read side of the store. It stays separate from the write side because the two
 // change for different reasons -- ingest follows the scraper, search follows
 // what the buyer agent needs to ask.
 
@@ -248,100 +247,6 @@ func (s *Store) countUnpriced(ctx context.Context, query search.Query) (int, err
 		return 0, fmt.Errorf("postgres: count unpriced: %w", err)
 	}
 	return count, nil
-}
-
-const selectNeighborhoods = `
-SELECT neighborhood,
-       count(*),
-       count(*) FILTER (WHERE operation IN ('alquiler', 'alquiler_temporal')),
-       count(*) FILTER (WHERE operation = 'venta'),
-       min(price_amount) FILTER (WHERE price_currency = 'USD'),
-       min(price_amount) FILTER (WHERE price_currency = 'ARS')
-FROM listings
-WHERE catalog_status = 'active' AND quality_status IN ('legacy', 'passed')
-GROUP BY neighborhood
-ORDER BY count(*) DESC, neighborhood ASC`
-
-// Neighborhoods lists what the inventory actually covers. An agent that guesses
-// a slug gets an empty result rather than an error, so it needs somewhere to
-// look the real ones up.
-func (s *Store) Neighborhoods(ctx context.Context) ([]search.Neighborhood, error) {
-	rows, err := s.pool.Query(ctx, selectNeighborhoods)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: neighborhoods: %w", err)
-	}
-	defer rows.Close()
-
-	var neighborhoods []search.Neighborhood
-	for rows.Next() {
-		var item search.Neighborhood
-		if err := rows.Scan(&item.Slug, &item.Listings, &item.ForRent, &item.ForSale,
-			&item.MinPriceUSD, &item.MinPriceARS); err != nil {
-			return nil, fmt.Errorf("postgres: scan neighborhood: %w", err)
-		}
-		neighborhoods = append(neighborhoods, item)
-	}
-	return neighborhoods, rows.Err()
-}
-
-// PriceStats describes one segment of the market, so a price can be reported
-// as cheap or dear for where it is instead of quoted into a vacuum.
-func (s *Store) PriceStats(ctx context.Context, query search.StatsQuery) (search.Stats, error) {
-	b := &builder{}
-	b.where("l.neighborhood = " + b.param(query.Neighborhood))
-	b.where("l.operation = " + b.param(query.Operation))
-	b.where("l.price_currency = " + b.param(query.Currency))
-	b.where("l.price_amount IS NOT NULL")
-	b.where("l.catalog_status = 'active'")
-	b.where("l.quality_status IN ('legacy', 'passed')")
-	if query.Bedrooms != nil {
-		b.where("l.bedrooms = " + b.param(*query.Bedrooms))
-	}
-
-	statsSQL := `
-SELECT count(*),
-       min(l.price_amount)::double precision,
-       percentile_cont(0.25) WITHIN GROUP (ORDER BY l.price_amount::double precision),
-       percentile_cont(0.50) WITHIN GROUP (ORDER BY l.price_amount::double precision),
-       percentile_cont(0.75) WITHIN GROUP (ORDER BY l.price_amount::double precision),
-       max(l.price_amount)::double precision,
-       percentile_cont(0.50) WITHIN GROUP (ORDER BY (l.price_amount / l.total_area_m2)::double precision)
-         FILTER (WHERE l.total_area_m2 > 0),
-       percentile_cont(0.50) WITHIN GROUP (ORDER BY l.expenses_amount::double precision)
-         FILTER (WHERE l.expenses_currency = 'ARS' AND l.expenses_amount IS NOT NULL)
-FROM listings l
-WHERE ` + b.whereClause()
-
-	stats := search.Stats{
-		Neighborhood: query.Neighborhood,
-		Operation:    query.Operation,
-		Currency:     query.Currency,
-		Bedrooms:     query.Bedrooms,
-	}
-	if err := s.pool.QueryRow(ctx, statsSQL, b.args...).Scan(
-		&stats.SampleSize, &stats.Min, &stats.P25, &stats.Median, &stats.P75, &stats.Max,
-		&stats.MedianPricePerM2, &stats.MedianExpensesARS,
-	); err != nil {
-		return search.Stats{}, fmt.Errorf("postgres: price stats: %w", err)
-	}
-
-	stats.Notes = statsNotes(stats)
-	return stats, nil
-}
-
-// statsNotes says out loud how much weight the numbers will bear. A median over
-// a handful of listings is an anecdote, and reporting it as a market rate is
-// the way this tool would mislead if it could.
-func statsNotes(stats search.Stats) []string {
-	switch {
-	case stats.SampleSize == 0:
-		return []string{"No listings are stored for this neighborhood, operation and currency, so there is nothing to compare against."}
-	case stats.SampleSize < 8:
-		return []string{fmt.Sprintf(
-			"Only %d listings back these figures. Treat them as a rough indication, not a market rate.", stats.SampleSize)}
-	default:
-		return nil
-	}
 }
 
 // splitPreferences reports which of the query's preferences a listing meets and

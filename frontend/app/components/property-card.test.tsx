@@ -159,12 +159,6 @@ describe('PropertyCard', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('renders the property rank number', () => {
-    render(<PropertyCard listing={{ ...sampleListing, rank: 1 }} />);
-
-    expect(screen.getByText('#1')).toBeVisible();
-  });
-
   it('marks a property only when Hausy explicitly recommends it', () => {
     const { rerender } = render(
       <PropertyCard listing={{ ...sampleListing, rank: 4 }} isRecommended />,

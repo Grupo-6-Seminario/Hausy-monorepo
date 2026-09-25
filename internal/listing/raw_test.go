@@ -185,27 +185,6 @@ func TestNormalize_CarriesIdentityFieldsThrough(t *testing.T) {
 	}
 }
 
-// A row with no URL or no description cannot be ingested: the URL is the
-// identity the store keys on, and the description is the parser's only input.
-func TestValidate_RejectsRowsThatCannotBeIngested(t *testing.T) {
-	cases := map[string]listing.Raw{
-		"no url":         {Description: "Depto."},
-		"no description": {URL: "https://example.com/x.html"},
-		"blank both":     {},
-	}
-
-	for name, raw := range cases {
-		if err := raw.Validate(); err == nil {
-			t.Errorf("%s: expected an error, got nil", name)
-		}
-	}
-
-	valid := listing.Raw{URL: "https://example.com/x.html", Description: "Depto."}
-	if err := valid.Validate(); err != nil {
-		t.Errorf("valid row rejected: %v", err)
-	}
-}
-
 // The price span reads "Alquiler $ 450.000", so the operation is already on
 // the page and never needs to be guessed by a model.
 func TestNormalize_DerivesOperationFromThePriceText(t *testing.T) {

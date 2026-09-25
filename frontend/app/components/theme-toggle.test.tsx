@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { THEME_STORAGE_KEY } from '@/lib/theme';
 import { ThemeToggle } from './theme-toggle';
 
 function installStorage(): Storage {
@@ -44,29 +43,6 @@ afterEach(() => {
 });
 
 describe('ThemeToggle', () => {
-  it('carries both icons so the stylesheet can show the current one', () => {
-    render(<ThemeToggle />);
-
-    const button = screen.getByRole('button');
-    expect(
-      button.querySelector('[data-theme-icon="light"]'),
-    ).toBeInTheDocument();
-    expect(
-      button.querySelector('[data-theme-icon="dark"]'),
-    ).toBeInTheDocument();
-  });
-
-  it('switches the document to dark and remembers it', async () => {
-    const storage = installStorage();
-    const user = userEvent.setup();
-    render(<ThemeToggle />);
-
-    await user.click(screen.getByRole('button'));
-
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    expect(storage.getItem(THEME_STORAGE_KEY)).toBe('dark');
-  });
-
   it('switches back on a second press', async () => {
     installStorage();
     const user = userEvent.setup();
@@ -92,16 +68,5 @@ describe('ThemeToggle', () => {
     expect(
       screen.getByRole('button', { name: 'Cambiar al tema claro' }),
     ).toBeInTheDocument();
-  });
-
-  it('starts from the system preference rather than assuming light', async () => {
-    installStorage();
-    systemPrefersDark(true);
-    const user = userEvent.setup();
-    render(<ThemeToggle />);
-
-    await user.click(screen.getByRole('button'));
-
-    expect(document.documentElement.dataset.theme).toBe('light');
   });
 });

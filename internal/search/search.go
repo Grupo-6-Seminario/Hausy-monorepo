@@ -9,7 +9,6 @@
 package search
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -262,83 +261,4 @@ type Results struct {
 
 	// Notes are plain-language caveats meant to be passed on to the user.
 	Notes []string `json:"notes,omitempty"`
-}
-
-// Neighborhood is one stored neighborhood and how much of it there is.
-type Neighborhood struct {
-	Slug        string   `json:"neighborhood"`
-	Listings    int      `json:"listings"`
-	ForRent     int      `json:"for_rent"`
-	ForSale     int      `json:"for_sale"`
-	MinPriceUSD *float64 `json:"min_price_usd,omitempty"`
-	MinPriceARS *float64 `json:"min_price_ars,omitempty"`
-}
-
-// StatsQuery asks what a segment of the market costs.
-type StatsQuery struct {
-	Neighborhood string `json:"neighborhood"`
-	Operation    string `json:"operation"`
-	Currency     string `json:"currency"`
-	Bedrooms     *int   `json:"bedrooms,omitempty"`
-}
-
-// Validate normalises a stats query. Neighborhood, operation and currency are
-// all required: an average across neighborhoods, or across a currency, is a
-// number that describes nothing.
-func (q StatsQuery) Validate() (StatsQuery, error) {
-	slugs := normaliseSlugs([]string{q.Neighborhood})
-	if len(slugs) == 0 {
-		return StatsQuery{}, fmt.Errorf("neighborhood is required: a price distribution over every neighborhood at once describes none of them")
-	}
-	q.Neighborhood = slugs[0]
-
-	q.Operation = strings.ToLower(strings.TrimSpace(q.Operation))
-	if !contains(Operations, q.Operation) {
-		return StatsQuery{}, fmt.Errorf("operation is required; use one of %s", strings.Join(Operations, ", "))
-	}
-
-	q.Currency = strings.ToUpper(strings.TrimSpace(q.Currency))
-	if !contains(Currencies, q.Currency) {
-		return StatsQuery{}, fmt.Errorf("currency is required; use one of %s", strings.Join(Currencies, ", "))
-	}
-
-	if q.Bedrooms != nil && *q.Bedrooms < 0 {
-		return StatsQuery{}, fmt.Errorf("bedrooms cannot be negative, got %d", *q.Bedrooms)
-	}
-	return q, nil
-}
-
-// Stats is the price distribution of one market segment. Every figure is in
-// the currency the query named; the sample size is included because a median
-// over four listings is not a market rate.
-type Stats struct {
-	Neighborhood string `json:"neighborhood"`
-	Operation    string `json:"operation"`
-	Currency     string `json:"currency"`
-	Bedrooms     *int   `json:"bedrooms,omitempty"`
-
-	SampleSize int      `json:"sample_size"`
-	Min        *float64 `json:"min,omitempty"`
-	P25        *float64 `json:"p25,omitempty"`
-	Median     *float64 `json:"median,omitempty"`
-	P75        *float64 `json:"p75,omitempty"`
-	Max        *float64 `json:"max,omitempty"`
-
-	// MedianPricePerM2 is over the listings that published a total area, so it
-	// may rest on fewer rows than SampleSize.
-	MedianPricePerM2 *float64 `json:"median_price_per_m2,omitempty"`
-	// MedianExpensesARS is over the listings that published expensas in pesos.
-	MedianExpensesARS *float64 `json:"median_expenses_ars,omitempty"`
-
-	Notes []string `json:"notes,omitempty"`
-}
-
-// Repository is the read port the tools sit on. Keeping it an interface is
-// what lets the tool layer be tested without a database, and what will let a
-// Bedrock-hosted agent read from something other than this Postgres.
-type Repository interface {
-	Search(ctx context.Context, query Query) (Results, error)
-	ByURL(ctx context.Context, url string) (listing.Listing, error)
-	Neighborhoods(ctx context.Context) ([]Neighborhood, error)
-	PriceStats(ctx context.Context, query StatsQuery) (Stats, error)
 }
