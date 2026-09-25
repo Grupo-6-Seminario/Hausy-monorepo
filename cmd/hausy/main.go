@@ -4,9 +4,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -21,6 +22,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	matchingjev "github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
@@ -76,13 +78,35 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
+func logLevelFromEnv() (slog.Level, error) {
+	switch strings.ToLower(envOrDefault("HAUSY_LOG_LEVEL", "info")) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info":
+		return slog.LevelInfo, nil
+	case "warn":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return 0, fmt.Errorf("HAUSY_LOG_LEVEL: want debug, info, warn, or error")
+	}
+}
+
 func main() {
+	level, err := logLevelFromEnv()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})).With("service", "hausy"))
 	config := serverConfigFromEnv()
 	llmClient, err := newLLMClient(context.Background(), config)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("startup_failed", "stage", "model", "error_class", logging.ErrorClass(err))
+		os.Exit(1)
 	}
-	log.Printf("model: %s", config.llmProvider)
+	slog.Info("model_configured", "provider", config.llmProvider)
 
 	// A missing database degrades the agent rather than stopping it: without
 	// one it can still take requirements down, and saying so at startup beats
@@ -92,8 +116,10 @@ func main() {
 	var accounts auth.Store = auth.NewMemoryStore()
 	var catalog agency.Catalog = agency.NewMemoryCatalog()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	storeStage := "open"
 	store, err := postgres.Open(ctx, config.databaseURI)
 	if err == nil {
+		storeStage = "migrate"
 		// Accounts need their tables even on a database no one has loaded yet.
 		if err = store.Migrate(ctx); err != nil {
 			store.Close()
@@ -101,7 +127,7 @@ func main() {
 	}
 	cancel()
 	if err != nil {
-		log.Printf("no listing store at %s (%v); the agent will collect requirements but cannot search, and accounts are kept in memory until restart", config.databaseURI, err)
+		slog.Warn("database_unavailable", "stage", storeStage, "error_class", logging.ErrorClass(err), "mode", "requirements_only")
 	} else {
 		defer store.Close()
 		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: llmClient}))
@@ -111,7 +137,7 @@ func main() {
 		accounts = store
 		qualifications = store
 		catalog = store
-		log.Printf("listing store connected at %s", config.databaseURI)
+		slog.Info("database_connected", "mode", "search")
 	}
 
 	agent := buyer.NewAgent(llmClient, options...)
@@ -124,9 +150,10 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	log.Printf("Hausy API listening on http://%s", config.address)
+	slog.Info("server_listening", "address", config.address)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		slog.Error("server_failed", "error_class", logging.ErrorClass(err))
+		os.Exit(1)
 	}
 }
 
@@ -139,6 +166,6 @@ func plannerFromEnv(client llm.Client) intake.Planner {
 		return intake.Planner{Primary: local}
 	}
 	gateway := jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil)
-	log.Printf("planner: Jev with model fallback")
+	slog.Info("planner_configured", "primary", "jev", "fallback", "model")
 	return intake.Planner{Primary: intake.Jev{Evaluate: gateway.Evaluate}, Fallback: local, Budget: 6 * time.Second}
 }

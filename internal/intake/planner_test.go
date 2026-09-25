@@ -1,13 +1,17 @@
 package intake_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
@@ -63,6 +67,24 @@ func TestFailingPrimaryFallsBack(t *testing.T) {
 	got, err := intake.Planner{Primary: failing, Fallback: fixed(palermo), Budget: time.Second}.Plan(context.Background(), []string{"x"}, intake.Plan{})
 	if err != nil || got.PlannedBy != "fallback" {
 		t.Fatalf("got %+v, %v", got, err)
+	}
+}
+
+func TestPlannerFallbackLogsReasonClassWithoutProviderBody(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := logging.WithLogger(context.Background(), slog.New(slog.NewJSONHandler(&logs, nil)).With("request_id", "test-request"))
+	failing := sourceFunc(func(context.Context, []string) (intake.Plan, error) {
+		return intake.Plan{}, errors.New("private provider response")
+	})
+	got, err := (intake.Planner{Primary: failing, Fallback: fixed(palermo)}).Plan(ctx, []string{"private search text"}, intake.Plan{})
+	if err != nil || got.PlannedBy != "fallback" {
+		t.Fatalf("expected fallback plan, got %+v, %v", got, err)
+	}
+	if !strings.Contains(logs.String(), `"msg":"planner_fallback"`) || !strings.Contains(logs.String(), `"error_class":"failed"`) {
+		t.Fatalf("fallback reason missing from structured log: %s", logs.String())
+	}
+	if strings.Contains(logs.String(), "private provider response") || strings.Contains(logs.String(), "private search text") {
+		t.Fatalf("private content leaked: %s", logs.String())
 	}
 }
 

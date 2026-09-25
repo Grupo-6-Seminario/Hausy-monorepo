@@ -4,12 +4,14 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
@@ -77,6 +79,18 @@ var section = map[eligibility.State]int{eligibility.Eligible: 0, eligibility.Con
 
 func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message string, declared eligibility.Qualification, events Events) (*TurnResponse, error) {
 	p := a.pipeline
+	logger := logging.FromContext(ctx)
+	turnStarted := time.Now()
+	turnOutcome := "error"
+	plannerName := "unknown"
+	writerOutcome := "not_started"
+	shown, hidden := 0, 0
+	defer func() {
+		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_turn",
+			slog.String("outcome", turnOutcome), slog.String("planner", plannerName),
+			slog.String("writer", writerOutcome), slog.Int("shown", shown), slog.Int("hidden", hidden),
+			slog.Int64("duration_ms", time.Since(turnStarted).Milliseconds()))
+	}()
 	a.mu.Lock()
 	sess, ok := a.sessions[sessionID]
 	if !ok {
@@ -87,15 +101,26 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	previous := sess.plan
 	a.mu.Unlock()
 
+	planStarted := time.Now()
 	plan, err := p.planner.Plan(ctx, turns, previous)
 	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_plan", slog.String("outcome", "error"),
+			slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
 		return nil, fmt.Errorf("buyer: plan: %w", err)
 	}
+	plannerName = plan.PlannedBy
+	if plannerName == "" {
+		plannerName = "unspecified"
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "buyer_plan", slog.String("outcome", "success"),
+		slog.String("planner", plannerName), slog.Int("branches", len(plan.Branches)),
+		slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
 	q := mergeQualification(declared, plan.Qualification)
 
 	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort}
 	var results []Result
 	var relaxations []eligibility.Relaxation
+	searchStarted := time.Now()
 	if len(plan.Branches) == 0 {
 		// Nothing to search (a greeting): keep what is already on screen.
 		a.mu.RLock()
@@ -104,10 +129,14 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	} else {
 		admissible, err := p.inventory.AdmissibleFacts(ctx)
 		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
+				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
 			return nil, err
 		}
 		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, admissible)
 		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
+				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
 			return nil, err
 		}
 		for _, b := range plan.Branches {
@@ -115,6 +144,14 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		}
 		packet.Requirements = slices.CompactFunc(sortedRequirements(packet.Requirements), func(a, b Requirement) bool { return a == b })
 	}
+	shown, hidden = len(results), packet.Hidden
+	searchOutcome := "success"
+	if len(plan.Branches) == 0 {
+		searchOutcome = "skipped"
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "buyer_search", slog.String("outcome", searchOutcome),
+		slog.Int("branches", len(plan.Branches)), slog.Int("shown", shown), slog.Int("hidden", hidden),
+		slog.Int("relaxations", len(relaxations)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
 	packet.Relaxations = relaxations
 	packet.Shown = results
 	if plan.Intent != "ask_about_listing" && len(results) > 3 {
@@ -124,15 +161,25 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	if events.Results != nil {
 		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations})
 	}
+	writerStarted := time.Now()
 	reply, err := p.writer.Write(ctx, packet, events.Reply)
+	writerOutcome = "generated"
 	if err != nil {
 		// The ranking is already done; a writer outage must not lose it.
 		reply = templateReply(packet)
+		writerOutcome = "fallback"
 	}
+	writerLevel := slog.LevelInfo
+	if writerOutcome == "fallback" {
+		writerLevel = slog.LevelWarn
+	}
+	logger.LogAttrs(ctx, writerLevel, "buyer_writer", slog.String("outcome", writerOutcome),
+		slog.Int64("duration_ms", time.Since(writerStarted).Milliseconds()))
 
 	a.mu.Lock()
 	sess.turns, sess.plan, sess.results = turns, plan, results
 	a.mu.Unlock()
+	turnOutcome = "success"
 	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations}, nil
 }
 
@@ -149,18 +196,28 @@ type scored struct {
 // list: eligibility section first, then the user's sort (default: how many
 // preferred requirements the listing meets), then URL for a stable order.
 func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, admissible map[string]bool) ([]Result, []eligibility.Relaxation, []BranchReport, int, error) {
+	logger := logging.FromContext(ctx)
 	var all []eligibility.Candidate
 	var rows []scored
 	var reports []BranchReport
 	seen := map[string]bool{}
 	hidden := 0
-	for _, branch := range plan.Branches {
+	for branchIndex, branch := range plan.Branches {
 		storedQuery, qualitative, preferredQualitative := separateQualitative(branch)
+		candidateStarted := time.Now()
 		candidates, err := p.inventory.Candidates(ctx, storedQuery)
 		if err != nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_candidates", slog.String("outcome", "error"),
+				slog.Int("branch", branchIndex), slog.String("error_class", logging.ErrorClass(err)),
+				slog.Int64("duration_ms", time.Since(candidateStarted).Milliseconds()))
 			return nil, nil, nil, 0, err
 		}
+		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_candidates", slog.String("outcome", "success"),
+			slog.Int("branch", branchIndex), slog.Int("count", len(candidates)),
+			slog.Int64("duration_ms", time.Since(candidateStarted).Milliseconds()))
 		reports = append(reports, BranchReport{Neighborhoods: branch.Neighborhoods, Matches: len(candidates)})
+		eligibilityStarted := time.Now()
+		previousHidden := hidden
 		for _, c := range candidates {
 			if seen[c.Listing.URL] {
 				continue
@@ -174,6 +231,9 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 			}
 			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative})
 		}
+		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_eligibility", slog.Int("branch", branchIndex),
+			slog.Int("count", len(candidates)), slog.Int("hidden", hidden-previousHidden),
+			slog.Int64("duration_ms", time.Since(eligibilityStarted).Milliseconds()))
 	}
 	p.assessQualitative(ctx, rows)
 	slices.SortFunc(rows, func(a, b scored) int {
@@ -221,12 +281,15 @@ func separateQualitative(q search.Query) (search.Query, []search.AttributeFilter
 }
 
 func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {
+	started := time.Now()
 	groups := map[string][]int{}
+	needed, batches, failures := 0, 0, 0
 	for i := range rows {
 		r := &rows[i]
 		if len(r.requiredQualitative)+len(r.preferredQualitative) == 0 {
 			continue
 		}
+		needed++
 		if len(r.requiredQualitative) > 0 {
 			r.result.QualitativeFit, r.quality = "unconfirmed", 1
 		}
@@ -245,6 +308,7 @@ func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {
 		}
 		// ponytail: eight descriptions fit Jev's existing 80-option request limit.
 		for start := 0; start < len(ids); start += 8 {
+			batches++
 			batch := ids[start:min(start+8, len(ids))]
 			candidates := make([]matching.Candidate, len(batch))
 			for j, index := range batch {
@@ -255,6 +319,9 @@ func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {
 			result, err := matching.New(p.matcher).Evaluate(candidateCtx, matching.Request{Criteria: criteria, Candidates: candidates})
 			cancel()
 			if err != nil {
+				failures++
+				logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "buyer_qualitative_fallback",
+					slog.Int("candidates", len(batch)), slog.String("error_class", logging.ErrorClass(err)))
 				continue
 			}
 			byID := map[string]matching.Match{}
@@ -281,6 +348,21 @@ func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {
 				}
 			}
 		}
+	}
+	if needed > 0 {
+		outcome := "success"
+		switch {
+		case batches == 0:
+			outcome = "unavailable"
+		case failures == batches:
+			outcome = "fallback"
+		case failures > 0:
+			outcome = "partial_fallback"
+		}
+		logging.FromContext(ctx).LogAttrs(ctx, slog.LevelInfo, "buyer_qualitative",
+			slog.String("outcome", outcome), slog.Int("candidates", needed),
+			slog.Int("batches", batches), slog.Int("failed_batches", failures),
+			slog.Int64("duration_ms", time.Since(started).Milliseconds()))
 	}
 }
 

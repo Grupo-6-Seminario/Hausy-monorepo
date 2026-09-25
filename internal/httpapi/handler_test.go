@@ -1,10 +1,12 @@
 package httpapi_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -57,6 +59,33 @@ func TestHandler_PostMessageReturnsAgentReply(t *testing.T) {
 	}
 }
 
+func TestHandlerLogsRequestWithCorrelationWithoutMessageContent(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	handler := httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/messages", strings.NewReader(`{"session_id":"private-session","message":"private search text"}`))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	id := response.Header().Get("X-Request-ID")
+	if len(id) != 32 {
+		t.Fatalf("expected a 32-character request ID, got %q", id)
+	}
+	var event map[string]any
+	if err := json.Unmarshal(logs.Bytes(), &event); err != nil {
+		t.Fatalf("expected one JSON request log: %v: %s", err, logs.String())
+	}
+	if event["msg"] != "http_request" || event["request_id"] != id || event["status"] != float64(200) || event["outcome"] != "success" {
+		t.Fatalf("unexpected request log: %v", event)
+	}
+	if strings.Contains(logs.String(), "private search text") || strings.Contains(logs.String(), "private-session") {
+		t.Fatalf("request log contains private input: %s", logs.String())
+	}
+}
+
 // streamingAgent reports its ranking, streams two deltas, then fails if err is set.
 type streamingAgent struct{ err error }
 
@@ -98,6 +127,9 @@ func TestHandler_StreamsTheTurnAsNDJSONWhenAsked(t *testing.T) {
 	if response.Code != http.StatusOK || !strings.HasPrefix(response.Header().Get("Content-Type"), "application/x-ndjson") {
 		t.Fatalf("got %d %q", response.Code, response.Header().Get("Content-Type"))
 	}
+	if !response.Flushed {
+		t.Fatal("streamed events must still flush through request logging middleware")
+	}
 	var got []string
 	for _, e := range streamEvents(t, response.Body.String()) {
 		requirements, _ := e["requirements"].([]any)
@@ -112,5 +144,28 @@ func TestHandler_StreamsTheTurnAsNDJSONWhenAsked(t *testing.T) {
 	failed := streamEvents(t, postStreaming(httpapi.NewHandler(streamingAgent{err: errors.New("model down")}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)).Body.String())
 	if last := failed[len(failed)-1]; last["type"] != "error" || last["error"] == "" || strings.Contains(fmt.Sprint(last["error"]), "model down") {
 		t.Fatalf("want a sanitized error event last, got %v", last)
+	}
+}
+
+func TestHandlerLogsLateStreamFailureEvenAfterHTTP200(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	handler := httpapi.NewHandler(streamingAgent{err: errors.New("private provider response")}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)
+	response := postStreaming(handler)
+	if response.Code != http.StatusOK {
+		t.Fatalf("stream must keep its committed HTTP status, got %d", response.Code)
+	}
+	var event map[string]any
+	if err := json.Unmarshal(logs.Bytes(), &event); err != nil {
+		t.Fatalf("decode request log: %v: %s", err, logs.String())
+	}
+	if event["status"] != float64(200) || event["outcome"] != "error" {
+		t.Fatalf("late stream error must be visible in logs: %v", event)
+	}
+	if strings.Contains(logs.String(), "private provider response") {
+		t.Fatalf("provider response leaked into logs: %s", logs.String())
 	}
 }

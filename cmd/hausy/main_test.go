@@ -2,11 +2,23 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
 )
+
+func TestLogLevelFromEnv(t *testing.T) {
+	t.Setenv("HAUSY_LOG_LEVEL", "debug")
+	if level, err := logLevelFromEnv(); err != nil || level != slog.LevelDebug {
+		t.Fatalf("debug level: got %v, %v", level, err)
+	}
+	t.Setenv("HAUSY_LOG_LEVEL", "unknown")
+	if _, err := logLevelFromEnv(); err == nil {
+		t.Fatal("unknown log level must fail configuration")
+	}
+}
 
 func TestServerConfigFromEnvUsesLocalDefaults(t *testing.T) {
 	t.Setenv("HAUSY_API_ADDR", "")
