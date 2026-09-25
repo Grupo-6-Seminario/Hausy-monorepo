@@ -1,0 +1,12 @@
+{
+  "cases": [
+    {"id":"unnamed_amenities","turns":["Busco un dos ambientes en Palermo con amenities"],"kind":"search","source":"con amenities"},
+    {"id":"ambiguous_rooms","turns":["Busco dos habitaciones en Palermo"],"kind":"search","source":"dos habitaciones"},
+    {"id":"clear_rooms","turns":["Busco dos ambientes en Palermo"],"kind":"none"},
+    {"id":"evidenced_light","turns":["Busco un departamento con mucha luz natural en Palermo"],"kind":"none"},
+    {"id":"unsupported_commute","turns":["Necesito alquilar en Palermo cerca del trabajo"],"kind":"unsupported","source":"cerca del trabajo"},
+    {"id":"vague_income","turns":["Busco alquilar en Palermo. Tengo ingresos estables"],"kind":"qualification","source":"Tengo ingresos estables"},
+    {"id":"known_guarantee","turns":["Busco alquilar en Palermo. Tengo garantía propietaria"],"known_qualification":{"guarantee":["propietaria"]},"kind":"none"},
+    {"id":"clear_budget","turns":["Busco alquilar en Palermo hasta 800 mil pesos"],"kind":"none"}
+  ]
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
@@ -28,24 +29,27 @@ import (
 )
 
 type serverConfig struct {
-	address      string
-	llmProvider  string
-	llmURL       string
-	llmToken     string
-	llmModel     string
-	bedrockModel string
-	databaseURI  string
+	address     string
+	llmProvider string
+	// writerProvider runs the reply writer; it defaults to llmProvider.
+	writerProvider string
+	llmURL         string
+	llmToken       string
+	llmModel       string
+	bedrockModel   string
+	databaseURI    string
 }
 
 func serverConfigFromEnv() serverConfig {
 	return serverConfig{
-		address:      envOrDefault("HAUSY_API_ADDR", "127.0.0.1:8080"),
-		llmProvider:  envOrDefault("HAUSY_LLM", "local"),
-		llmURL:       envOrDefault("LOCAL_LLM_URL", "http://127.0.0.1:8000"),
-		llmToken:     os.Getenv("LOCAL_LLM_TOKEN"),
-		llmModel:     envOrDefault("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"),
-		bedrockModel: envOrDefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6"),
-		databaseURI:  envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"),
+		address:        envOrDefault("HAUSY_API_ADDR", "127.0.0.1:8080"),
+		llmProvider:    envOrDefault("HAUSY_LLM", "local"),
+		writerProvider: envOrDefault("HAUSY_WRITER_LLM", envOrDefault("HAUSY_LLM", "local")),
+		llmURL:         envOrDefault("LOCAL_LLM_URL", "http://127.0.0.1:8000"),
+		llmToken:       os.Getenv("LOCAL_LLM_TOKEN"),
+		llmModel:       envOrDefault("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"),
+		bedrockModel:   envOrDefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6"),
+		databaseURI:    envOrDefault("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"),
 	}
 }
 
@@ -69,6 +73,22 @@ func newLLMClient(ctx context.Context, c serverConfig) (llm.Client, error) {
 		return bedrock.New(bedrockruntime.NewFromConfig(cfg), c.bedrockModel), nil
 	}
 	return nil, fmt.Errorf("HAUSY_LLM=%q: want local or bedrock", c.llmProvider)
+}
+
+// writerClient returns the model behind the reply writer. HAUSY_WRITER_LLM
+// ("local" or "bedrock") separates it from HAUSY_LLM, so replies can run on
+// Bedrock while planning and local development stay on the local model.
+// Unset, the writer shares the model client.
+func writerClient(ctx context.Context, c serverConfig, shared llm.Client) (llm.Client, error) {
+	if c.writerProvider == c.llmProvider {
+		return shared, nil
+	}
+	c.llmProvider = c.writerProvider
+	client, err := newLLMClient(ctx, c)
+	if err != nil {
+		return nil, fmt.Errorf("HAUSY_WRITER_LLM: %w", err)
+	}
+	return client, nil
 }
 
 func envOrDefault(key, fallback string) string {
@@ -106,7 +126,12 @@ func main() {
 		slog.Error("startup_failed", "stage", "model", "error_class", logging.ErrorClass(err))
 		os.Exit(1)
 	}
-	slog.Info("model_configured", "provider", config.llmProvider)
+	writer, err := writerClient(context.Background(), config, llmClient)
+	if err != nil {
+		slog.Error("startup_failed", "stage", "writer_model", "error_class", logging.ErrorClass(err))
+		os.Exit(1)
+	}
+	slog.Info("model_configured", "provider", config.llmProvider, "writer_provider", config.writerProvider)
 
 	// A missing database degrades the agent rather than stopping it: without
 	// one it can still take requirements down, and saying so at startup beats
@@ -130,10 +155,15 @@ func main() {
 		slog.Warn("database_unavailable", "stage", storeStage, "error_class", logging.ErrorClass(err), "mode", "requirements_only")
 	} else {
 		defer store.Close()
-		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: llmClient}))
+		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: writer}))
+		// Jev judges ambiguity and the schema supplies the options (ADR 0004).
+		// Without a gateway key only the deterministic checks ask.
+		judge := clarification.Judge{Answers: clarification.Model{Client: llmClient}}
 		if key := os.Getenv("AI_GATEWAY_API_KEY"); key != "" {
+			judge.Evaluate = jev.New(jev.GatewayURL, key, nil).Evaluate
 			options = append(options, buyer.WithMatching(matchingjev.New(matchingjev.GatewayURL, key, nil)))
 		}
+		options = append(options, buyer.WithClarifier(judge))
 		accounts = store
 		qualifications = store
 		catalog = store

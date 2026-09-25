@@ -1,0 +1,23 @@
+{"cases": [
+  {"id": "unnamed_amenities", "text": "Busco un dos ambientes en Palermo con amenities", "field": "amenities"},
+  {"id": "habitaciones_are_bedrooms", "text": "Busco dos habitaciones en Palermo", "field": "none"},
+  {"id": "clear_rooms", "text": "Busco dos ambientes en Palermo", "field": "none"},
+  {"id": "evidenced_light", "text": "Busco un departamento con mucha luz natural en Palermo", "field": "none"},
+  {"id": "unsupported_commute", "text": "Necesito alquilar en Palermo cerca del trabajo", "field": "none", "e2e": "unsupported"},
+  {"id": "vague_income", "text": "Busco alquilar en Palermo. Tengo ingresos estables", "field": "income", "e2e": "income|none"},
+  {"id": "known_guarantee", "text": "Busco alquilar en Palermo. Tengo garantía propietaria", "field": "none"},
+  {"id": "clear_budget", "text": "Busco alquilar en Palermo hasta 800 mil pesos", "field": "none"},
+  {"id": "rooms_cuartos", "text": "Necesito un depto de 2 cuartos en Congreso", "field": "rooms"},
+  {"id": "rooms_piezas", "text": "Busco algo con 3 piezas en Monserrat", "field": "rooms"},
+  {"id": "clear_bedrooms", "text": "Quiero un 2 dormitorios en Palermo", "field": "none"},
+  {"id": "clear_mono", "text": "Busco un monoambiente en Congreso", "field": "none"},
+  {"id": "amenities_chiches", "text": "Que tenga todos los chiches del edificio, en Palermo", "field": "amenities"},
+  {"id": "named_amenity", "text": "Busco en Palermo un edificio con pileta", "field": "none"},
+  {"id": "currency_bare", "text": "Busco en Palermo, puedo pagar hasta 900", "field": "currency"},
+  {"id": "clear_usd", "text": "Busco en Palermo, presupuesto 1000 dólares", "field": "none"},
+  {"id": "guarantee_bare", "text": "Busco en Palermo, tengo garantía", "field": "guarantee"},
+  {"id": "guarantee_family", "text": "Busco en Congreso, tengo la garantía de un familiar", "field": "guarantee"},
+  {"id": "income_blanco", "text": "Busco en Monserrat, cobro en blanco", "field": "income", "e2e": "income|none"},
+  {"id": "clear_income", "text": "Busco en Congreso, gano 2 palos por mes", "field": "none"},
+  {"id": "clear_quiet", "text": "Algo tranquilo en Palermo", "field": "none"}
+]}

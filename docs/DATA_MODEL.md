@@ -117,6 +117,13 @@ A listing carries **multiple rows of the same `type`** where that makes sense
 (`amenity`, `suitable_for`, `transit_access`). Single-valued types
 (`natural_light`, `exposure`) carry at most one row.
 
+An `amenity` row is stored only when the listing states it in words that name
+it: `load` drops inferred amenities and stated ones whose evidence names
+something else (`listing.StatedAmenities`), while the parsed file keeps the
+model's full reading. A required amenity does not exclude listings: those that
+lack the row are shown after the ones that have it, as unconfirmed
+([CONTEXT.md](../CONTEXT.md), Unconfirmed requirement).
+
 ### Eligibility — `eligibility_facts`, `listing_eligibility_rules`, `user_qualifications`
 
 Why and how: [ADR 0001](./adr/0001-eligibility-rules-as-data.md); terms: [CONTEXT.md](../CONTEXT.md).

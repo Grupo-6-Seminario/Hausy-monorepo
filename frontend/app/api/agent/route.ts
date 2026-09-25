@@ -3,6 +3,17 @@ const backendURL = (process.env.HAUSY_BACKEND_URL ?? 'http://127.0.0.1:8080').re
   '',
 );
 
+export async function GET(request: Request) {
+  const sessionID = new URL(request.url).searchParams.get('session_id');
+  if (!sessionID) return Response.json({ clarification: null });
+  try {
+    const response = await fetch(`${backendURL}/api/messages?session_id=${encodeURIComponent(sessionID)}`);
+    return new Response(response.body, { status: response.status, headers: { 'Content-Type': 'application/json' } });
+  } catch {
+    return Response.json({ clarification: null });
+  }
+}
+
 export async function POST(request: Request) {
   const body = await request.text();
 

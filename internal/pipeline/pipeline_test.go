@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -199,6 +200,25 @@ func TestParse_SkipsURLsAlreadyParsed(t *testing.T) {
 	}
 }
 
+// Seen on the committed snapshot: every row was written after a failed model
+// call, and resuming treated all of them as parsed, so none was ever retried.
+func TestKeepParsed_RetriesRowsWhoseModelCallFailed(t *testing.T) {
+	parsed := `{"url":"https://z.com/a.html","description":"x","parsed_at":"2026-09-25T00:00:00Z"}`
+	existing := parsed + "\n" + `{"url":"https://z.com/b.html","description":"y"}` + "\n"
+
+	var kept bytes.Buffer
+	urls, err := pipeline.KeepParsed(strings.NewReader(existing), &kept)
+	if err != nil {
+		t.Fatalf("KeepParsed failed: %v", err)
+	}
+	if len(urls) != 1 || !urls["https://z.com/a.html"] {
+		t.Errorf("skippable urls = %v, want only the parsed one", urls)
+	}
+	if strings.TrimSpace(kept.String()) != parsed {
+		t.Errorf("kept rows = %q, want only the parsed row so the retry is not a duplicate", kept.String())
+	}
+}
+
 func TestParsedURLs_ReadsBackWhatWasAlreadyWritten(t *testing.T) {
 	existing := `{"url":"https://z.com/a.html","description":"x"}` + "\n" + `{"url":"https://z.com/b.html","description":"y"}`
 
@@ -235,6 +255,28 @@ func TestLoad_SavesEveryRow(t *testing.T) {
 
 // A malformed line is reported and stepped over. Aborting would leave the
 // database holding a partial load with no indication of where it stopped.
+// Captured from the local model (experiments/parse-audit, 2026-09-25): an
+// amenity counts only when the listing states it in words that name it.
+func TestLoad_KeepsOnlyAmenitiesTheListingNamesInItsOwnWords(t *testing.T) {
+	parsed := `{"source":"zonaprop","url":"https://z.com/a.html","neighborhood":"palermo","description":"Pileta climatizada en el último piso. Solo con seguro Respaldar.","scraped_at":"2026-09-03T10:00:00Z","attributes":[` +
+		`{"type":"amenity","value":"pileta","provenance":"stated","evidence":"Pileta climatizada en el último piso"},` +
+		`{"type":"amenity","value":"seguridad","provenance":"stated","evidence":"Solo con seguro Respaldar."},` +
+		`{"type":"amenity","value":"seguridad","provenance":"inferred","evidence":"ubicación en corazón de Congreso (zona segura por contexto)"},` +
+		`{"type":"exposure","value":"frente","provenance":"inferred","evidence":"luminoso"}]}`
+	sink := &fakeSink{}
+
+	if _, err := pipeline.Load(context.Background(), strings.NewReader(parsed), sink); err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+	var got []string
+	for _, a := range sink.saved[0].Attributes {
+		got = append(got, a.Type+"="+a.Value)
+	}
+	if want := []string{"amenity=pileta", "exposure=frente"}; !slices.Equal(got, want) {
+		t.Errorf("stored attributes = %v, want %v", got, want)
+	}
+}
+
 func TestLoad_ReportsBadLinesWithoutAborting(t *testing.T) {
 	parsed := `{"url":"https://z.com/a.html","description":"Depto.","scraped_at":"2026-09-03T10:00:00Z"}` +
 		"\n" + `not json at all` +

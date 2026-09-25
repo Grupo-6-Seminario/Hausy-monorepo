@@ -105,7 +105,7 @@ Other files cite 46/48 responses (earlier export cuts).
 scrape → data/listings.jsonl → parse (local LLM) → data/listings.parsed.jsonl ─┬→ load → Postgres
                                   eligibility (Jev) → data/listings.eligibility.jsonl ─┘      ↓
 frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer pipeline:
-    internal/intake plan → Postgres candidates → internal/eligibility → order → reply (HAUSY_LLM)
+    internal/intake plan → Postgres candidates → internal/eligibility → order → reply (HAUSY_WRITER_LLM, default HAUSY_LLM)
 frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Postgres
 ```
 
@@ -123,7 +123,7 @@ content fingerprint, so changed listings remain pending.
 | `internal/eligibility` | Pure eligibility evaluator (four states), zero-results relaxations, rule extraction at load time ([ADR 0001](./docs/adr/0001-eligibility-rules-as-data.md)) |
 | `internal/jev` | Vercel AI Gateway transport for Jev: retries, sanitized errors |
 | `internal/search` | Read side: `search.Query` and its validation |
-| `internal/llm` · `internal/local` · `internal/bedrock` | Vendor-neutral LLM types · OpenAI-compatible client · Bedrock Converse client; `HAUSY_LLM` picks one |
+| `internal/llm` · `internal/local` · `internal/bedrock` | Vendor-neutral LLM types · OpenAI-compatible client · Bedrock Converse client; `HAUSY_LLM` picks one, `HAUSY_WRITER_LLM` can move only the reply writer |
 | `internal/listing` | Listing model, deterministic parsers |
 | `internal/agency` | Transport-neutral realtor catalog commands and contact-intent contract; HTTP and a future A2A adapter share this seam |
 | `internal/auth` | Account seam: `Provider` (sign-up/in/out, bearer tokens), `Local` + memory store; a Cognito `Provider` plugs in at `cmd/hausy` |

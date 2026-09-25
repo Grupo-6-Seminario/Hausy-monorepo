@@ -14,6 +14,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -222,10 +223,13 @@ func runParse(args []string) error {
 	alreadyParsed := map[string]bool{}
 	openFlags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
 	if *resume {
-		if existing, err := os.Open(*out); err == nil {
-			alreadyParsed, err = pipeline.ParsedURLs(existing)
-			existing.Close()
+		if existing, err := os.ReadFile(*out); err == nil {
+			var kept bytes.Buffer
+			alreadyParsed, err = pipeline.KeepParsed(bytes.NewReader(existing), &kept)
 			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(*out, kept.Bytes(), 0o644); err != nil {
 				return err
 			}
 			if len(alreadyParsed) > 0 {

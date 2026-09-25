@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
@@ -45,7 +46,9 @@ type TurnResponse struct {
 
 	// Relaxations is the zero-results line: hidden ineligible listings that
 	// another qualification would bring back.
-	Relaxations []eligibility.Relaxation `json:"relaxations,omitempty"`
+	Relaxations       []eligibility.Relaxation `json:"relaxations,omitempty"`
+	Clarification     *clarification.Question  `json:"clarification,omitempty"`
+	ClarificationHint string                   `json:"clarification_hint,omitempty"`
 }
 
 // Result is a shown listing with its eligibility for this searcher.
@@ -84,9 +87,14 @@ type session struct {
 
 	// turns, plan and results belong to the pipeline: every user message so
 	// far, the plan they produced, and what is on screen.
-	turns   []string
-	plan    intake.Plan
-	results []Result
+	turns           []string
+	plan            intake.Plan
+	results         []Result
+	pending         *pendingClarification
+	inFlight        bool
+	resolvedSources map[string]bool
+	declinedFacts   map[string]bool
+	confirmed       []clarification.Effect
 }
 
 // Option configures an Agent at construction.
@@ -131,7 +139,7 @@ func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, mess
 	}
 
 	if a.pipeline != nil {
-		return a.handlePipeline(ctx, sessionID, message, q, events)
+		return a.handlePipeline(ctx, sessionID, message, q, events, nil)
 	}
 	started := time.Now()
 	logger := logging.FromContext(ctx)

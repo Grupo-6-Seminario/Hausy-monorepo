@@ -10,6 +10,26 @@ Rental search that resolves, at discovery, whether a property fits what the sear
 A quality the searcher treats as necessary, or rejects, in the property they are looking for, in their own terms: "quiero que sea luminoso", "con cochera", "olvidate de la cochera" (no cochera). A listing without support for a required quality is not an exact match.
 _Avoid_: criterion, wish, need
 
+**Dormitorio**:
+A bedroom. "Habitación" means the same, so "dos habitaciones" is two dormitorios, never two ambientes. An **ambiente** counts every room, living room included; a monoambiente is one.
+_Avoid_: habitación as a room count of unclear kind
+
+**Unresolved search condition**:
+A stated condition with multiple plausible meanings that would materially change the search, where Hausy cannot safely choose for the searcher ("con amenities" without saying which, "puedo pagar hasta 900" without a currency).
+_Avoid_: subjective quality, invalid filter, missing listing data
+
+**Unsupported condition**:
+A stated hard condition Hausy has no way to evaluate on any listing, such as "cerca del trabajo" while search knows no work location or distance. The search stops with an explanation, and the searcher edits or removes it.
+_Avoid_: unresolved search condition, missing listing data
+
+**Unconfirmed requirement**:
+A requirement that a particular listing neither supports nor contradicts, because the ad says nothing about it. The listing is still shown, marked as unconfirmed for that requirement, and ranked after listings that confirm it. It never stops the search.
+_Avoid_: unsupported condition, mismatch, no data
+
+**Clarification**:
+An explicit answer from the searcher that resolves an unresolved search condition or an unresolved qualification. The answer may be a choice or a short value, depending on what the condition needs.
+_Avoid_: inferred default, model guess
+
 **Preference**:
 A quality the searcher would like but would trade away, as in "idealmente luminoso". It affects ordering without excluding properties.
 _Avoid_: soft requirement
@@ -31,6 +51,10 @@ _Avoid_: sub-search, zone
 **Qualification**:
 What the searcher declares about themselves that a property may demand: guarantee instruments, income band, whether they already have a caución quote. Open-ended; the set of facts grows with the rules that use them.
 _Avoid_: profile, solvency, requirements (of the searcher)
+
+**Unresolved qualification**:
+A qualification fact the searcher volunteered without enough detail to evaluate it against a property's eligibility requirement, as in "tengo garantía" without saying which type. Clarifying it is optional for the searcher.
+_Avoid_: ineligible, unknown eligibility
 
 **Eligibility requirement**:
 A rule a property or its agency applies to the searcher's qualification ("acepta garantía propietaria o caución", "ingresos 3x el alquiler"). Either published in the listing or, in a future release, stated privately by the agency and never shown to the searcher.

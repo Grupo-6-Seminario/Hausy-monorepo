@@ -97,3 +97,31 @@ func TestQwenKeepsOnlyQualificationTheUserActuallyMentioned(t *testing.T) {
 		t.Fatalf("declared facts must survive, got %v", said.Qualification)
 	}
 }
+
+// Captured local-model shape: one qualification fact was a JSON string where
+// the typed plan expects a list. The value is still explicit in the user's text.
+func TestQwenAcceptsASingleDeclaredIncomeBandString(t *testing.T) {
+	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"income_band":"1000000-2000000"}}`
+	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco en Palermo. Mis ingresos son entre 1 y 2 millones"})
+	if err != nil || len(plan.Qualification["income_band"]) != 1 || plan.Qualification["income_band"][0] != "1000000-2000000" {
+		t.Fatalf("a declared single income band should remain usable: %+v %v", plan, err)
+	}
+}
+
+func TestQwenDoesNotInferAnIncomeBandFromAQualitativeStatement(t *testing.T) {
+	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"income_band":["3000000-"]}}`
+	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco hasta 800 mil pesos en Palermo. Tengo ingresos estables"})
+	if err != nil || len(plan.Qualification["income_band"]) != 0 {
+		t.Fatalf("the rent amount cannot become a declared income band: %+v %v", plan, err)
+	}
+}
+
+// Captured live (experiments/clarification, 2026-09-25): a stated guarantee
+// came back as a required listing attribute, which failed the whole plan.
+func TestQwenStatedGuaranteeIsQualificationNotAListingFilter(t *testing.T) {
+	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","required_attributes":[{"type":"guarantee","value":"propietaria"}]}]}`
+	plan, err := intake.Planner{Primary: intake.Qwen{Client: &fakeLLM{reply: reply}}}.Plan(context.Background(), []string{"Busco alquilar en Palermo. Tengo garantía propietaria"}, intake.Plan{})
+	if err != nil || len(plan.Branches[0].RequiredAttributes) != 0 || len(plan.Qualification["guarantee"]) != 1 || plan.Qualification["guarantee"][0] != "propietaria" {
+		t.Fatalf("a clear search with a stated guarantee must plan: %+v %v", plan, err)
+	}
+}

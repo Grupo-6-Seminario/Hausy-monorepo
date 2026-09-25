@@ -2,7 +2,11 @@
 // directly from a listing page and the fuzzy qualities parsed out of its prose.
 package listing
 
-import "time"
+import (
+	"regexp"
+	"slices"
+	"time"
+)
 
 // Provenance records how firmly an attribute is established. Seller agents are
 // incentivised to describe a property favourably, so the buyer side needs to
@@ -97,4 +101,32 @@ func AllowsValue(attributeType, value string) bool {
 		}
 	}
 	return false
+}
+
+// amenityTerms are the words that name each amenity, synonyms included, over
+// lowercase accent-folded text. A lavadero is the unit's own unless the ad
+// says it is shared, so only a shared one names the building's laundry.
+var amenityTerms = map[string]*regexp.Regexp{
+	"pileta": regexp.MustCompile(`pileta|piscina|natatorio`), "gimnasio": regexp.MustCompile(`gimnasio|\bgym\b`),
+	"laundry": regexp.MustCompile(`laundry|lavanderia|lavadero (comun|compartido)`), "coworking": regexp.MustCompile(`coworking|co working`),
+	"sum": regexp.MustCompile(`\bsum\b|salon de (usos|fiestas|eventos)`), "seguridad": regexp.MustCompile(`seguridad|vigilancia|porteria`),
+	"parrilla": regexp.MustCompile(`parrilla`), "ascensor": regexp.MustCompile(`ascensor`),
+	"cochera": regexp.MustCompile(`cochera|garage|garaje|estacionamiento`), "solarium": regexp.MustCompile(`solarium`),
+	"terraza_comun": regexp.MustCompile(`terraza (comun|compartida)`),
+}
+
+// NamesAmenity reports whether text names this amenity ("gym" names gimnasio).
+func NamesAmenity(value, text string) bool {
+	term, ok := amenityTerms[value]
+	return ok && term.MatchString(foldLabel(text))
+}
+
+// StatedAmenities keeps an amenity only when the listing states it in words
+// that name it. A model's inference ("zona segura por contexto") or a quote
+// about something else ("seguro Respaldar" is not seguridad) is not the
+// listing saying so. Other attribute types pass through.
+func StatedAmenities(attributes []Attribute) []Attribute {
+	return slices.DeleteFunc(slices.Clone(attributes), func(a Attribute) bool {
+		return a.Type == "amenity" && (a.Provenance != Stated || !NamesAmenity(a.Value, a.Evidence))
+	})
 }

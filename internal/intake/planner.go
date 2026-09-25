@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
@@ -59,13 +60,16 @@ func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan,
 		return plan, nil
 	}
 	if p.Fallback == nil {
-		return Plan{}, err
+		return plan, err
 	}
 	logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "planner_fallback",
 		slog.String("error_class", logging.ErrorClass(err)))
 	fallback, ferr := p.try(ctx, p.Fallback, turns, previous)
 	if ferr != nil {
-		return Plan{}, errors.Join(err, ferr)
+		if len(plan.Branches) > 0 {
+			return plan, errors.Join(err, ferr)
+		}
+		return fallback, errors.Join(err, ferr)
 	}
 	fallback.PlannedBy = "fallback"
 	return fallback, nil
@@ -97,15 +101,48 @@ func resolve(plan, previous Plan, turns []string) (Plan, error) {
 		frozen.Intent = plan.Intent
 		return frozen, nil
 	}
-	stated := saleCue.MatchString(normalize(strings.Join(turns, "\n")))
+	conversation := normalize(strings.Join(turns, "\n"))
+	stated := saleCue.MatchString(conversation)
+	latest := ""
+	if len(turns) > 0 {
+		latest = normalize(turns[len(turns)-1])
+	}
+	said := extractNumbers(turns)
 	for i, branch := range plan.Branches {
+		// A required amenity must be one some turn names: the model has
+		// expanded a generic request into every known amenity in real runs,
+		// on its turn and on later ones. A generic request is the
+		// clarification's to resolve; "con amenities" left unnamed on this
+		// turn stays as the unresolved amenity=any placeholder.
+		var kept []search.AttributeFilter
+		named := false
+		for _, f := range branch.RequiredAttributes {
+			if f.Type != "amenity" {
+				kept = append(kept, f)
+			} else if listing.NamesAmenity(f.Value, conversation) {
+				kept, named = append(kept, f), named || listing.NamesAmenity(f.Value, latest)
+			}
+		}
+		if strings.Contains(latest, "con amenities") && !named {
+			kept = append(kept, search.AttributeFilter{Type: "amenity", Value: "any"})
+		}
+		branch.RequiredAttributes = kept
+		if n, ok := habitaciones(conversation); ok {
+			// Seen live: "dos habitaciones" planned as two ambientes.
+			if branch.MinRooms != nil && *branch.MinRooms == n && (branch.MaxRooms == nil || *branch.MaxRooms == n) {
+				branch.MinRooms, branch.MaxRooms = nil, nil
+			}
+			branch.MinBedrooms = &n
+		}
 		if branch.Operation == "" || branch.Operation == "venta" && !stated {
 			branch.Operation = "alquiler"
 		}
 		barePesos(&branch)
+		dropUnsaidPrice(&branch, said)
+		plan.Branches[i] = branch
 		valid, err := branch.Validate()
 		if err != nil {
-			return Plan{}, fmt.Errorf("intake: branch %d: %w", i, err)
+			return plan, fmt.Errorf("intake: branch %d: %w", i, err)
 		}
 		plan.Branches[i] = valid
 	}
@@ -113,6 +150,24 @@ func resolve(plan, previous Plan, turns []string) (Plan, error) {
 		plan.Sort = "relevance"
 	}
 	return plan, nil
+}
+
+// dropUnsaidPrice removes a price bound no turn stated. Seen live: "algo
+// barato" became max_price 800000, a hard filter nobody asked for. A bound
+// survives if a turn said that amount, as is or as bare-peso thousands.
+func dropUnsaidPrice(q *search.Query, said []mention) {
+	for _, bound := range []**float64{&q.MinPrice, &q.MaxPrice} {
+		if *bound == nil {
+			continue
+		}
+		stated := false
+		for _, m := range said {
+			stated = stated || m.Value == **bound || m.Value*1000 == **bound
+		}
+		if !stated {
+			*bound = nil
+		}
+	}
 }
 
 // barePesos reads a peso price or expensas bound under 10.000 as thousands:

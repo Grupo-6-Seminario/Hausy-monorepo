@@ -46,7 +46,8 @@ cp .env.example .env
 
 For the local Hausy flow, set `LOCAL_LLM_TOKEN` when your OpenAI-compatible model requires
 authentication. To use Claude on Bedrock instead, set `HAUSY_LLM=bedrock` and your own
-`AWS_PROFILE` (section 4).
+`AWS_PROFILE` (section 4). To run only the reply writer on Bedrock and keep planning on the
+local model, set `HAUSY_WRITER_LLM=bedrock` instead.
 
 ## 4. AWS credentials
 

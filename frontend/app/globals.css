@@ -1032,6 +1032,58 @@
   margin-top: 1.25rem;
 }
 
+.clarification-card {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: var(--card);
+}
+
+.clarification-card h2 {
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+
+.clarification-request {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.clarification-card fieldset {
+  display: grid;
+  gap: 0.55rem;
+  border: 0;
+}
+
+.clarification-card legend {
+  margin-bottom: 0.6rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.clarification-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  cursor: pointer;
+}
+
+.clarification-choice:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 9%, var(--card));
+}
+
+.clarification-choice input { accent-color: var(--primary); }
+.clarification-other { justify-self: start; color: var(--primary); text-decoration: underline; }
+.clarification-card > input { min-height: 2.75rem; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--background); }
+.clarification-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+
 [data-view='workspace'] .query-control textarea {
   min-height: 104px;
   max-height: 190px;

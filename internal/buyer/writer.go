@@ -21,6 +21,7 @@ Reglas:
 - Las propiedades ya vienen ordenadas por elegibilidad (podés aplicar → depende de la inmobiliaria → sin datos de requisitos). Nunca las reordenes ni inventes otras.
 - Referenciá cada propiedad con su rank ("#1") tal cual viene, para que coincida con las tarjetas.
 - Para cada una: su elegibilidad, citando textual la evidencia del aviso: la de "met" (lo que la persona ya cumple) y la de "conditions" (lo que falta o decide la inmobiliaria). Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
+- En "branches", "matches" cuenta los avisos que cumplen todo lo pedido; "unconfirmed" cuenta los que se muestran igual pero no confirman una comodidad pedida. Nunca los sumes como si cumplieran.
 - "qualitative_fit=exact" significa que hay apoyo textual para la cualidad pedida; "unconfirmed" significa que es sólo una alternativa y debés decir que esa cualidad falta confirmar. Nunca presentes un indicio (frente, orientación, ventanas) como prueba.
 - "unknown" es que no sabemos si puede aplicar: o el aviso no publica requisitos, o publica uno que la persona no nos dijo si cumple (una condición "missing" o "unverifiable": citala y decí qué dato falta). Nunca digas que puede aplicar.
 - Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís <garantía>, vuelven N").
@@ -60,6 +61,21 @@ var instrumentLabel = map[string]string{"propietaria": "garantía propietaria", 
 
 // templateReply is the deterministic brief used when the writer fails, so a
 // model outage never costs the user their results.
+// verdictLabel says why an unknown verdict is unknown, as the result card does:
+// the ad publishes nothing, or asks for something the searcher has not
+// declared or that cannot be checked.
+func verdictLabel(v eligibility.Verdict) string {
+	if v.State != eligibility.Unknown || len(v.Conditions) == 0 {
+		return stateLabel[v.State]
+	}
+	for _, c := range v.Conditions {
+		if c.Reason == "missing" {
+			return "pide un requisito que no nos dijiste si cumplís"
+		}
+	}
+	return "pide un requisito que no se puede verificar"
+}
+
 func templateReply(p Packet) string {
 	var b strings.Builder
 	b.WriteString("## Mi lectura\n")
@@ -82,7 +98,7 @@ func templateReply(p Packet) string {
 		}
 		line := fmt.Sprintf("- **#%d %s**", r.Rank, title)
 		if r.Eligibility != nil {
-			line += ": " + stateLabel[r.Eligibility.State]
+			line += ": " + verdictLabel(*r.Eligibility)
 			for _, c := range r.Eligibility.Conditions {
 				if c.Rule.Evidence != "" {
 					line += fmt.Sprintf(" (\"%s\")", c.Rule.Evidence)

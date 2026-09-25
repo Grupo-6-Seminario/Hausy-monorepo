@@ -83,16 +83,18 @@ func TestExtractReadsTheIncomeMultipleAndLetsJevConfirmIt(t *testing.T) {
 }
 
 // Real snapshot lines the first extraction run missed (experiments/eligibility, L00 L01 L02 L05).
-func TestExtractSpotsPropietariaWrittenOtherWays(t *testing.T) {
-	for _, line := range []string{
-		"-Garantía preferentemente propietaria en CABA también con recibos de ingresos verificables.",
-		"GARANTIA DE CAPITAL",
-		"Listo para ocupar. Garante Fiador propietario y/o fiadores a satisfacción del locador. Alquiler $550.000",
-		"GARANTIA: GARANTE CON PROPIEDAD EN CABA",
+func TestExtractSpotsInstrumentsWrittenOtherWays(t *testing.T) {
+	for _, tc := range []struct{ line, instrument string }{
+		{"-Garantía preferentemente propietaria en CABA también con recibos de ingresos verificables.", "propietaria"},
+		{"GARANTIA DE CAPITAL", "propietaria"},
+		{"Listo para ocupar. Garante Fiador propietario y/o fiadores a satisfacción del locador. Alquiler $550.000", "propietaria"},
+		{"GARANTIA: GARANTE CON PROPIEDAD EN CABA", "propietaria"},
+		// Missed in the committed snapshot: never spotted, so never asked.
+		{"REQUISITOS : SEGURO DE FIANZA, MES POR ADELANTADO, 1300 DLS DE DEPOSITO", "caucion"},
 	} {
-		f := &fakeJev{answers: map[string]jev.Answer{"instrument_propietaria": choice("accepted"), "hardness": choice("hard")}}
-		if _, err := eligibility.Extract(context.Background(), f.evaluate, line); err != nil || !slices.Contains(f.asked, "instrument_propietaria") {
-			t.Errorf("not spotted: %q (asked %v)", line, f.asked)
+		f := &fakeJev{answers: map[string]jev.Answer{"instrument_" + tc.instrument: choice("accepted"), "hardness": choice("hard")}}
+		if _, err := eligibility.Extract(context.Background(), f.evaluate, tc.line); err != nil || !slices.Contains(f.asked, "instrument_"+tc.instrument) {
+			t.Errorf("%s not spotted: %q (asked %v)", tc.instrument, tc.line, f.asked)
 		}
 	}
 }

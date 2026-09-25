@@ -50,6 +50,26 @@ func TestCandidatesReturnEveryHardFilterMatchWithItsRules(t *testing.T) {
 	if err != nil || len(all) != 2 {
 		t.Fatalf("want both Palermo listings uncapped, got %d, %v", len(all), err)
 	}
+	preview, err := store.PreviewCandidates(ctx, search.Query{Neighborhoods: []string{"palermo"}}, 1)
+	if err != nil || len(preview) != 1 || preview[0].Listing.URL != "https://ex.test/a" {
+		t.Fatalf("the impact preview must obey its sample limit: %+v, %v", preview, err)
+	}
+	hasAmenity, err := store.HasAttributeData(ctx, search.Query{Neighborhoods: []string{"palermo"}}, "amenity")
+	if err != nil || hasAmenity {
+		t.Fatalf("inventory without amenity attributes cannot answer amenity questions: %v, %v", hasAmenity, err)
+	}
+	item := listing.Listing{Source: "zonaprop", URL: "https://ex.test/a", Neighborhood: "palermo", Description: "Departamento.", Operation: "alquiler",
+		Price: listing.Money{Amount: float64Ptr(800000), Currency: "ARS"}, Attributes: []listing.Attribute{{Type: "amenity", Value: "pileta", Provenance: listing.Stated}}, ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	hasAmenity, err = store.HasAttributeData(ctx, search.Query{Neighborhoods: []string{"palermo"}}, "amenity")
+	if err != nil || !hasAmenity {
+		t.Fatalf("an approved searchable amenity should be detected: %v, %v", hasAmenity, err)
+	}
 }
 
 func TestAdmissibleFactsAreDataAndExcludeProtectedCharacteristics(t *testing.T) {

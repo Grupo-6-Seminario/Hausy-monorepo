@@ -103,6 +103,23 @@ var spotted = []struct{ re, typ, value string }{
 	{`\btren\b`, "transit_access", "tren"}, {`colectivo|bondi`, "transit_access", "colectivo"},
 }
 
+// habitacionRe finds a room count said in habitaciones, which are dormitorios
+// (CONTEXT.md), over normalized text.
+var habitacionRe = regexp.MustCompile(`\b(\d+|un|una|dos|tres|cuatro|cinco)\s+habitacion(?:es)?\b`)
+
+// habitaciones returns the last count the conversation gave in habitaciones.
+func habitaciones(conversation string) (int, bool) {
+	all := habitacionRe.FindAllStringSubmatch(conversation, -1)
+	if len(all) == 0 {
+		return 0, false
+	}
+	said := all[len(all)-1][1]
+	if n, err := strconv.Atoi(said); err == nil {
+		return n, n > 0
+	}
+	return int(words[said]), true
+}
+
 func spottedNames(turns []string) []int {
 	text := normalize(strings.Join(turns, " \n "))
 	var out []int

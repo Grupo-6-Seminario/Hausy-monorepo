@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -94,6 +95,86 @@ func TestQuestionAboutAListingFreezesThePlan(t *testing.T) {
 	if err != nil || got.Intent != "ask_about_listing" || len(got.Branches) != 1 || got.Branches[0].Neighborhoods[0] != "palermo" || len(got.Branches[0].RequiredAttributes) != 0 {
 		t.Fatalf("the previous search must survive a question about a listing, got %+v, %v", got, err)
 	}
+}
+
+// Captured live: the local model required every amenity for "con amenities".
+// Only amenities the searcher names may stay required; otherwise the phrase
+// stays unresolved (amenity=any fails validation) for clarification.
+func TestGenericAmenitiesKeepOnlyWhatTheSearcherNamed(t *testing.T) {
+	// A source returns a fresh plan per call; resolve writes into it.
+	everyAmenity := func(context.Context, []string) (intake.Plan, error) {
+		plan := intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"palermo"}}}}
+		for _, value := range []string{"pileta", "gimnasio", "laundry", "coworking", "sum", "seguridad", "parrilla", "ascensor", "cochera", "solarium", "terraza_comun"} {
+			plan.Branches[0].RequiredAttributes = append(plan.Branches[0].RequiredAttributes, search.AttributeFilter{Type: "amenity", Value: value})
+		}
+		return plan, nil
+	}
+	for _, tc := range []struct {
+		message    string
+		want       []search.AttributeFilter
+		unresolved bool
+	}{
+		{"Busco en Palermo con amenities", []search.AttributeFilter{{Type: "amenity", Value: "any"}}, true},
+		{"Busco en Palermo con amenities: pileta y gym", []search.AttributeFilter{{Type: "amenity", Value: "pileta"}, {Type: "amenity", Value: "gimnasio"}}, false},
+		// A generic request in other words: nothing named, nothing required;
+		// asking which amenities is the clarification judge's job.
+		{"Busco en Palermo, que tenga todos los chiches del edificio", nil, false},
+		{"Busco en Palermo con natatorio", []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}, false},
+	} {
+		plan, err := (intake.Planner{Primary: sourceFunc(everyAmenity)}).Plan(context.Background(), []string{tc.message}, intake.Plan{})
+		if (err != nil) != tc.unresolved || len(plan.Branches) != 1 || !slices.Equal(plan.Branches[0].RequiredAttributes, tc.want) {
+			t.Errorf("%q: want %v (unresolved=%v), got %+v %v", tc.message, tc.want, tc.unresolved, plan.Branches, err)
+		}
+	}
+}
+
+// Captured live: the local model planned "dos habitaciones" as two ambientes.
+// A habitación is a dormitorio (CONTEXT.md), on this turn and on later ones.
+func TestHabitacionesAreDormitorios(t *testing.T) {
+	two := 2
+	misread := func(context.Context, []string) (intake.Plan, error) {
+		return intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"palermo"}, MinRooms: &two}}}, nil
+	}
+	for _, turns := range [][]string{{"Busco dos habitaciones en Palermo"}, {"Busco 2 habitaciones en Palermo", "Ordenalos por precio"}} {
+		plan, err := (intake.Planner{Primary: sourceFunc(misread)}).Plan(context.Background(), turns, intake.Plan{})
+		if err != nil || plan.Branches[0].MinRooms != nil || plan.Branches[0].MinBedrooms == nil || *plan.Branches[0].MinBedrooms != 2 {
+			t.Errorf("%q: want two dormitorios and no ambientes, got %+v %v", turns, plan.Branches, err)
+		}
+	}
+}
+
+// Captured live (twice, temperature 0): the local model turned "algo barato"
+// into max_price 800000, a hard filter nobody stated. A price bound must be a
+// number the searcher said; "barato" alone is at most an order.
+func TestAPriceBoundMustBeANumberTheSearcherSaid(t *testing.T) {
+	for _, tc := range []struct {
+		message string
+		said    float64
+		want    *float64
+	}{
+		{"Algo barato en Monserrat para un estudiante", 800000, nil},
+		{"Algo en Monserrat hasta 900 mil pesos", 900000, ptr(900000)},
+		{"Algo en Monserrat, puedo pagar hasta 900", 900, ptr(900000)},
+	} {
+		said := tc.said
+		guessed := func(context.Context, []string) (intake.Plan, error) {
+			return intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"monserrat"}, Currency: "ARS", MaxPrice: &said}}}, nil
+		}
+		plan, err := (intake.Planner{Primary: sourceFunc(guessed)}).Plan(context.Background(), []string{tc.message}, intake.Plan{})
+		got := plan.Branches[0].MaxPrice
+		if err != nil || (got == nil) != (tc.want == nil) || got != nil && *got != *tc.want {
+			t.Errorf("%q: max price %v, want %v (%v)", tc.message, deref(got), deref(tc.want), err)
+		}
+	}
+}
+
+func ptr(f float64) *float64 { return &f }
+
+func deref(f *float64) any {
+	if f == nil {
+		return nil
+	}
+	return *f
 }
 
 func TestUnstatedOperationDefaultsToRent(t *testing.T) {

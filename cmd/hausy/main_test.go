@@ -89,3 +89,32 @@ func TestNewLLMClientRejectsAnUnknownProvider(t *testing.T) {
 		t.Fatal("expected an error for an unknown provider")
 	}
 }
+
+// The reply writer can run on another provider than the planner (Bedrock for
+// grounded replies) while local development keeps the local model for all.
+func TestWriterClientFollowsTheModelUnlessSeparated(t *testing.T) {
+	ctx := context.Background()
+	t.Setenv("AWS_REGION", "us-east-1")
+	t.Setenv("HAUSY_LLM", "local")
+	t.Setenv("HAUSY_WRITER_LLM", "")
+	config := serverConfigFromEnv()
+	shared, err := newLLMClient(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if writer, err := writerClient(ctx, config, shared); err != nil || writer != shared {
+		t.Fatalf("unset: the writer must share the model client, got %T %v", writer, err)
+	}
+
+	t.Setenv("HAUSY_WRITER_LLM", "bedrock")
+	if writer, err := writerClient(ctx, serverConfigFromEnv(), shared); err != nil {
+		t.Fatalf("bedrock writer: %v", err)
+	} else if _, ok := writer.(*bedrock.Client); !ok {
+		t.Fatalf("bedrock writer: got %T", writer)
+	}
+
+	t.Setenv("HAUSY_WRITER_LLM", "bedrok")
+	if _, err := writerClient(ctx, serverConfigFromEnv(), shared); err == nil {
+		t.Fatal("a typo must stop startup, not fall back to the local model")
+	}
+}
