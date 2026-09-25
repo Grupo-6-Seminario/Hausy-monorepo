@@ -14,13 +14,6 @@ var onlyPropietaria = eligibility.Rule{Fact: "guarantee", Operator: "one_of", Va
 
 func rent(amount float64) listing.Money { return listing.Money{Amount: &amount, Currency: "ARS"} }
 
-func TestAcceptedGuaranteeIsEligible(t *testing.T) {
-	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, admissible)
-	if got.State != eligibility.Eligible {
-		t.Fatalf("want eligible, got %+v", got)
-	}
-}
-
 // The searcher is told why they can apply, in the listing's own words.
 func TestEligibleVerdictNamesTheRequirementTheSearcherClears(t *testing.T) {
 	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, admissible)

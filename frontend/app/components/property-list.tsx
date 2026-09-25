@@ -55,13 +55,32 @@ export function PropertyList({
           </div>
           <span>Evaluando afinidad</span>
         </div>
-        {[1, 2, 3].map((index) => (
-          <div key={index} className="property-skeleton" aria-hidden="true">
-            <Skeleton />
-            <Skeleton />
-            <Skeleton />
-          </div>
-        ))}
+        {/* Ghost cards keep the real card's outline, so the shortlist lands in place. */}
+        <div className="property-skeletons" aria-hidden="true">
+          {[1, 2, 3].map((index) => (
+            <div key={index} className="property-skeleton">
+              <div className="property-skeleton-meta">
+                <Skeleton />
+                <Skeleton />
+                <Skeleton />
+              </div>
+              <div className="property-skeleton-summary">
+                <Skeleton />
+                <Skeleton />
+              </div>
+              <Skeleton className="property-skeleton-metrics" />
+              <div className="property-skeleton-lines">
+                <Skeleton />
+                <Skeleton />
+              </div>
+              <div className="property-skeleton-footer">
+                <Skeleton />
+                <Skeleton />
+                <Skeleton />
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     );
   }

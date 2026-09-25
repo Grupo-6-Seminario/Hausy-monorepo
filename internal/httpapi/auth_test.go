@@ -1,7 +1,11 @@
 package httpapi_test
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +15,39 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
+
+type failingProvider struct{}
+
+func (failingProvider) SignUp(context.Context, auth.Registration) (auth.User, error) {
+	return auth.User{}, errors.New("private database error")
+}
+func (failingProvider) SignIn(context.Context, string, string) (auth.Session, error) {
+	return auth.Session{}, errors.New("private database error")
+}
+func (failingProvider) Authenticate(context.Context, string) (auth.User, error) {
+	return auth.User{}, errors.New("private database error")
+}
+func (failingProvider) SignOut(context.Context, string) error {
+	return errors.New("private database error")
+}
+
+func TestAuthUnexpectedFailureLogsRequestIDWithoutErrorText(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	handler := httpapi.NewHandler(&recordingAgent{}, failingProvider{}, agency.NewMemoryCatalog(), nil)
+	response := send(t, handler, http.MethodGet, "/api/auth/me", "private-token", "")
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", response.Code)
+	}
+	if !strings.Contains(logs.String(), `"msg":"auth_error"`) || !strings.Contains(logs.String(), response.Header().Get("X-Request-ID")) {
+		t.Fatalf("missing correlated auth error: %s", logs.String())
+	}
+	if strings.Contains(logs.String(), "private database error") || strings.Contains(logs.String(), "private-token") {
+		t.Fatalf("auth log leaked private input: %s", logs.String())
+	}
+}
 
 func newAuthHandler() http.Handler {
 	return httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)

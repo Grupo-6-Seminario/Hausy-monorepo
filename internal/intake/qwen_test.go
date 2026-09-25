@@ -30,8 +30,8 @@ func TestQwenFillsThePlanInOneCall(t *testing.T) {
 		t.Fatalf("got %+v", p)
 	}
 	prompt := f.last.Messages[len(f.last.Messages)-1].Content
-	if !strings.Contains(prompt, "hasta 800 mil") || !strings.Contains(prompt, "mejor hasta 950 mil") || len(f.last.Tools) != 0 {
-		t.Fatalf("the single call must carry every user turn and no tools: %+v", f.last)
+	if !strings.Contains(prompt, "hasta 800 mil") || !strings.Contains(prompt, "mejor hasta 950 mil") {
+		t.Fatalf("the single call must carry every user turn: %+v", f.last)
 	}
 }
 

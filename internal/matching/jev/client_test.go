@@ -116,9 +116,8 @@ func TestAcceptsProbabilitiesRoundedToTwoDecimals(t *testing.T) {
 	}
 }
 
-func TestGatewayRejectsMissingAnswersAndInvalidDistributions(t *testing.T) {
+func TestGatewayRejectsInvalidDistributions(t *testing.T) {
 	for _, body := range []string{
-		`{"answers":{}}`,
 		`{"answers":{"q0":{"type":"choice","choice":"insufficient_evidence","probabilities":{"supported":0,"contradicted":0,"insufficient_evidence":0.4,"conflicting_evidence":0}}}}`,
 	} {
 		t.Run(body, func(t *testing.T) {

@@ -6,12 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
@@ -60,8 +61,8 @@ func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan,
 	if p.Fallback == nil {
 		return Plan{}, err
 	}
-	// Logged so the fallback rate can be measured (plan Q7).
-	log.Printf("intake: primary planner failed, falling back: %v", err)
+	logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "planner_fallback",
+		slog.String("error_class", logging.ErrorClass(err)))
 	fallback, ferr := p.try(ctx, p.Fallback, turns, previous)
 	if ferr != nil {
 		return Plan{}, errors.Join(err, ferr)

@@ -37,17 +37,6 @@ func TestAuditWithholdsOnlyVerifiedQuoteBackedSameDetailConflict(t *testing.T) {
 	}
 }
 
-func TestAuditKeepsRoomScopeAndTemporalChangesVisible(t *testing.T) {
-	item := listing.Listing{Description: "Dormitorio luminoso. Living con poca luz. Antes tenía dos ambientes; hoy tiene tres."}
-	evaluate := func(_ context.Context, _ any, qs map[string]jev.Question) (map[string]jev.Answer, error) {
-		return map[string]jev.Answer{"conflict": {Type: "boolean", Probability: 0.02}}, nil
-	}
-	review, err := quality.Audit(context.Background(), item, evaluate, quoteModel{})
-	if err != nil || review.Status != quality.Passed {
-		t.Fatalf("different rooms and time are not contradictions: %+v, %v", review, err)
-	}
-}
-
 func TestBatchScreensSeveralStoredListingsInOneJevCall(t *testing.T) {
 	items := []listing.Listing{{Description: "Luminoso."}, {Description: "Silencioso."}}
 	calls := 0

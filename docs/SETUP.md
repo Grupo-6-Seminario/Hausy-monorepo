@@ -191,6 +191,15 @@ OpenAI-compatible model at `http://127.0.0.1:8000`. Set `LOCAL_LLM_TOKEN` when t
 requires authentication. With `HAUSY_LLM=bedrock`, it sends them to `BEDROCK_MODEL_ID` on
 Bedrock instead, signed with `AWS_PROFILE`; Jev still plans when `HAUSY_PLANNER=jev`.
 
+The API writes one JSON log line per event to stdout. Set `HAUSY_LOG_LEVEL` to `debug`,
+`info` (default), `warn`, or `error`. Each request has an `X-Request-ID` response header
+and a matching `request_id` in its `http_request` log; the frontend proxy passes that header
+through. A search turn also logs `buyer_plan`, `buyer_candidates`, `buyer_eligibility`,
+`buyer_qualitative` (when requested), `buyer_search`, `buyer_writer`, and `buyer_turn`
+with stage durations and outcomes. Fallbacks have their own events. These application events
+record counts and error classes while omitting messages, qualification values, tokens, provider
+response bodies, and the database URI.
+
 In a second terminal, start the frontend:
 
 ```bash

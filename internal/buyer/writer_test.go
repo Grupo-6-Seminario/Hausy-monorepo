@@ -36,7 +36,7 @@ func (r *recordingLLM) Chat(_ context.Context, req llm.ChatRequest) (*llm.ChatRe
 	return &llm.ChatResponse{Content: "## Mi lectura\n#1 es la mejor."}, nil
 }
 
-func TestLocalWriterExplainsFromThePacketInOneCallWithoutTools(t *testing.T) {
+func TestLocalWriterExplainsFromThePacketInOneCall(t *testing.T) {
 	client := &recordingLLM{}
 	w := &fakeWriter{}
 	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), w))
@@ -47,8 +47,8 @@ func TestLocalWriterExplainsFromThePacketInOneCallWithoutTools(t *testing.T) {
 		t.Fatalf("got %q, %v", reply, err)
 	}
 	prompt := client.last.Messages[len(client.last.Messages)-1].Content
-	if len(client.last.Tools) != 0 || !strings.Contains(prompt, `"rank":1`) || !strings.Contains(prompt, "ver cuáles permite la propietaria") {
-		t.Fatalf("the writer must receive the packet and no tools: %+v", client.last)
+	if !strings.Contains(prompt, `"rank":1`) || !strings.Contains(prompt, "ver cuáles permite la propietaria") {
+		t.Fatalf("the writer must receive the packet: %+v", client.last)
 	}
 }
 

@@ -1,13 +1,39 @@
 package buyer_test
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log/slog"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 )
+
+type failingLLM struct{}
+
+func (failingLLM) Chat(context.Context, llm.ChatRequest) (*llm.ChatResponse, error) {
+	return nil, errors.New("private provider body")
+}
+
+func TestAgentWithoutStoreLogsExtractionFailureSafely(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := logging.WithLogger(context.Background(), slog.New(slog.NewJSONHandler(&logs, nil)).With("request_id", "test-request"))
+	_, err := buyer.NewAgent(failingLLM{}).HandleMessage(ctx, "private-session", "private search text", nil, buyer.Events{})
+	if err == nil {
+		t.Fatal("expected model failure")
+	}
+	if !strings.Contains(logs.String(), `"msg":"buyer_extraction"`) || !strings.Contains(logs.String(), `"outcome":"error"`) {
+		t.Fatalf("missing extraction failure event: %s", logs.String())
+	}
+	if strings.Contains(logs.String(), "private provider body") || strings.Contains(logs.String(), "private search text") || strings.Contains(logs.String(), "private-session") {
+		t.Fatalf("private input leaked: %s", logs.String())
+	}
+}
 
 type mockLLMClient struct {
 	responses []string

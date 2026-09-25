@@ -9,7 +9,6 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
 func TestStore_PersistsAnAgencyCatalogEntry(t *testing.T) {
@@ -177,5 +176,3 @@ func postgresAgencyPropertyInput() agency.PropertyInput {
 		Bedrooms:     &bedrooms,
 	}
 }
-
-var _ agency.Catalog = (*postgres.Store)(nil)

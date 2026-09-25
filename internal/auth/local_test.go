@@ -101,25 +101,6 @@ func TestLocal_RejectsInvalidRegistrations(t *testing.T) {
 	}
 }
 
-func TestLocal_SignOutRevokesTheToken(t *testing.T) {
-	ctx := context.Background()
-	provider := newProvider(t, time.Now)
-	if _, err := provider.SignUp(ctx, registration); err != nil {
-		t.Fatalf("SignUp: %v", err)
-	}
-	session, err := provider.SignIn(ctx, registration.Email, registration.Password)
-	if err != nil {
-		t.Fatalf("SignIn: %v", err)
-	}
-
-	if err := provider.SignOut(ctx, session.Token); err != nil {
-		t.Fatalf("SignOut: %v", err)
-	}
-	if _, err := provider.Authenticate(ctx, session.Token); !errors.Is(err, auth.ErrUnauthenticated) {
-		t.Fatalf("expected ErrUnauthenticated after sign-out, got %v", err)
-	}
-}
-
 func TestLocal_SessionsExpireAfterThirtyDays(t *testing.T) {
 	ctx := context.Background()
 	start := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)

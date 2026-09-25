@@ -184,6 +184,19 @@ Every animation must communicate hierarchy, feedback, or state.
 - New conversation turns and property cards rise into place once.
 - Buttons compress on press. Directional icons move only when their control is engaged.
 - Loading uses a skeletal or linear shimmer that matches the final shape. Search results keep the existing ghost property cards while the final ranking is prepared. Never use a loading spinner.
+- Ghost cards repeat the property card's outline (meta row, title and price, metrics bar, two lines, footer actions) so the shortlist lands without a jump. They arrive in a short stagger, and one soft `--accent` band passes over each in turn. Their bars mix `--muted-foreground` into `--card` so they stay visible in the dark theme.
+
+### Sending a message
+
+Sending never cuts to a new page. `morph` (`lib/view-transition.ts`) applies the state change as one same-document view transition, and the choreography lives in `globals.css` under "View morphs":
+
+- The composer glides to its place in the workspace. Its label and action swap in a quick cross-fade while the box travels.
+- The typed text leaves the composer and becomes the new "Vos" bubble. It keeps its size the whole way, and both snapshots are offset by the composer's text inset (`--composer-inset-inline`, `--composer-inset-block`), so the words never double.
+- The header holds still. The welcome headline hands over to the workspace headline without the two sentences overlapping.
+- The welcome photograph steps aside and the results column slides in where it stood: sideways beside the conversation, from below it under 1180 px. The ghost cards then rise in.
+- A follow-up in the workspace keeps everything that did not change solid; only the new message travels.
+- The request starts once the new view is in place, because its results render into it. The morph lasts `--motion-morph` (560 ms).
+- Reduced motion and browsers without view transitions apply the change at once. "Nueva búsqueda" replays the welcome entrance instead of morphing back.
 - Animate opacity and transform for DOM transitions. The luminary is the only continuous canvas animation.
 - Honor `prefers-reduced-motion`; render a static green light when motion is reduced.
 - Interactive surfaces marked `data-glow` (header pills, example chips, property cards, contact and publication links, account roles and actions) carry a pointer glow: the luminary's quieter sibling. A soft `--accent` light fills the control under the pointer and a thin `--ring` light traces the nearest edge. It appears only on hover or focus, is fainter on large surfaces, and centres itself when motion is reduced.
