@@ -69,4 +69,28 @@ describe('POST /api/agent', () => {
     );
     await expect(response.text()).resolves.toBe(stream);
   });
+
+  it('passes the backend request ID to the browser', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('{"reply":"ok"}', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': '0123456789abcdef0123456789abcdef',
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(
+      new Request('http://localhost/api/agent', {
+        method: 'POST',
+        body: '{"message":"Palermo"}',
+      }),
+    );
+
+    expect(response.headers.get('X-Request-ID')).toBe(
+      '0123456789abcdef0123456789abcdef',
+    );
+  });
 });

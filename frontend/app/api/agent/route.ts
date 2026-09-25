@@ -17,9 +17,14 @@ export async function POST(request: Request) {
       body,
       signal: AbortSignal.timeout(65_000),
     });
+    const headers = new Headers({
+      'Content-Type': response.headers.get('Content-Type') ?? 'application/json',
+    });
+    const requestID = response.headers.get('X-Request-ID');
+    if (requestID) headers.set('X-Request-ID', requestID);
     return new Response(response.body, {
       status: response.status,
-      headers: { 'Content-Type': response.headers.get('Content-Type') ?? 'application/json' },
+      headers,
     });
   } catch {
     return Response.json(

@@ -63,7 +63,7 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 		}
 		writeJSON(w, http.StatusOK, response)
 	})
-	return mux
+	return logRequests(mux)
 }
 
 const agentUnavailable = "El agente local no pudo responder."
@@ -100,8 +100,10 @@ func streamTurn(w http.ResponseWriter, r *http.Request, agent buyer.Agent, input
 	case err == nil:
 		send(turnEvent{Type: "done", TurnResponse: response})
 	case started:
+		setOutcome(r.Context(), "error")
 		send(turnEvent{Type: "error", Error: agentUnavailable})
 	default:
+		setOutcome(r.Context(), "error")
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: agentUnavailable})
 	}
 }
@@ -118,7 +120,7 @@ func registerQualification(mux *http.ServeMux, provider auth.Provider, store Qua
 	mux.HandleFunc("GET /api/me/qualification", func(w http.ResponseWriter, r *http.Request) {
 		user, err := provider.Authenticate(r.Context(), bearerToken(r))
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		if store == nil {
@@ -138,7 +140,7 @@ func registerQualification(mux *http.ServeMux, provider auth.Provider, store Qua
 	mux.HandleFunc("PUT /api/me/qualification", func(w http.ResponseWriter, r *http.Request) {
 		user, err := provider.Authenticate(r.Context(), bearerToken(r))
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		if store == nil {

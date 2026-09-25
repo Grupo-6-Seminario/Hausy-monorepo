@@ -1,17 +1,54 @@
 package buyer_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
+
+type unavailableWriter struct{}
+
+func (unavailableWriter) Write(context.Context, buyer.Packet, func(string)) (string, error) {
+	return "", errors.New("private model response")
+}
+
+func TestBuyerLogsTurnStagesAndFallbackWithoutPrivateContent(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := logging.WithLogger(context.Background(), slog.New(slog.NewJSONHandler(&logs, nil)).With("request_id", "test-request"))
+	plan := palermoPlan("relevance")
+	plan.PlannedBy = "fallback"
+	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, fourStates(), unavailableWriter{}))
+	response, err := agent.HandleMessage(ctx, "private-session", "private search text", eligibility.Qualification{"guarantee": {"propietaria"}}, buyer.Events{})
+	if err != nil || response == nil || response.Reply == "" {
+		t.Fatalf("writer fallback should retain a usable reply: %v, %+v", err, response)
+	}
+	var events = map[string]map[string]any{}
+	for _, line := range bytes.Split(bytes.TrimSpace(logs.Bytes()), []byte("\n")) {
+		var event map[string]any
+		if err := json.Unmarshal(line, &event); err != nil {
+			t.Fatalf("invalid JSON log: %v: %s", err, line)
+		}
+		events[event["msg"].(string)] = event
+	}
+	if events["buyer_plan"]["planner"] != "fallback" || events["buyer_candidates"]["count"] != float64(4) || events["buyer_eligibility"]["hidden"] != float64(1) || events["buyer_search"]["shown"] != float64(3) || events["buyer_writer"]["outcome"] != "fallback" {
+		t.Fatalf("missing stage outcomes: %v", events)
+	}
+	if strings.Contains(logs.String(), "private search text") || strings.Contains(logs.String(), "private-session") || strings.Contains(logs.String(), "private model response") {
+		t.Fatalf("private data leaked into logs: %s", logs.String())
+	}
+}
 
 type fakePlanner struct {
 	plans    []intake.Plan
@@ -70,6 +107,24 @@ func TestRequiredLightGroupsEvidenceBeforeHintsAndSurvivesGatewayFailure(t *test
 	unavailable := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{fail: true})), "luminoso", nil)
 	if len(unavailable.Listings) != 2 || unavailable.Listings[0].QualitativeFit != "unconfirmed" {
 		t.Fatalf("classification outage should preserve candidates as unconfirmed: %+v", unavailable.Listings)
+	}
+}
+
+func TestBuyerLogsQualitativeAssessmentTime(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := logging.WithLogger(context.Background(), slog.New(slog.NewJSONHandler(&logs, nil)))
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	item := candidate("listing-1", "palermo", 700000, nil)
+	item.Listing.Description = "Muy luminoso."
+	agent := buyer.NewAgent(nil,
+		buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {item}}}, &fakeWriter{}),
+		buyer.WithMatching(evidenceClassifier{}))
+	if _, err := agent.HandleMessage(ctx, "session", "luminoso", nil, buyer.Events{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(logs.String(), `"msg":"buyer_qualitative"`) || !strings.Contains(logs.String(), `"outcome":"success"`) {
+		t.Fatalf("qualitative stage missing: %s", logs.String())
 	}
 }
 
