@@ -44,4 +44,4 @@ _Avoid_: qualifies, match
 The property's condition is discretionary, owner-dependent, or the searcher is near the line; shown with the condition named.
 
 **Unknown (eligibility)**:
-Nothing published, declared or observed about what the property demands; shown and marked, never treated as eligible.
+Nothing says whether the searcher clears what the property demands: nothing is published, declared or observed about it, or it demands something the searcher has not declared or that cannot be checked (an income multiple on a rent in dollars). Shown and marked, never treated as eligible.

@@ -3,6 +3,7 @@ package buyer_test
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -48,6 +49,33 @@ func TestLocalWriterExplainsFromThePacketInOneCallWithoutTools(t *testing.T) {
 	prompt := client.last.Messages[len(client.last.Messages)-1].Content
 	if len(client.last.Tools) != 0 || !strings.Contains(prompt, `"rank":1`) || !strings.Contains(prompt, "ver cuáles permite la propietaria") {
 		t.Fatalf("the writer must receive the packet and no tools: %+v", client.last)
+	}
+}
+
+// Models copy the prompt's examples verbatim: the 9B once wrote "vuelven 14"
+// for a relaxation whose count was 1, and Sonnet offered "seguro de caución"
+// to a searcher who already had one. Only a rank may be a number there, and
+// no guarantee may be named.
+func TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy(t *testing.T) {
+	client := &recordingLLM{}
+	if _, err := (buyer.LocalWriter{Client: client}).Write(context.Background(), buyer.Packet{Intent: "new_search"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var system string
+	for _, m := range client.last.Messages {
+		if m.Role == "system" {
+			system += m.Content
+		}
+	}
+	quoted, rank, digit := regexp.MustCompile(`"[^"]*"`), regexp.MustCompile(`#\d+`), regexp.MustCompile(`\d`)
+	guarantee := regexp.MustCompile(`(?i)cauci[oó]n|propietari[ao]`)
+	for _, example := range quoted.FindAllString(system, -1) {
+		if digit.MatchString(rank.ReplaceAllString(example, "")) {
+			t.Errorf("example %s carries a number a model could copy", example)
+		}
+		if guarantee.MatchString(example) {
+			t.Errorf("example %s names a guarantee a model could copy", example)
+		}
 	}
 }
 
