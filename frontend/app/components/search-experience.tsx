@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type {
+  ClarificationQuestion,
   Listing,
   Qualification,
   Relaxation,
@@ -47,6 +48,9 @@ const exampleQueries = [
 ];
 
 type SearchState = 'idle' | 'loading';
+const chatStorageKey = 'hausy-browser-chat';
+const queryStorageKey = 'hausy-browser-query';
+const pendingStorageKey = 'hausy-browser-pending';
 
 interface ConversationTurn {
   id: number;
@@ -82,18 +86,20 @@ export function SearchExperience() {
   const [pendingQuery, setPendingQuery] = useState('');
   // The reply as it streams in, until the turn is done.
   const [pendingReply, setPendingReply] = useState('');
+  const [clarification, setClarification] = useState<ClarificationQuestion | null>(null);
+  const [selectedChoices, setSelectedChoices] = useState<string[]>([]);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherAnswer, setOtherAnswer] = useState('');
 
   const shellRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const requestRef = useRef<AbortController | null>(null);
-  // One conversation per page load. useId would not do: it is derived from the
-  // component's place in the tree, so every load and every visitor would share
-  // one backend session and inherit each other's requirements.
+  // A browser chat survives a reload; a new search explicitly clears it.
   const sessionRef = useRef('');
   const turnIDRef = useRef(0);
   const isWorking = state === 'loading';
-  const isWorkspace = hasSearched || isWorking;
+  const isWorkspace = hasSearched || isWorking || clarification !== null;
 
   usePointerGlow(shellRef);
 
@@ -108,6 +114,27 @@ export function SearchExperience() {
 
   useEffect(() => {
     return () => requestRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem(chatStorageKey);
+    if (!saved) return;
+    sessionRef.current = saved;
+    const controller = new AbortController();
+    void fetch(`/api/agent?session_id=${encodeURIComponent(saved)}`, { signal: controller.signal })
+      .then(async (response) => (await response.json()) as { clarification?: ClarificationQuestion })
+      .then((payload: { clarification?: ClarificationQuestion }) => {
+        if (!controller.signal.aborted && payload.clarification) {
+          setClarification(payload.clarification);
+          setQualificationOpen(false);
+        } else if (!controller.signal.aborted && window.sessionStorage.getItem(pendingStorageKey)) {
+          setQuery(window.sessionStorage.getItem(queryStorageKey) || '');
+          setError('La pregunta anterior ya no está disponible. Podés editar la búsqueda y volver a enviarla.');
+          window.sessionStorage.removeItem(pendingStorageKey);
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
   }, []);
 
   const startSearch = useCallback(
@@ -125,6 +152,8 @@ export function SearchExperience() {
       requestRef.current = controller;
 
       sessionRef.current ||= `browser-${crypto.randomUUID()}`;
+      window.sessionStorage.setItem(chatStorageKey, sessionRef.current);
+      window.sessionStorage.setItem(queryStorageKey, normalizedQuery);
       try {
         // The request waits for the new view: its results render into it.
         // Read from the page: this callback outlives the render it came from.
@@ -159,13 +188,25 @@ export function SearchExperience() {
           },
           onReply: (delta) => setPendingReply((text) => text + delta),
         });
-        if (!response.ok || (!payload.reply && !payload.listings)) {
+        if (!response.ok || (!payload.reply && !payload.listings && !payload.clarification)) {
           throw new Error(
             payload.error || 'El agente local no pudo responder.',
           );
         }
 
+        if (payload.clarification) {
+          setClarification(payload.clarification);
+          window.sessionStorage.setItem(pendingStorageKey, '1');
+          setSelectedChoices([]);
+          setOtherOpen(false);
+          setPendingQuery('');
+          setPendingReply('');
+          setState('idle');
+          return { status: 'clarification', question: payload.clarification };
+        }
+
         setListings(payload.listings || []);
+        window.sessionStorage.removeItem(pendingStorageKey);
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
@@ -208,6 +249,61 @@ export function SearchExperience() {
     },
     [],
   );
+
+  async function answerClarification(answer: { question_id: string; selected?: string[]; other?: string; action?: string }) {
+    if (!clarification || isWorking) return;
+    const original = clarification;
+    setState('loading');
+    setError('');
+    try {
+      const response = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
+        body: JSON.stringify({ session_id: sessionRef.current, answer, qualification: qualificationRef.current }),
+      });
+      const payload = await readTurn(response, {
+        onResults(partial) {
+          setListings(partial.listings || []);
+          setRequirements(partial.requirements || []);
+          setRelaxations(partial.relaxations || []);
+          setHasSearched(true);
+        },
+        onReply: (delta) => setPendingReply((text) => text + delta),
+      });
+      if (!response.ok || payload.error) throw new Error(payload.error || 'No pudimos continuar la búsqueda.');
+      if (answer.action === 'edit') {
+        setClarification(null);
+        window.sessionStorage.removeItem(pendingStorageKey);
+        setQuery(original.request || '');
+        setPendingReply('');
+        setState('idle');
+        inputRef.current?.focus();
+        return;
+      }
+      if (payload.clarification) {
+        setClarification(payload.clarification);
+        window.sessionStorage.setItem(pendingStorageKey, '1');
+        setSelectedChoices([]);
+        setOtherOpen(Boolean(payload.clarification_hint));
+        if (!payload.clarification_hint) setOtherAnswer('');
+        setError(payload.clarification_hint || '');
+      } else {
+        setClarification(null);
+        window.sessionStorage.removeItem(pendingStorageKey);
+        setListings(payload.listings || []);
+        setRequirements(payload.requirements || []);
+        setRelaxations(payload.relaxations || []);
+        setRecommendedRanks(referencedRanks(payload.reply || ''));
+        setHasSearched(true);
+        setTurns((current) => [...current, { id: ++turnIDRef.current, query: original.request || original.source, reply: payload.reply || '' }]);
+      }
+      setPendingReply('');
+      setState('idle');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No pudimos continuar la búsqueda.');
+      setState('idle');
+    }
+  }
 
   useEffect(() => {
     const context = document.modelContext;
@@ -276,6 +372,10 @@ export function SearchExperience() {
   function startOver() {
     requestRef.current?.abort();
     sessionRef.current = '';
+    window.sessionStorage.removeItem(chatStorageKey);
+    window.sessionStorage.removeItem(queryStorageKey);
+    window.sessionStorage.removeItem(pendingStorageKey);
+    setClarification(null);
     setTurns([]);
     setListings([]);
     setRequirements([]);
@@ -338,18 +438,22 @@ export function SearchExperience() {
               <p className="eyebrow">Tu próximo hogar, en CABA</p>
             ) : null}
             <h1 id="experience-title">
-              {isWorkspace
+              {clarification && !hasSearched
+                ? 'Ajustemos un detalle de tu búsqueda.'
+                : isWorkspace
                 ? 'Sigamos con tu búsqueda.'
                 : 'Un lugar para tu forma de vivir.'}
             </h1>
             <p className="hero-subtitle">
-              {isWorkspace
+              {clarification && !hasSearched
+                ? 'Tu respuesta nos ayuda a buscar con el criterio que tenías en mente.'
+                : isWorkspace
                 ? 'Ajustá tus prioridades. Conservamos el contexto.'
                 : 'Contanos qué necesitás. Comparemos opciones, con lo que sabemos y lo que falta confirmar.'}
             </p>
           </div>
 
-          {isWorkspace ? (
+          {isWorkspace && (hasSearched || !clarification) ? (
             <div className="conversation-panel">
               <div className="panel-heading">
                 <Bot aria-hidden="true" />
@@ -458,7 +562,46 @@ export function SearchExperience() {
             }}
           />
 
-          <form className="query-form" onSubmit={handleSubmit} noValidate>
+          {clarification ? (
+            <section className="clarification-card" aria-labelledby="clarification-prompt">
+              <p className="eyebrow">Una pregunta para afinar la búsqueda</p>
+              {clarification.request ? <p className="clarification-request">Vos: {clarification.request}</p> : null}
+              <h2 id="clarification-prompt">{clarification.prompt}</h2>
+              {clarification.kind !== 'unsupported' ? (
+                <fieldset disabled={isWorking}>
+                  <legend>Elegí {clarification.multi ? 'una o más opciones' : 'una opción'}</legend>
+                  {(clarification.choices || []).map((choice) => (
+                    <label key={choice.id} className="clarification-choice">
+                      <input
+                        type={clarification.multi ? 'checkbox' : 'radio'}
+                        name="clarification-choice"
+                        value={choice.id}
+                        checked={selectedChoices.includes(choice.id)}
+                        onChange={() => { setOtherOpen(false); setSelectedChoices((current) => clarification.multi ? current.includes(choice.id) ? current.filter((id) => id !== choice.id) : [...current, choice.id] : [choice.id]); }}
+                      />
+                      <span>{choice.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              ) : null}
+              {clarification.kind !== 'unsupported' ? (
+                <>
+                  <button type="button" className="clarification-other" onClick={() => { setOtherOpen(true); setSelectedChoices([]); }}>Ninguna de estas</button>
+                  {otherOpen ? <input aria-label="Tu respuesta" value={otherAnswer} onChange={(event) => setOtherAnswer(event.target.value)} placeholder="Contanos qué querías decir" /> : null}
+                </>
+              ) : null}
+              <div className="clarification-actions">
+                {clarification.kind === 'unsupported' && clarification.can_remove ? (
+                  <Button type="button" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'remove' })}>Quitar condición y buscar</Button>
+                ) : clarification.kind !== 'unsupported' ? (
+                  <Button type="button" disabled={isWorking || (otherOpen ? !otherAnswer.trim() : selectedChoices.length === 0)} onClick={() => void answerClarification({ question_id: clarification.id, ...(otherOpen ? { other: otherAnswer.trim() } : { selected: selectedChoices }) })}>Continuar búsqueda</Button>
+                ) : null}
+                {clarification.kind === 'qualification' ? <Button type="button" variant="outline" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'decline' })}>Prefiero no decir</Button> : null}
+                <Button type="button" variant="outline" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'edit' })}>Editar búsqueda</Button>
+              </div>
+              {error ? <p role="alert">{error}</p> : null}
+            </section>
+          ) : <form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">
               {isWorkspace
                 ? 'Sumá una condición o hacé una pregunta'
@@ -521,7 +664,7 @@ export function SearchExperience() {
                 </p>
               ) : null}
             </div>
-          </form>
+          </form>}
 
           {!isWorkspace ? (
             <div className="examples" aria-label="Consultas de ejemplo">
@@ -543,7 +686,7 @@ export function SearchExperience() {
 
         {!isWorkspace ? <LandingPortrait /> : null}
 
-        {isWorkspace ? (
+        {isWorkspace && (hasSearched || !clarification && isWorking) ? (
           <section
             id="resultados"
             aria-label="Análisis y resultados"

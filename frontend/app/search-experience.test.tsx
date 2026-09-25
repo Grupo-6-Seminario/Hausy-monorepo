@@ -7,7 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Listing } from '@/lib/types';
 import { SearchExperience } from './components/search-experience';
@@ -34,6 +34,8 @@ const sampleListing: Listing = {
     },
   ],
 };
+
+beforeEach(() => window.sessionStorage.clear());
 
 afterEach(() => {
   Reflect.deleteProperty(document, 'modelContext');

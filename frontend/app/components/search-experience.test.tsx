@@ -8,6 +8,7 @@ import { SearchExperience } from './search-experience';
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+	window.sessionStorage.clear();
   fetchMock = vi.fn(
     async () => new Response(JSON.stringify({ reply: 'ok' }), { status: 200 }),
   );
@@ -58,9 +59,7 @@ async function loadPage() {
 }
 
 describe('SearchExperience', () => {
-  it('starts a new conversation on every page load', async () => {
-    // The backend keeps every turn of a session and plans from all of them;
-    // a shared ID makes one conversation's requirements leak into the next.
+  it('keeps the browser chat across a reload', async () => {
     const first = await loadPage();
     const firstSession = await first.send('Monoambiente cerca del subte A');
     first.close();
@@ -69,7 +68,7 @@ describe('SearchExperience', () => {
     const secondSession = await second.send('Dos ambientes en Palermo');
     second.close();
 
-    expect(secondSession).not.toBe(firstSession);
+    expect(secondSession).toBe(firstSession);
   });
 
   it('keeps one conversation across the turns of a page load', async () => {
@@ -91,6 +90,26 @@ describe('SearchExperience', () => {
 
     expect(after).not.toBe(before);
   });
+
+  it('asks a typed clarification before showing results', async () => {
+		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ clarification: {
+			id: 'q1', request: 'Busco dos habitaciones en Palermo', source: 'dos habitaciones',
+			prompt: 'Cuando dijiste «dos habitaciones», ¿ambientes o dormitorios?', kind: 'search',
+			choices: [{ id: 'ambientes', label: 'Dos ambientes' }, { id: 'dormitorios', label: 'Dos dormitorios' }],
+		} }), { status: 200 }));
+		const page = await loadPage();
+		await page.send('Busco dos habitaciones en Palermo');
+		expect(page.text()).toContain('Cuando dijiste «dos habitaciones»');
+		expect(page.text()).toContain('Ninguna de estas');
+		expect(document.querySelector('form.query-form')).toBeNull();
+		fireEvent.click(document.querySelector('input[value="dormitorios"]')!);
+		fireEvent.click([...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Continuar búsqueda')!);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		const answer = JSON.parse(fetchMock.mock.calls[1][1].body);
+		expect(answer.answer).toEqual({ question_id: 'q1', selected: ['dormitorios'] });
+		await waitFor(() => expect(page.text()).toContain('ok'));
+		page.close();
+	});
 
   it('shows the cards and the reply while the turn is still being written', async () => {
     const encoder = new TextEncoder();
@@ -166,5 +185,19 @@ describe('SearchExperience', () => {
     // The done reply is the authority: it replaces what was streamed.
     expect(page.text()).not.toContain('queda en Palermo.');
     page.close();
+  });
+
+  it('restores the pending question after a reload of the same browser chat', async () => {
+    const question = { id: 'q-reload', request: 'dos habitaciones en Palermo', source: 'dos habitaciones', prompt: '¿Ambientes o dormitorios?', kind: 'search', choices: [{ id: 'a', label: 'Ambientes' }, { id: 'd', label: 'Dormitorios' }] };
+    fetchMock.mockImplementation(async () => Response.json({ clarification: question }));
+    const first = await loadPage();
+    const sessionID = await first.send('dos habitaciones en Palermo');
+    first.close();
+
+    const second = await loadPage();
+    await waitFor(() => expect(second.text()).toContain('¿Ambientes o dormitorios?'));
+    expect(fetchMock).toHaveBeenCalledWith(`/api/agent?session_id=${encodeURIComponent(sessionID)}`, expect.anything());
+    expect(document.querySelector('form.query-form')).toBeNull();
+    second.close();
   });
 });

@@ -136,8 +136,33 @@ func mergeAttributes(established, extracted []listing.Attribute) []listing.Attri
 	return merged
 }
 
-// ParsedURLs reads the URLs an earlier Parse run already wrote, so a resumed
-// run knows what it can skip.
+// KeepParsed copies to output the rows an earlier Parse run finished and
+// returns their URLs, so a resumed run skips only those. A row written after a
+// failed model call is dropped rather than skipped: the retry replaces it
+// instead of sitting beside it as a duplicate.
+func KeepParsed(input io.Reader, output io.Writer) (map[string]bool, error) {
+	urls := make(map[string]bool)
+
+	scanner := scannerFor(input)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		var item listing.Listing
+		// A truncated final line from an interrupted run is not an error; it
+		// simply means that URL still needs parsing.
+		if len(line) == 0 || json.Unmarshal(line, &item) != nil || item.URL == "" || item.ParsedAt == nil {
+			continue
+		}
+		urls[item.URL] = true
+		if _, err := fmt.Fprintf(output, "%s\n", line); err != nil {
+			return nil, err
+		}
+	}
+	return urls, scanner.Err()
+}
+
+// ParsedURLs reads every URL an earlier Parse run wrote, whether or not its
+// model call succeeded: the rows the committed file carries. Resuming a parse
+// uses KeepParsed instead.
 func ParsedURLs(input io.Reader) (map[string]bool, error) {
 	urls := make(map[string]bool)
 
@@ -148,8 +173,7 @@ func ParsedURLs(input io.Reader) (map[string]bool, error) {
 			continue
 		}
 		var item listing.Listing
-		// A truncated final line from an interrupted run is not an error; it
-		// simply means that URL still needs parsing.
+		// A truncated final line from an interrupted run is not an error.
 		if err := json.Unmarshal(line, &item); err != nil {
 			continue
 		}
@@ -181,6 +205,9 @@ func Load(ctx context.Context, input io.Reader, sink Sink) (Report, error) {
 			report.Skipped++
 			continue
 		}
+		// The model's reading stays in the committed file; what the search
+		// may rely on is decided here, so changing it needs only a reload.
+		item.Attributes = listing.StatedAmenities(item.Attributes)
 		if err := sink.Save(ctx, item); err != nil {
 			report.fail(err)
 			continue

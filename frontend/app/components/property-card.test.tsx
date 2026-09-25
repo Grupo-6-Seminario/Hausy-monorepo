@@ -48,6 +48,17 @@ const sampleListing: Listing = {
 };
 
 describe('PropertyCard', () => {
+  // "Sin datos de requisitos" was shown even when the ad publishes its
+  // requirements and only the searcher's own data is missing.
+  it.each([
+    [[], 'No publica requisitos'],
+    [[{ reason: 'missing', rule: { fact: 'guarantee', values: ['caucion'], evidence: 'Sistema FINAER' } }], 'Publica requisitos · completá tus datos'],
+    [[{ reason: 'unverifiable', rule: { fact: 'income_band', values: ['3'], evidence: 'Ingresos 3 veces el alquiler' } }], 'Requisito no verificable'],
+  ])('names why eligibility is unknown (%#)', (conditions, label) => {
+    render(<PropertyCard listing={{ ...sampleListing, eligibility: { state: 'unknown', conditions } }} />);
+    expect(screen.getByText(label)).toBeVisible();
+  });
+
   it('renders property price, expenses, and neighborhood', () => {
     render(<PropertyCard listing={sampleListing} />);
 

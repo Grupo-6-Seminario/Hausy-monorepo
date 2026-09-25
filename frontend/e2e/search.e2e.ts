@@ -96,6 +96,44 @@ test('welcome, shortlist and return to conversation remain usable', async ({
   expect(errors).toEqual([]);
 });
 
+test('clarification survives reload and resumes the same search', async ({ page }, info) => {
+  const question = {
+    id: 'rooms-question', request: 'Busco dos habitaciones en Palermo',
+    source: 'dos habitaciones', prompt: 'Cuando dijiste «dos habitaciones», ¿ambientes o dormitorios?',
+    kind: 'search', choices: [{ id: 'ambientes', label: 'Dos ambientes' }, { id: 'dormitorios', label: 'Dos dormitorios' }],
+  };
+  let sessionID = '';
+  await page.route('**/api/agent**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { clarification: question } });
+      return;
+    }
+    const body = JSON.parse(route.request().postData() || '{}');
+    expect(body.session_id).toBeTruthy();
+    if (!body.answer) {
+      sessionID = body.session_id;
+      await route.fulfill({ json: { clarification: question } });
+    } else {
+      expect(body.session_id).toBe(sessionID);
+      expect(body.answer).toEqual({ question_id: 'rooms-question', selected: ['dormitorios'] });
+      await route.fulfill({ json: { reply: 'Una propiedad con dos dormitorios.', listings: [listing] } });
+    }
+  });
+  await openSearch(page);
+  await page.getByRole('textbox', { name: 'Describí cómo querés vivir' }).fill(question.request);
+  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await expect(page.getByRole('heading', { name: question.prompt })).toBeVisible();
+  await expect(page.locator('form.query-form')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('clarification.png'), animations: 'disabled', fullPage: true });
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: question.prompt })).toBeVisible();
+  await page.getByLabel('Dos dormitorios').check();
+  await page.getByRole('button', { name: 'Continuar búsqueda' }).click();
+  await expect(page.getByRole('heading', { name: 'Humboldt 1900', exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath('clarified-results.png'), animations: 'disabled', fullPage: true });
+});
+
 test('Contactar records one intent and still opens the publication', async ({
   page,
 }, info) => {

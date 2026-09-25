@@ -76,10 +76,23 @@ export interface Requirement {
   value: string;
 }
 
+export interface ClarificationQuestion {
+  id: string;
+  request?: string;
+  source: string;
+  prompt: string;
+  kind: 'search' | 'qualification' | 'unsupported';
+  can_remove?: boolean;
+  multi?: boolean;
+  choices?: { id: string; label: string }[];
+}
+
 export interface AgentResponse {
   reply?: string;
   listings?: Listing[];
   requirements?: Requirement[];
   relaxations?: Relaxation[];
   error?: string;
+  clarification?: ClarificationQuestion;
+  clarification_hint?: string;
 }

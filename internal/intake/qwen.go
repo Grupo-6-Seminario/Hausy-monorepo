@@ -36,19 +36,63 @@ func (q Qwen) Plan(ctx context.Context, turns []string) (Plan, error) {
 	content = strings.TrimPrefix(strings.TrimPrefix(content, "```json"), "```")
 	content = strings.TrimSpace(strings.TrimSuffix(content, "```"))
 	var plan Plan
-	if err := json.Unmarshal([]byte(content), &plan); err != nil {
+	if err := decodeQwenPlan([]byte(content), &plan); err != nil {
 		return Plan{}, fmt.Errorf("intake: local model did not return a plan: %w", err)
 	}
 	for i := range plan.Branches {
 		repair(&plan.Branches[i])
+		// Seen live (experiments/clarification, 2026-09-25): a stated guarantee
+		// as a required listing attribute. It is the searcher's qualification;
+		// declaredOnly below keeps it only if the user said it.
+		b := &plan.Branches[i]
+		b.RequiredAttributes = slices.DeleteFunc(b.RequiredAttributes, func(f search.AttributeFilter) bool {
+			if f.Type != "guarantee" {
+				return false
+			}
+			if plan.Qualification == nil {
+				plan.Qualification = eligibility.Qualification{}
+			}
+			plan.Qualification["guarantee"] = append(plan.Qualification["guarantee"], f.Value)
+			return true
+		})
 	}
 	plan.Qualification = declaredOnly(plan.Qualification, strings.Join(turns, "\n"))
 	return plan, nil
 }
 
+// The local model sometimes writes one declared qualification value as a
+// string. Normalize that JSON shape before decoding the typed plan; no fact is
+// added or inferred here.
+func decodeQwenPlan(content []byte, plan *Plan) error {
+	var document map[string]json.RawMessage
+	if err := json.Unmarshal(content, &document); err != nil {
+		return err
+	}
+	if raw, ok := document["qualification"]; ok {
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &fields); err != nil {
+			return err
+		}
+		for fact, value := range fields {
+			var single string
+			if err := json.Unmarshal(value, &single); err == nil {
+				wrapped, _ := json.Marshal([]string{single})
+				fields[fact] = wrapped
+			}
+		}
+		document["qualification"], _ = json.Marshal(fields)
+	}
+	normalized, err := json.Marshal(document)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(normalized, plan)
+}
+
 var (
-	incomeCue = regexp.MustCompile(`(?i)\bgan(o|amos)\b|ingreso|sueldo|\bcobr|facturo`)
-	quoteCue  = regexp.MustCompile(`(?i)cotiz|cotic`)
+	incomeCue       = regexp.MustCompile(`(?i)\bgan(o|amos)\b|ingreso|sueldo|\bcobr|facturo`)
+	incomeAmountCue = regexp.MustCompile(`(?i)\d|mill[oó]n|palo|luca`)
+	quoteCue        = regexp.MustCompile(`(?i)cotiz|cotic`)
 )
 
 // declaredOnly keeps the qualification facts the user actually stated. The
@@ -60,7 +104,7 @@ func declaredOnly(q eligibility.Qualification, text string) eligibility.Qualific
 			out["guarantee"] = append(out["guarantee"], in.Name)
 		}
 	}
-	if len(q["income_band"]) > 0 && incomeCue.MatchString(text) {
+	if len(q["income_band"]) > 0 && hasDeclaredIncomeAmount(text) {
 		out["income_band"] = q["income_band"][:1]
 	}
 	if len(q["caucion_quoted"]) > 0 && quoteCue.MatchString(text) {
@@ -72,9 +116,25 @@ func declaredOnly(q eligibility.Qualification, text string) eligibility.Qualific
 	return out
 }
 
+func hasDeclaredIncomeAmount(text string) bool {
+	for _, clause := range strings.FieldsFunc(text, func(r rune) bool { return r == '.' || r == ';' || r == '?' || r == '!' || r == '\n' }) {
+		for _, at := range incomeCue.FindAllStringIndex(clause, -1) {
+			end := min(len(clause), at[1]+48)
+			if incomeAmountCue.MatchString(clause[at[1]:end]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // repair undoes what the local model was seen doing (experiments/intake,
 // 2026-09-23): copying every field of the JSON shape with 0, which would reach
-// SQL as a real bound, and naming an amenity as a type ("cochera").
+// SQL as a real bound, naming an amenity as a type ("cochera"), and inventing
+// a value ("amenities" as amenity=any). "sin amenities" came back as excluded
+// and preferred amenity=any, a withdrawal, so those are dropped; a required one
+// is a demand the query cannot express, and stays for validation to reject
+// rather than vanish.
 func repair(q *search.Query) {
 	for _, f := range []**float64{&q.MinPrice, &q.MaxPrice, &q.MaxExpensesARS, &q.MinTotalAreaM2} {
 		if *f != nil && **f == 0 {
@@ -87,9 +147,11 @@ func repair(q *search.Query) {
 		}
 	}
 	q.RequiredAttributes = repairFilters(q.RequiredAttributes)
-	q.PreferredAttributes = repairFilters(q.PreferredAttributes)
-	q.ExcludedAttributes = repairFilters(q.ExcludedAttributes)
+	q.PreferredAttributes = slices.DeleteFunc(repairFilters(q.PreferredAttributes), invented)
+	q.ExcludedAttributes = slices.DeleteFunc(repairFilters(q.ExcludedAttributes), invented)
 }
+
+func invented(f search.AttributeFilter) bool { return !listing.AllowsValue(f.Type, f.Value) }
 
 func repairFilters(filters []search.AttributeFilter) []search.AttributeFilter {
 	var out []search.AttributeFilter

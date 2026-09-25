@@ -109,7 +109,7 @@ describe('PropertyList eligibility sections', () => {
     expect(headings).toEqual([
       'Podés aplicar',
       'Depende de la inmobiliaria',
-      'Sin datos de requisitos',
+      'Todavía no sabemos si podés aplicar',
     ]);
     expect(screen.getByText(/ver cuáles permite la propietaria/)).toBeVisible();
     expect(screen.getByText('#3')).toBeVisible();

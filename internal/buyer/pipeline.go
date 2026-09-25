@@ -3,11 +3,13 @@ package buyer
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
@@ -48,7 +50,10 @@ type Packet struct {
 // BranchReport keeps an empty branch visible ("Caballito: 0 avisos").
 type BranchReport struct {
 	Neighborhoods []string `json:"neighborhoods"`
-	Matches       int      `json:"matches"`
+	// Matches meet every hard filter and confirm every required amenity;
+	// Unconfirmed are shown after them without confirming one.
+	Matches     int `json:"matches"`
+	Unconfirmed int `json:"unconfirmed,omitempty"`
 }
 
 type pipeline struct {
@@ -56,6 +61,7 @@ type pipeline struct {
 	inventory Inventory
 	writer    Writer
 	matcher   matching.Classifier
+	clarifier clarification.Proposer
 }
 
 // WithPipeline replaces the tool loop: planner → SQL per branch → eligibility
@@ -65,6 +71,14 @@ func WithPipeline(planner Planner, inventory Inventory, writer Writer) Option {
 		agent.pipeline = &pipeline{planner: planner, inventory: inventory, writer: writer}
 	}
 }
+
+// WithClarifier adds a generative clarification pass before search.
+func WithClarifier(proposer clarification.Proposer) Option {
+	return func(agent *DefaultAgent) { agent.pipeline.clarifier = proposer }
+}
+
+var ErrPendingClarification = errors.New("a clarification is pending")
+var ErrStaleClarification = errors.New("stale clarification answer")
 
 // WithMatching supplies the grounded qualitative assessor. A missing or
 // unavailable assessor leaves a prose-only requirement unconfirmed.
@@ -77,7 +91,7 @@ const maxShown = 10
 
 var section = map[eligibility.State]int{eligibility.Eligible: 0, eligibility.ConditionallyEligible: 1, eligibility.Unknown: 2}
 
-func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message string, declared eligibility.Qualification, events Events) (*TurnResponse, error) {
+func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message string, declared eligibility.Qualification, events Events, resumed *pendingClarification) (*TurnResponse, error) {
 	p := a.pipeline
 	logger := logging.FromContext(ctx)
 	turnStarted := time.Now()
@@ -97,16 +111,51 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		sess = &session{id: sessionID}
 		a.sessions[sessionID] = sess
 	}
+	if (sess.pending != nil || sess.inFlight) && resumed == nil {
+		a.mu.Unlock()
+		return nil, ErrPendingClarification
+	}
+	sess.inFlight = true
+	defer func() { a.mu.Lock(); sess.inFlight = false; a.mu.Unlock() }()
 	turns := append(slices.Clone(sess.turns), message)
 	previous := sess.plan
+	confirmed := slices.Clone(sess.confirmed)
+	if resumed != nil {
+		turns = slices.Clone(resumed.turns)
+	}
 	a.mu.Unlock()
 
+	var plan intake.Plan
+	var err error
 	planStarted := time.Now()
-	plan, err := p.planner.Plan(ctx, turns, previous)
-	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_plan", slog.String("outcome", "error"),
-			slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
-		return nil, fmt.Errorf("buyer: plan: %w", err)
+	if resumed != nil {
+		plan = resumed.plan
+	} else {
+		plan, err = p.planner.Plan(ctx, turns, previous)
+		if err == nil && plan.Intent != "ask_about_listing" && len(confirmed) > 0 {
+			plan, confirmed = preserveConfirmed(plan, confirmed, message)
+			a.mu.Lock()
+			sess.confirmed = confirmed
+			a.mu.Unlock()
+		}
+		if err != nil && p.clarifier == nil {
+			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_plan", slog.String("outcome", "error"),
+				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
+			return nil, fmt.Errorf("buyer: plan: %w", err)
+		}
+		if p.clarifier != nil && (plan.Intent == "new_search" || plan.Intent == "refine" || err != nil) {
+			question, blocked, qerr := a.prepareClarification(ctx, sess, turns, plan, declared, err)
+			if qerr != nil {
+				return nil, qerr
+			}
+			if blocked {
+				turnOutcome = "clarification"
+				return &TurnResponse{Clarification: question}, nil
+			}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("buyer: plan: %w", err)
+		}
 	}
 	plannerName = plan.PlannedBy
 	if plannerName == "" {
@@ -115,6 +164,21 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	logger.LogAttrs(ctx, slog.LevelInfo, "buyer_plan", slog.String("outcome", "success"),
 		slog.String("planner", plannerName), slog.Int("branches", len(plan.Branches)),
 		slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
+	a.mu.RLock()
+	declined := sess.declinedFacts
+	a.mu.RUnlock()
+	if len(declined) > 0 {
+		clean := eligibility.Qualification{}
+		for fact, values := range declared {
+			if !declined[fact] {
+				clean[fact] = slices.Clone(values)
+			}
+		}
+		declared = clean
+		for fact := range declined {
+			delete(plan.Qualification, fact)
+		}
+	}
 	q := mergeQualification(declared, plan.Qualification)
 
 	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort}
@@ -190,6 +254,7 @@ type scored struct {
 	quality              int
 	requiredQualitative  []search.AttributeFilter
 	preferredQualitative []search.AttributeFilter
+	requiredAmenities    []search.AttributeFilter
 }
 
 // rank retrieves every branch, assesses each listing and orders the merged
@@ -203,7 +268,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 	seen := map[string]bool{}
 	hidden := 0
 	for branchIndex, branch := range plan.Branches {
-		storedQuery, qualitative, preferredQualitative := separateQualitative(branch)
+		storedQuery, qualitative, preferredQualitative, amenities := separateQualitative(branch)
 		candidateStarted := time.Now()
 		candidates, err := p.inventory.Candidates(ctx, storedQuery)
 		if err != nil {
@@ -215,7 +280,13 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_candidates", slog.String("outcome", "success"),
 			slog.Int("branch", branchIndex), slog.Int("count", len(candidates)),
 			slog.Int64("duration_ms", time.Since(candidateStarted).Milliseconds()))
-		reports = append(reports, BranchReport{Neighborhoods: branch.Neighborhoods, Matches: len(candidates)})
+		unconfirmed := 0
+		for _, c := range candidates {
+			if !statesAll(c.Listing, amenities) {
+				unconfirmed++
+			}
+		}
+		reports = append(reports, BranchReport{Neighborhoods: branch.Neighborhoods, Matches: len(candidates) - unconfirmed, Unconfirmed: unconfirmed})
 		eligibilityStarted := time.Now()
 		previousHidden := hidden
 		for _, c := range candidates {
@@ -229,13 +300,14 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 				hidden++
 				continue
 			}
-			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative})
+			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative, requiredAmenities: amenities})
 		}
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_eligibility", slog.Int("branch", branchIndex),
 			slog.Int("count", len(candidates)), slog.Int("hidden", hidden-previousHidden),
 			slog.Int64("duration_ms", time.Since(eligibilityStarted).Milliseconds()))
 	}
 	p.assessQualitative(ctx, rows)
+	confirmAmenities(rows)
 	slices.SortFunc(rows, func(a, b scored) int {
 		if c := cmp.Compare(a.quality, b.quality); c != 0 {
 			return c
@@ -260,14 +332,19 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 }
 
 // Only qualities with an evidence rubric belong here. The other attributes
-// still use the existing published/parsed attribute SQL contract.
-func separateQualitative(q search.Query) (search.Query, []search.AttributeFilter, []search.AttributeFilter) {
-	var prose, preferredProse []search.AttributeFilter
+// still use the existing published/parsed attribute SQL contract, except a
+// required amenity: a listing that never mentions it is unconfirmed, not
+// excluded, so it leaves the SQL filter too.
+func separateQualitative(q search.Query) (search.Query, []search.AttributeFilter, []search.AttributeFilter, []search.AttributeFilter) {
+	var prose, preferredProse, amenities []search.AttributeFilter
 	required := q.RequiredAttributes[:0:0]
 	for _, f := range q.RequiredAttributes {
-		if f.Type == "natural_light" {
+		switch f.Type {
+		case "natural_light":
 			prose = append(prose, f)
-		} else {
+		case "amenity":
+			amenities = append(amenities, f)
+		default:
 			required = append(required, f)
 		}
 	}
@@ -277,7 +354,34 @@ func separateQualitative(q search.Query) (search.Query, []search.AttributeFilter
 			preferredProse = append(preferredProse, f)
 		}
 	}
-	return q, prose, preferredProse
+	return q, prose, preferredProse, amenities
+}
+
+// statesAll reports whether the listing carries every filter as an attribute.
+func statesAll(l listing.Listing, filters []search.AttributeFilter) bool {
+	for _, want := range filters {
+		if !slices.ContainsFunc(l.Attributes, func(a listing.Attribute) bool { return a.Type == want.Type && a.Value == want.Value }) {
+			return false
+		}
+	}
+	return true
+}
+
+// confirmAmenities ranks a listing that does not state every required amenity
+// after those that do. Stored amenities are only the ones the listing names in
+// its own words, so having the attribute is the confirmation.
+func confirmAmenities(rows []scored) {
+	for i := range rows {
+		r := &rows[i]
+		if len(r.requiredAmenities) == 0 {
+			continue
+		}
+		if !statesAll(r.result.Listing, r.requiredAmenities) {
+			r.result.QualitativeFit, r.quality = "unconfirmed", 1
+		} else if r.result.QualitativeFit == "" {
+			r.result.QualitativeFit = "exact"
+		}
+	}
 }
 
 func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {

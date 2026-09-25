@@ -16,6 +16,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
@@ -56,6 +57,43 @@ func TestHandler_PostMessageReturnsAgentReply(t *testing.T) {
 	}
 	if payload.Reply != "Respuesta real del agente." {
 		t.Fatalf("expected agent reply, got %q", payload.Reply)
+	}
+}
+
+type questionAgent struct{}
+
+func (questionAgent) HandleMessage(context.Context, string, string, eligibility.Qualification, buyer.Events) (*buyer.TurnResponse, error) {
+	return &buyer.TurnResponse{Clarification: &clarification.Question{ID: "q1", Request: "dos habitaciones", Source: "dos habitaciones", Prompt: "¿Ambientes o dormitorios?", Kind: "search", Choices: []clarification.Choice{{ID: "ambientes", Label: "Ambientes"}, {ID: "dormitorios", Label: "Dormitorios"}}}}, nil
+}
+func (questionAgent) HandleClarification(_ context.Context, _ string, answer buyer.ClarificationAnswer, _ eligibility.Qualification, _ buyer.Events) (*buyer.TurnResponse, error) {
+	if answer.QuestionID != "q1" || !slices.Equal(answer.Selected, []string{"dormitorios"}) {
+		return nil, buyer.ErrStaleClarification
+	}
+	return &buyer.TurnResponse{Reply: "Encontré hogares con dos dormitorios."}, nil
+}
+func (questionAgent) PendingClarification(string) *clarification.Question {
+	return &clarification.Question{ID: "q1", Kind: "search", Prompt: "¿Ambientes o dormitorios?"}
+}
+
+func TestHandlerCarriesClarificationAndTypedAnswer(t *testing.T) {
+	handler := httpapi.NewHandler(questionAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil)
+	post := httptest.NewRequest(http.MethodPost, "/api/messages", strings.NewReader(`{"session_id":"s","message":"dos habitaciones"}`))
+	post.Header.Set("Accept", "application/x-ndjson")
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, post)
+	events := streamEvents(t, first.Body.String())
+	if first.Code != http.StatusOK || len(events) != 1 || events[0]["type"] != "done" || events[0]["clarification"].(map[string]any)["id"] != "q1" {
+		t.Fatalf("clarification must be the turn outcome: %d %s", first.Code, first.Body.String())
+	}
+	get := httptest.NewRecorder()
+	handler.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/messages?session_id=s", nil))
+	if get.Code != http.StatusOK || !strings.Contains(get.Body.String(), `"id":"q1"`) {
+		t.Fatalf("pending question was not recoverable: %d %s", get.Code, get.Body.String())
+	}
+	answer := httptest.NewRecorder()
+	handler.ServeHTTP(answer, httptest.NewRequest(http.MethodPost, "/api/messages", strings.NewReader(`{"session_id":"s","answer":{"question_id":"q1","selected":["dormitorios"]}}`)))
+	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), "dos dormitorios") {
+		t.Fatalf("answer did not resume search: %d %s", answer.Code, answer.Body.String())
 	}
 }
 

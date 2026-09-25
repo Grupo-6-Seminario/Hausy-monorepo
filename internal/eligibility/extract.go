@@ -23,8 +23,8 @@ var Instruments = []struct {
 	{"propietaria", "a property title in CABA offered as guarantee; also written 'garantía de capital', 'garantía CABA', 'garante con propiedad', 'fiador propietario'",
 		// "garantía/garante" with the qualifier up to a few words later.
 		regexp.MustCompile(`(?i)garant(?:[ií]a|e)\b[^.\n]{0,40}?\b(?:propietari[ao]|propiedad|caba|capital)`)},
-	{"caucion", "a seguro de caución (rental guarantee insurance), e.g. Finaer, Hoggax",
-		regexp.MustCompile(`(?i)cauci[oó]n|seguro\s+de\s+garant[ií]a|finaer|hoggax`)},
+	{"caucion", "a seguro de caución (rental guarantee insurance), also written 'seguro de fianza', e.g. Finaer, Hoggax",
+		regexp.MustCompile(`(?i)cauci[oó]n|seguro\s+de\s+(?:garant[ií]a|fianza)|finaer|hoggax`)},
 }
 
 var acceptance = map[string]string{

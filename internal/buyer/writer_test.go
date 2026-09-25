@@ -118,3 +118,20 @@ func TestATurnReportsItsRankingBeforeStreamingTheReply(t *testing.T) {
 		t.Fatalf("want the template reply, got %q, %v", resp.Reply, err)
 	}
 }
+
+// Seen live: the template said "el aviso no publica requisitos" and then
+// quoted the requirement the ad publishes.
+func TestTemplateSaysAPublishedRequirementIsPublished(t *testing.T) {
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {
+		candidate("asks", "palermo", 500000, caucionOnly),
+		candidate("silent", "palermo", 600000, nil),
+	}}}
+	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{}))
+	resp := turn(t, agent, "Alquiler en Palermo", nil)
+	for _, line := range strings.Split(resp.Reply, "\n") {
+		quotesRule := strings.Contains(line, caucionOnly[0].Evidence)
+		if strings.HasPrefix(line, "- **#") && quotesRule == strings.Contains(line, "no publica requisitos") {
+			t.Fatalf("only the silent listing may say it publishes no requirements:\n%s", resp.Reply)
+		}
+	}
+}

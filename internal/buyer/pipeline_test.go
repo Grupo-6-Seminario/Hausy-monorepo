@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 
@@ -333,5 +334,35 @@ func TestQuestionAboutAListingSendsTheShownListingsToTheWriter(t *testing.T) {
 	second := turn(t, agent, "¿el primero tiene balcón?", eligibility.Qualification{"guarantee": {"propietaria"}})
 	if w.packets[1].Intent != "ask_about_listing" || w.packets[1].Question != "¿el primero tiene balcón?" || urls(second)[0] != urls(first)[0] {
 		t.Fatalf("got %+v", w.packets[1])
+	}
+}
+
+// A listing that never mentions a required amenity is shown after the ones
+// that state it, marked unconfirmed, never excluded (CONTEXT.md).
+func TestRequiredAmenityRanksUnconfirmedListingsLast(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}
+	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, &fakeWriter{}))
+
+	resp := turn(t, agent, "Busco en Palermo con pileta", nil)
+
+	var got []string
+	for _, r := range resp.Listings {
+		got = append(got, r.URL+":"+r.QualitativeFit)
+	}
+	if want := []string{"both:exact", "pool:exact", "gym:unconfirmed"}; !slices.Equal(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+// Seen live: with amenities out of SQL, the branch count included listings
+// that never mention the amenity, and the reply said "92 opciones con pileta".
+func TestBranchCountSeparatesUnconfirmedListings(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}
+	writer := &fakeWriter{}
+	turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, writer)), "Busco en Palermo con pileta", nil)
+	if got := writer.packets[0].Branches; len(got) != 1 || got[0].Matches != 2 || got[0].Unconfirmed != 1 {
+		t.Fatalf("want 2 matches and 1 unconfirmed, got %+v", got)
 	}
 }

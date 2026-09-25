@@ -40,10 +40,42 @@ func (s *Store) SaveEligibility(ctx context.Context, url string, rules []eligibi
 // limit: ordering by eligibility needs the whole population.
 // ponytail: one ByURL per match; batch it if a branch outgrows a few hundred rows.
 func (s *Store) Candidates(ctx context.Context, query search.Query) ([]eligibility.Candidate, error) {
+	return s.candidates(ctx, query, 0)
+}
+
+// PreviewCandidates reads a bounded, stable sample for deciding whether a
+// clarification can change the visible result. Full ranking still uses Candidates.
+func (s *Store) PreviewCandidates(ctx context.Context, query search.Query, limit int) ([]eligibility.Candidate, error) {
+	if limit < 1 || limit > 50 {
+		limit = 50
+	}
+	return s.candidates(ctx, query, limit)
+}
+
+// HasAttributeData checks coverage across the whole matching inventory. A
+// capped preview alone could miss attributes that happen to be on later rows.
+func (s *Store) HasAttributeData(ctx context.Context, query search.Query, attributeType string) (bool, error) {
 	b := &builder{}
 	applyBaseConditions(b, query)
 	applyPriceCondition(b, query)
-	rows, err := s.pool.Query(ctx, `SELECT l.id, l.url FROM listings l WHERE `+b.whereClause()+` ORDER BY l.id`, b.args...)
+	b.where("a.type = " + b.param(attributeType))
+	var found bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM listings l JOIN listing_attributes a ON a.listing_id = l.id WHERE `+b.whereClause()+`)`, b.args...).Scan(&found)
+	if err != nil {
+		return false, fmt.Errorf("postgres: attribute coverage: %w", err)
+	}
+	return found, nil
+}
+
+func (s *Store) candidates(ctx context.Context, query search.Query, limit int) ([]eligibility.Candidate, error) {
+	b := &builder{}
+	applyBaseConditions(b, query)
+	applyPriceCondition(b, query)
+	statement := `SELECT l.id, l.url FROM listings l WHERE ` + b.whereClause() + ` ORDER BY l.id`
+	if limit > 0 {
+		statement += ` LIMIT ` + b.param(limit)
+	}
+	rows, err := s.pool.Query(ctx, statement, b.args...)
 	if err != nil {
 		return nil, fmt.Errorf("postgres: candidates: %w", err)
 	}

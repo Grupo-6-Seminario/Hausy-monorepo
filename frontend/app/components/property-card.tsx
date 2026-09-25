@@ -13,7 +13,7 @@ import {
 import { useState } from 'react';
 
 import { recordContactIntent, stableListingID } from '@/lib/contact-intent';
-import type { EligibilityState, Listing, ListingAttribute } from '@/lib/types';
+import type { Eligibility, EligibilityState, Listing, ListingAttribute } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface PropertyCardProps {
@@ -72,9 +72,21 @@ function formatAttributeLabel({ type, value }: ListingAttribute): string {
 export const eligibilityLabel: Record<EligibilityState, string> = {
   eligible: 'Podés aplicar',
   conditionally_eligible: 'Depende de la inmobiliaria',
-  unknown: 'Sin datos de requisitos',
+  unknown: 'Todavía no sabemos si podés aplicar',
   ineligible: 'No podés aplicar',
 };
+
+// An unknown verdict says why: the ad publishes nothing, it asks for something
+// the searcher has not declared, or what it asks cannot be checked.
+function eligibilityBadge(eligibility: Eligibility): string {
+  if (eligibility.state !== 'unknown') return eligibilityLabel[eligibility.state];
+  const conditions = eligibility.conditions ?? [];
+  if (conditions.length === 0) return 'No publica requisitos';
+  if (conditions.some((condition) => condition.reason === 'missing')) {
+    return 'Publica requisitos · completá tus datos';
+  }
+  return 'Requisito no verificable';
+}
 
 export function PropertyCard({
   listing,
@@ -162,7 +174,7 @@ export function PropertyCard({
           ) : null}
           {eligibility ? (
             <span className="eligibility-badge" data-state={eligibility.state}>
-              {eligibilityLabel[eligibility.state]}
+              {eligibilityBadge(eligibility)}
             </span>
           ) : null}
           <span className="listing-operation">{operation}</span>
