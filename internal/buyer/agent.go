@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 )
 
 // EligibilityState defines the four eligibility states outlined in core.md.
@@ -130,6 +133,8 @@ func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, mess
 	if a.pipeline != nil {
 		return a.handlePipeline(ctx, sessionID, message, q, events)
 	}
+	started := time.Now()
+	logger := logging.FromContext(ctx)
 
 	req := llm.ChatRequest{
 		Messages: []llm.Message{
@@ -142,11 +147,15 @@ func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, mess
 
 	resp, err := a.llmClient.Chat(ctx, req)
 	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_extraction", slog.String("outcome", "error"),
+			slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(started).Milliseconds()))
 		return nil, fmt.Errorf("llm extraction failed: %w", err)
 	}
 
 	extracted, err := parseExtraction(resp.Content)
 	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_extraction", slog.String("outcome", "invalid_response"),
+			slog.Int64("duration_ms", time.Since(started).Milliseconds()))
 		return nil, fmt.Errorf("failed to parse extracted requirements: %w", err)
 	}
 
@@ -163,6 +172,8 @@ func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, mess
 	a.mu.Unlock()
 
 	reply := generateReply(accumulated)
+	logger.LogAttrs(ctx, slog.LevelInfo, "buyer_extraction", slog.String("outcome", "success"),
+		slog.Int("requirements", len(accumulated)), slog.Int64("duration_ms", time.Since(started).Milliseconds()))
 
 	return &TurnResponse{
 		Reply:        reply,

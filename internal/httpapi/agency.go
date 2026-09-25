@@ -96,7 +96,7 @@ func registerAgency(mux *http.ServeMux, provider auth.Provider, catalog agency.C
 func authenticatedRealtor(w http.ResponseWriter, r *http.Request, provider auth.Provider) (auth.User, bool) {
 	user, err := provider.Authenticate(r.Context(), bearerToken(r))
 	if err != nil {
-		writeAuthError(w, err)
+		writeAuthError(r.Context(), w, err)
 		return auth.User{}, false
 	}
 	if user.Role != auth.RoleRealtor {

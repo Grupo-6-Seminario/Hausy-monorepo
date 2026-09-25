@@ -1,13 +1,15 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 )
 
 type signUpRequest struct {
@@ -37,7 +39,7 @@ func registerAuth(mux *http.ServeMux, provider auth.Provider) {
 		}
 		user, err := provider.SignUp(r.Context(), auth.Registration(input))
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, userResponse{User: user})
@@ -50,7 +52,7 @@ func registerAuth(mux *http.ServeMux, provider auth.Provider) {
 		}
 		session, err := provider.SignIn(r.Context(), input.Email, input.Password)
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, session)
@@ -59,7 +61,7 @@ func registerAuth(mux *http.ServeMux, provider auth.Provider) {
 	mux.HandleFunc("GET /api/auth/me", func(w http.ResponseWriter, r *http.Request) {
 		user, err := provider.Authenticate(r.Context(), bearerToken(r))
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, userResponse{User: user})
@@ -67,7 +69,7 @@ func registerAuth(mux *http.ServeMux, provider auth.Provider) {
 
 	mux.HandleFunc("POST /api/auth/sign-out", func(w http.ResponseWriter, r *http.Request) {
 		if err := provider.SignOut(r.Context(), bearerToken(r)); err != nil {
-			writeAuthError(w, err)
+			writeAuthError(r.Context(), w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -92,7 +94,7 @@ func bearerToken(r *http.Request) string {
 	return strings.TrimSpace(token)
 }
 
-func writeAuthError(w http.ResponseWriter, err error) {
+func writeAuthError(ctx context.Context, w http.ResponseWriter, err error) {
 	var registration auth.RegistrationError
 	switch {
 	case errors.As(err, &registration):
@@ -104,7 +106,8 @@ func writeAuthError(w http.ResponseWriter, err error) {
 	case errors.Is(err, auth.ErrUnauthenticated):
 		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "Tenés que iniciar sesión."})
 	default:
-		log.Printf("auth: %v", err)
+		logging.FromContext(ctx).LogAttrs(ctx, slog.LevelError, "auth_error",
+			slog.String("error_class", logging.ErrorClass(err)))
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos procesar tu cuenta. Probá de nuevo."})
 	}
 }

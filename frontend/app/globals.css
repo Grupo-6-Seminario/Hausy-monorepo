@@ -105,10 +105,14 @@
   --space-card: 24px;
   --space-section: 80px;
   --radius-card: 1.25rem;
+  /* Where the composer's first letter sits inside its box. */
+  --composer-inset-inline: 1.2rem;
+  --composer-inset-block: 1.1rem;
   --radius-control: 0.9rem;
   --radius-pill: 9999px;
   --motion-fast: 180ms;
   --motion-enter: 640ms;
+  --motion-morph: 560ms;
   --motion-focus: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -659,7 +663,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: 1.1rem 1.2rem 4.25rem;
+  padding: var(--composer-inset-block) var(--composer-inset-inline) 4.25rem;
   color: var(--foreground);
   box-shadow: none;
   font-size: 1rem;
@@ -1408,32 +1412,133 @@
   gap: 1rem;
 }
 
-.property-skeleton {
+.property-skeletons {
   display: grid;
-  gap: 0.9rem;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
-  border-radius: 1.15rem;
+  gap: 1rem;
+}
+
+/* A ghost of `.property-card`: same padding, radius, and rows. */
+.property-skeleton {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.2rem, 2vw, 1.55rem);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: var(--radius-card);
   background: var(--card);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 5%, transparent);
+  animation: card-arrive 540ms var(--motion-focus) 140ms both;
+}
+
+.property-skeletons > :nth-child(2) {
+  animation-delay: 220ms;
+}
+
+.property-skeletons > :nth-child(3) {
+  animation-delay: 300ms;
+}
+
+/* One soft band of accent light passes over each ghost, one card after another. */
+.property-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 50%,
+    transparent 70%
+  );
+  content: '';
+  pointer-events: none;
+  translate: -100% 0;
+  animation: ghost-sheen 2.2s cubic-bezier(0.4, 0, 0.2, 1) 700ms infinite;
+}
+
+.property-skeletons > :nth-child(2)::after {
+  animation-delay: 850ms;
+}
+
+.property-skeletons > :nth-child(3)::after {
+  animation-delay: 1000ms;
 }
 
 .property-skeleton [data-slot='skeleton'] {
-  height: 0.9rem;
+  height: 0.75rem;
   border-radius: 9999px;
-  background: var(--muted);
+  /* `--muted` nearly matches the dark card; this reads in both themes. */
+  background: color-mix(in srgb, var(--muted-foreground) 14%, var(--card));
+  animation: none;
 }
 
-.property-skeleton [data-slot='skeleton']:first-child {
-  width: 42%;
-  height: 1.8rem;
+.property-skeleton-meta,
+.property-skeleton-summary,
+.property-skeleton-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
 }
 
-.property-skeleton [data-slot='skeleton']:nth-child(2) {
-  width: 78%;
+.property-skeleton-meta [data-slot='skeleton']:first-child {
+  width: 1.4rem;
 }
 
-.property-skeleton [data-slot='skeleton']:last-child {
-  width: 58%;
+.property-skeleton-meta [data-slot='skeleton']:nth-child(2) {
+  width: 7.5rem;
+  height: 1.5rem;
+}
+
+.property-skeleton-meta [data-slot='skeleton']:last-child {
+  width: 4.5rem;
+}
+
+.property-skeleton-summary {
+  justify-content: space-between;
+  margin-top: 1.4rem;
+}
+
+.property-skeleton-summary [data-slot='skeleton']:first-child {
+  width: 46%;
+  height: 1.45rem;
+}
+
+.property-skeleton-summary [data-slot='skeleton']:last-child {
+  width: 22%;
+  height: 1.25rem;
+}
+
+.property-skeleton .property-skeleton-metrics {
+  height: 2.9rem;
+  margin-top: 1.4rem;
+  border-radius: 0.85rem;
+}
+
+.property-skeleton-lines {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.property-skeleton-lines [data-slot='skeleton']:first-child {
+  width: 34%;
+}
+
+.property-skeleton-lines [data-slot='skeleton']:last-child {
+  width: 72%;
+}
+
+.property-skeleton-footer {
+  margin-top: 1.25rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+}
+
+.property-skeleton-footer [data-slot='skeleton']:first-child {
+  width: 9rem;
+  margin-right: auto;
+}
+
+.property-skeleton-footer [data-slot='skeleton']:not(:first-child) {
+  width: 7.2rem;
+  height: 2.6rem;
 }
 
 .property-empty {
@@ -2290,6 +2395,13 @@
   }
 }
 
+@keyframes ghost-sheen {
+  65%,
+  100% {
+    translate: 100% 0;
+  }
+}
+
 @keyframes card-arrive {
   from {
     opacity: 0;
@@ -2302,7 +2414,175 @@
   }
 }
 
+/*
+ * View morphs (lib/view-transition.ts).
+ *
+ * Sending a message keeps what the reader is looking at on screen: the
+ * composer glides to its place in the workspace, the headline contracts, and
+ * the typed text travels up into the conversation as the first bubble. The
+ * welcome photograph steps aside and the shortlist, still ghost cards, slides
+ * in where it stood. Everything else cross-fades underneath.
+ *
+ * Names exist only while `data-morphing` is set, so they never constrain the
+ * page at rest. Reduced motion never starts a morph.
+ */
+/* Unchanged on both sides, so it holds still while the page changes under it. */
+[data-morphing] .site-header {
+  view-transition-name: site-header;
+}
+
+[data-morphing] .query-form {
+  view-transition-name: composer;
+}
+
+[data-morphing] .experience-intro h1 {
+  /* Hug the text, so the old and new headlines scale with their type size. */
+  width: fit-content;
+  view-transition-name: hero-title;
+}
+
+[data-morphing] .landing-portrait {
+  view-transition-name: landing-visual;
+}
+
+[data-morphing] .results-section {
+  view-transition-name: results;
+}
+
+/* Before the update the text is in the composer; after it, in the bubble. */
+[data-morphing] .query-control textarea:not(:placeholder-shown),
+[data-morphing] .conversation-pending .message-user > p:last-child {
+  view-transition-name: sent-message;
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--motion-morph);
+  animation-timing-function: var(--motion-focus);
+}
+
+/*
+ * A turn: short, symmetric cross-fades. What differs hands over quickly, and
+ * what is the same on both sides (earlier turns, the headline) stays solid,
+ * because matching fades always add up to full opacity.
+ */
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-old(hero-title),
+::view-transition-new(hero-title) {
+  animation-duration: 200ms;
+  animation-timing-function: linear;
+}
+
+/*
+ * The welcome view becoming the workspace replaces almost everything, so the
+ * old page clears before the new one settles in, and the two headlines hand
+ * over instead of overlapping.
+ */
+:root[data-morphing='workspace']::view-transition-old(root) {
+  animation: morph-fade-out 150ms ease-out both;
+}
+
+:root[data-morphing='workspace']::view-transition-new(root) {
+  animation: morph-fade-in 320ms cubic-bezier(0.4, 0, 0.2, 1) 40ms both;
+}
+
+:root[data-morphing='workspace']::view-transition-old(hero-title) {
+  animation: morph-fade-out 200ms ease-in both;
+}
+
+:root[data-morphing='workspace']::view-transition-new(hero-title) {
+  animation: morph-fade-in 320ms ease-out 160ms both;
+}
+
+/* The composer's label and action swap quickly; its box does the travelling. */
+::view-transition-old(composer),
+::view-transition-new(composer) {
+  animation-duration: 140ms;
+  animation-timing-function: ease;
+}
+
+/*
+ * The text keeps its size while it travels. Both snapshots are offset by the
+ * composer's text inset, so the typed words and the bubble's words coincide
+ * the whole way and the cross-fade between them cannot be seen.
+ */
+::view-transition-old(sent-message),
+::view-transition-new(sent-message) {
+  inline-size: auto;
+  block-size: auto;
+}
+
+::view-transition-old(sent-message) {
+  animation:
+    morph-sent-inset-out var(--motion-morph) var(--motion-focus) both,
+    morph-fade-out 180ms linear 100ms both;
+}
+
+::view-transition-new(sent-message) {
+  animation:
+    morph-sent-inset-in var(--motion-morph) var(--motion-focus) both,
+    morph-fade-in 180ms linear 80ms both;
+}
+
+/* Only one side exists: the photograph leaves, the shortlist arrives. */
+::view-transition-old(landing-visual):only-child {
+  animation: morph-step-aside 260ms var(--motion-focus) both;
+}
+
+::view-transition-new(results):only-child {
+  animation: morph-step-in 600ms var(--motion-focus) 60ms both;
+}
+
+:root {
+  /* Where the side panel moves: sideways beside the conversation, down below it. */
+  --morph-aside: 2.5rem 0;
+}
+
+@keyframes morph-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes morph-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes morph-sent-inset-out {
+  to {
+    translate: calc(-1 * var(--composer-inset-inline))
+      calc(-1 * var(--composer-inset-block));
+  }
+}
+
+@keyframes morph-sent-inset-in {
+  from {
+    translate: var(--composer-inset-inline) var(--composer-inset-block);
+  }
+}
+
+@keyframes morph-step-aside {
+  to {
+    opacity: 0;
+    translate: var(--morph-aside);
+    scale: 0.97;
+  }
+}
+
+@keyframes morph-step-in {
+  from {
+    opacity: 0;
+    translate: var(--morph-aside);
+  }
+}
+
 @media (max-width: 1180px) {
+  :root {
+    --morph-aside: 0 1.5rem;
+  }
+
   [data-view='workspace'] .experience-frame {
     display: block;
     max-width: 900px;
@@ -2449,9 +2729,12 @@
     margin-top: 2.4rem;
   }
 
+  :root {
+    --composer-inset-inline: 1rem;
+  }
+
   .query-control textarea {
     min-height: 170px;
-    padding-inline: 1rem;
   }
 
   [data-view='workspace'] .query-control textarea {
@@ -2532,6 +2815,14 @@
   .property-card-footer {
     flex-wrap: wrap;
     gap: 0.6rem;
+  }
+
+  .property-skeleton-footer {
+    flex-wrap: wrap;
+  }
+
+  .property-skeleton-footer [data-slot='skeleton']:first-child {
+    flex: 1 0 100%;
   }
 }
 
