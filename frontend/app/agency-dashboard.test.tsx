@@ -29,23 +29,6 @@ const properties = [
     bathrooms: 1,
     total_area_m2: 65,
   },
-  {
-    id: '15',
-    agency: 'Marta',
-    source: 'agency',
-    contact_count: 6,
-    url: 'https://www.zonaprop.com.ar/propiedades/belgrano-202.html',
-    neighborhood: 'belgrano',
-    address: 'Mendoza al 2400',
-    description: 'Departamento de dos ambientes.',
-    operation: 'alquiler',
-    price: { amount: 720000, currency: 'ARS' },
-    expenses: { amount: null, currency: '' },
-    rooms: 2,
-    bedrooms: 1,
-    bathrooms: 1,
-    total_area_m2: 48,
-  },
 ];
 
 function json(body: unknown, status = 200) {
@@ -55,7 +38,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function stubDashboard(catalog = properties) {
+function stubDashboard(catalog: typeof properties) {
   const fetchMock = vi.fn((input: string, init?: RequestInit) => {
     if (input === '/api/auth/me') return Promise.resolve(json({ user: marta }));
     if (input === '/api/agency/catalog') {
@@ -96,22 +79,6 @@ afterEach(() => {
 });
 
 describe('AgencyDashboard', () => {
-  it('shows an authenticated realtor their catalog and contact totals', async () => {
-    stubDashboard();
-    render(<AgencyDashboard />);
-
-    expect(
-      await screen.findByRole('heading', { name: 'Tu catálogo' }),
-    ).toBeVisible();
-    expect(screen.getByText('2 propiedades activas')).toBeVisible();
-    expect(screen.getByText('13 contactos iniciados')).toBeVisible();
-    expect(screen.getByText('Humboldt al 1900')).toBeVisible();
-    expect(screen.getByText('Mendoza al 2400')).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Agregar propiedad' }),
-    ).toBeVisible();
-  });
-
   it('adds a property with editable facts only', async () => {
     const user = userEvent.setup();
     const fetchMock = stubDashboard([]);

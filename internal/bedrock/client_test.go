@@ -142,34 +142,6 @@ func TestChat_AStreamCutBeforeMessageStopIsAnError(t *testing.T) {
 	}
 }
 
-func TestChat_RejectsToolUseWithoutCallingBedrock(t *testing.T) {
-	cases := map[string]llm.ChatRequest{
-		"tool definitions": {
-			Messages: []llm.Message{{Role: "user", Content: "hola"}},
-			Tools:    []llm.ToolDefinition{{Name: "search_listings"}},
-		},
-		"a tool result": {
-			Messages: []llm.Message{{Role: "tool", Content: "[]", ToolCallID: "call_1"}},
-		},
-		"an assistant tool call": {
-			Messages: []llm.Message{{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "search_listings"}}}},
-		},
-	}
-	for name, req := range cases {
-		t.Run(name, func(t *testing.T) {
-			called := false
-			client := newClient(t, func(w http.ResponseWriter, r *http.Request) { called = true })
-
-			if _, err := client.Chat(context.Background(), req); err == nil {
-				t.Error("expected an error")
-			}
-			if called {
-				t.Error("Bedrock was called")
-			}
-		})
-	}
-}
-
 func TestChat_AReplyWithoutTextIsAnErrorNamingTheStopReason(t *testing.T) {
 	t.Run("converse", func(t *testing.T) {
 		client := newClient(t, func(w http.ResponseWriter, r *http.Request) {

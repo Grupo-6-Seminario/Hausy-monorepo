@@ -99,15 +99,15 @@ pets_allowed|no|stated|`}
 // An unrecognised provenance is treated as the weaker of the two. Trusting a
 // malformed field as "stated" would overstate how well established the claim is.
 func TestParse_DowngradesUnrecognisedProvenanceToInferred(t *testing.T) {
-	client := &fakeClient{reply: `amenity|pileta|obvious|`}
+	client := &fakeClient{reply: `amenity|pileta|obvious|pileta climatizada`}
 
-	got, err := listing.NewParser(client, "test-model").Parse(context.Background(), "irrelevante")
+	got, err := listing.NewParser(client, "test-model").Parse(context.Background(), "Con pileta climatizada.")
 	if err != nil {
 		t.Fatalf("Parse returned error: %v", err)
 	}
 
 	assertAttributes(t, got, []listing.Attribute{
-		{Type: "amenity", Value: "pileta", Provenance: listing.Inferred},
+		{Type: "amenity", Value: "pileta", Provenance: listing.Inferred, Evidence: "pileta climatizada"},
 	})
 }
 

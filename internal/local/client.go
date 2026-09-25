@@ -58,43 +58,20 @@ type chatCompletionRequest struct {
 	Messages           []wireMessage  `json:"messages"`
 	Temperature        float64        `json:"temperature"`
 	MaxTokens          int            `json:"max_tokens,omitempty"`
-	Tools              []wireTool     `json:"tools,omitempty"`
 	Stream             bool           `json:"stream,omitempty"`
 	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
 }
 
 type wireMessage struct {
-	Role       string         `json:"role"`
-	Content    string         `json:"content"`
-	ToolCalls  []wireToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string         `json:"tool_call_id,omitempty"`
-	Name       string         `json:"name,omitempty"`
-}
-
-type wireToolCall struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
-	} `json:"function"`
-}
-
-type wireTool struct {
-	Type     string `json:"type"`
-	Function struct {
-		Name        string         `json:"name"`
-		Description string         `json:"description"`
-		Parameters  map[string]any `json:"parameters"`
-	} `json:"function"`
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 type chatCompletionResponse struct {
 	Choices []struct {
 		Message struct {
-			Role      string         `json:"role"`
-			Content   string         `json:"content"`
-			ToolCalls []wireToolCall `json:"tool_calls"`
+			Role    string `json:"role"`
+			Content string `json:"content"`
 		} `json:"message"`
 	} `json:"choices"`
 }
@@ -102,63 +79,9 @@ type chatCompletionResponse struct {
 func toWireMessages(messages []llm.Message) []wireMessage {
 	wire := make([]wireMessage, 0, len(messages))
 	for _, message := range messages {
-		out := wireMessage{
-			Role:       message.Role,
-			Content:    message.Content,
-			ToolCallID: message.ToolCallID,
-			Name:       message.Name,
-		}
-		for _, call := range message.ToolCalls {
-			var wireCall wireToolCall
-			wireCall.ID = call.ID
-			wireCall.Type = "function"
-			wireCall.Function.Name = call.Name
-			// An absent argument object is "{}", not "": a bare empty string
-			// is not JSON and some servers reject the whole request over it.
-			wireCall.Function.Arguments = "{}"
-			if len(call.Arguments) > 0 {
-				wireCall.Function.Arguments = string(call.Arguments)
-			}
-			out.ToolCalls = append(out.ToolCalls, wireCall)
-		}
-		wire = append(wire, out)
+		wire = append(wire, wireMessage{Role: message.Role, Content: message.Content})
 	}
 	return wire
-}
-
-func toWireTools(definitions []llm.ToolDefinition) []wireTool {
-	if len(definitions) == 0 {
-		return nil
-	}
-	wire := make([]wireTool, 0, len(definitions))
-	for _, definition := range definitions {
-		var tool wireTool
-		tool.Type = "function"
-		tool.Function.Name = definition.Name
-		tool.Function.Description = definition.Description
-		tool.Function.Parameters = definition.InputSchema
-		wire = append(wire, tool)
-	}
-	return wire
-}
-
-func fromWireToolCalls(calls []wireToolCall) []llm.ToolCall {
-	if len(calls) == 0 {
-		return nil
-	}
-	out := make([]llm.ToolCall, 0, len(calls))
-	for _, call := range calls {
-		arguments := strings.TrimSpace(call.Function.Arguments)
-		if arguments == "" {
-			arguments = "{}"
-		}
-		out = append(out, llm.ToolCall{
-			ID:        call.ID,
-			Name:      call.Function.Name,
-			Arguments: json.RawMessage(arguments),
-		})
-	}
-	return out
 }
 
 // Chat sends a completion request to the local OpenAI-compatible endpoint.
@@ -173,14 +96,12 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 		maxTokens = 4096
 	}
 
-	// Tool calls arrive whole; only plain text is streamed.
-	stream := req.Stream != nil && len(req.Tools) == 0
+	stream := req.Stream != nil
 	payload := chatCompletionRequest{
 		Model:       model,
 		Messages:    toWireMessages(req.Messages),
 		Temperature: req.Temperature,
 		MaxTokens:   maxTokens,
-		Tools:       toWireTools(req.Tools),
 		Stream:      stream,
 		ChatTemplateKwargs: map[string]any{
 			"enable_thinking": false,
@@ -231,10 +152,7 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 		return nil, fmt.Errorf("api returned 0 choices")
 	}
 
-	return &llm.ChatResponse{
-		Content:   chatResp.Choices[0].Message.Content,
-		ToolCalls: fromWireToolCalls(chatResp.Choices[0].Message.ToolCalls),
-	}, nil
+	return &llm.ChatResponse{Content: chatResp.Choices[0].Message.Content}, nil
 }
 
 // readStream collects an OpenAI-style server-sent event stream, handing each

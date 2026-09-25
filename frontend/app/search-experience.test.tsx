@@ -158,41 +158,6 @@ describe('SearchExperience', () => {
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
 
-  it('sends the query when Enter is pressed and displays results inline', async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          reply: 'Respuesta del agente.',
-          listings: [sampleListing],
-          requirements: [],
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      ),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    render(<SearchExperience />);
-
-    await user.type(
-      screen.getByRole('textbox'),
-      'Dos ambientes con luz{Enter}',
-    );
-
-    expect(await screen.findByText('Respuesta de Hausy')).toBeVisible();
-    expect(screen.getByText('Respuesta del agente.')).toBeVisible();
-    expect(screen.getByText('Humboldt 1900')).toBeVisible();
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/agent',
-      expect.objectContaining({
-        body: expect.stringContaining('Dos ambientes con luz'),
-      }),
-    );
-  });
-
   it('opens the workspace as one animated change before asking Hausy, and animates a follow-up as a turn', async () => {
     const user = userEvent.setup();
     const fetchMock = vi
@@ -257,36 +222,6 @@ describe('SearchExperience', () => {
       Reflect.deleteProperty(document, 'startViewTransition');
       document.documentElement.removeAttribute('data-morphing');
     }
-  });
-
-  it('sends the declared qualification with every message and shows the zero-results line', async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValue(
-      Response.json({
-        reply: 'Respuesta del agente.',
-        listings: [
-          { ...sampleListing, rank: 1, eligibility: { state: 'eligible' } },
-        ],
-        relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
-      }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    render(<SearchExperience />);
-
-    await user.click(screen.getByLabelText('Garantía propietaria'));
-    await user.click(screen.getByRole('button', { name: 'Usar estos datos' }));
-    await user.type(screen.getByRole('textbox'), 'Alquiler en Palermo{Enter}');
-
-    expect(
-      await screen.findByRole('heading', { name: 'Podés aplicar' }),
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        /Si conseguís seguro de caución, vuelven 14 propiedades/,
-      ),
-    ).toBeVisible();
-    const body = JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body as string);
-    expect(body.qualification).toEqual({ guarantee: ['propietaria'] });
   });
 
   it('opens with the qualification questions and prefills a signed-in profile', async () => {

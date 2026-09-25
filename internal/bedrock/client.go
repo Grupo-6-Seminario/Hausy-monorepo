@@ -28,13 +28,8 @@ func New(api *bedrockruntime.Client, model string) *Client {
 	return &Client{api: api, model: model}
 }
 
-// Chat runs one completion. Only plain chat is supported: no caller uses
-// tools, so a request with tool definitions, tool calls or tool results is
-// refused before it reaches Bedrock rather than silently stripped.
+// Chat runs one completion.
 func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatResponse, error) {
-	if len(req.Tools) > 0 {
-		return nil, fmt.Errorf("bedrock: tool use is not supported")
-	}
 	model := req.Model
 	if model == "" {
 		model = c.model
@@ -42,9 +37,6 @@ func (c *Client) Chat(ctx context.Context, req llm.ChatRequest) (*llm.ChatRespon
 	var system []types.SystemContentBlock
 	var messages []types.Message
 	for _, m := range req.Messages {
-		if len(m.ToolCalls) > 0 {
-			return nil, fmt.Errorf("bedrock: tool use is not supported")
-		}
 		text := &types.ContentBlockMemberText{Value: m.Content}
 		switch m.Role {
 		case "system":

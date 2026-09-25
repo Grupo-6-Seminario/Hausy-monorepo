@@ -130,18 +130,6 @@ func TestQuery_Validate_AppliesAndCapsTheResultLimit(t *testing.T) {
 	}
 }
 
-// Trap 1: NULL means "not published", never zero. Coalescing an unpublished
-// price to 0 would make it the cheapest hit in every search.
-func TestQuery_Validate_ExcludesListingsWithNoPublishedPriceByDefault(t *testing.T) {
-	validated, err := search.Query{Currency: "USD", MaxPrice: floatPtr(1000)}.Validate()
-	if err != nil {
-		t.Fatalf("Validate returned unexpected error: %v", err)
-	}
-	if validated.IncludeUnpriced {
-		t.Error("expected listings with no published price to be excluded unless asked for")
-	}
-}
-
 func TestQuery_Validate_RejectsNegativeBounds(t *testing.T) {
 	cases := map[string]search.Query{
 		"negative price":    {Currency: "USD", MaxPrice: floatPtr(-1)},

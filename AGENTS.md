@@ -122,7 +122,7 @@ content fingerprint, so changed listings remain pending.
 | `internal/intake` | Planner: conversation → typed plan (branches, sort, volunteered qualification); Jev with the `HAUSY_LLM` model as fallback, or that model alone (`HAUSY_PLANNER`) |
 | `internal/eligibility` | Pure eligibility evaluator (four states), zero-results relaxations, rule extraction at load time ([ADR 0001](./docs/adr/0001-eligibility-rules-as-data.md)) |
 | `internal/jev` | Vercel AI Gateway transport for Jev: retries, sanitized errors |
-| `internal/search` | Read side: `search.Query`, validation, store read contract |
+| `internal/search` | Read side: `search.Query` and its validation |
 | `internal/llm` · `internal/local` · `internal/bedrock` | Vendor-neutral LLM types · OpenAI-compatible client · Bedrock Converse client; `HAUSY_LLM` picks one |
 | `internal/listing` | Listing model, deterministic parsers |
 | `internal/agency` | Transport-neutral realtor catalog commands and contact-intent contract; HTTP and a future A2A adapter share this seam |
@@ -183,11 +183,18 @@ step as written.
 ### 3. Build — TDD
 
 - Use **`tdd`**: red → green, one vertical slice at a time.
+- Never write unit tests after you write code.
+- Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features
+  work. At the end of E2E tests, produce a verifiable and repeatable artifact.
+- If you must test a system in isolation, first write down all the ways it could fail, then
+  write the code.
+- Gate every new or changed test with **`test-audit`**.
 - Tests live at the seams agreed in step 1.
 - Expected values come from an independent source (literal, worked example, spec). Never
   recompute them the way the code does.
 - Refactoring belongs to review, not the loop.
 - Go: `go test ./...` (stdlib `testing`). Frontend: `npm test` in `frontend/` (vitest).
+  E2E: `npm run test:ui` in `frontend/` (Playwright; screenshots land in `test-results/`).
 
 ### 4. Design rules
 
@@ -221,6 +228,7 @@ Skills this workflow refers to:
 | `codebase-design` | Start of every task |
 | `diagnosing-bugs` | Every bug |
 | `tdd` | Every code change |
+| `test-audit` | Writing, changing, reviewing, or pruning tests |
 | `show-me` | Every PR diagram; explaining structure |
 | `ship` | Finishing a task (`/ship`) |
 | `ponytail` | Choosing the smallest implementation, *after* comprehension |

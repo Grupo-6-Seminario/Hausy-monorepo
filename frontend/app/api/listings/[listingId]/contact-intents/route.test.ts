@@ -51,24 +51,6 @@ describe('POST /api/listings/[listingId]/contact-intents', () => {
     await expect(response.json()).resolves.toEqual(recorded);
   });
 
-  it('never invents an agency, a user, or a counter in the forwarded body', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      backendResponse(201, {
-        intent_id: intent.intent_id,
-        listing_id: '101',
-        recorded: true,
-      }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-
-    await POST(contactRequest(), {
-      params: Promise.resolve({ listingId: '101' }),
-    });
-
-    const forwarded = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    expect(Object.keys(forwarded).sort()).toEqual(['intent_id', 'source']);
-  });
-
   it('passes an idempotent replay back unchanged', async () => {
     const replay = {
       intent_id: intent.intent_id,

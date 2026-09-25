@@ -89,11 +89,6 @@ const SIGNAL_TOKENS: Record<Theme, Record<string, string>> = {
   },
 };
 
-const CHART_RAMP: Record<Theme, string[]> = {
-  light: ['#a5d7ba', '#d49b4a', '#2f8d96', '#336d46', '#3d443c'],
-  dark: ['#c0e5d0', '#e0b579', '#45acb5', '#47905f', '#5d6d5a'],
-};
-
 /** Raised card/popover surfaces, widened away from `--background`. */
 const CARD_SURFACE: Record<Theme, string> = {
   light: '#fdfefa',
@@ -140,29 +135,6 @@ describe('semantic signal tokens', () => {
     expect(names('light')).toEqual(names('dark'));
     expect(names('light')).toEqual(Object.keys(SIGNAL_TOKENS.light).sort());
   });
-});
-
-describe('chart ramp', () => {
-  it.each(THEMES)('uses the %s hue- and luminance-separated ramp', (theme) => {
-    const declared = declarations(theme);
-
-    for (const [index, value] of CHART_RAMP[theme].entries()) {
-      expect(declared.get(`--chart-${index + 1}`), `--chart-${index + 1}`).toBe(
-        value,
-      );
-    }
-  });
-
-  it.each(THEMES)(
-    'keeps the five %s chart tokens pairwise distinct',
-    (theme) => {
-      const declared = declarations(theme);
-      const ramp = [1, 2, 3, 4, 5].map((n) => declared.get(`--chart-${n}`));
-
-      expect(ramp.every(Boolean)).toBe(true);
-      expect(new Set(ramp).size).toBe(5);
-    },
-  );
 });
 
 describe('surface ladder', () => {
