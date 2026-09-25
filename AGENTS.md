@@ -223,7 +223,7 @@ Skills this workflow refers to:
 | `tdd` | Every code change |
 | `show-me` | Every PR diagram; explaining structure |
 | `ship` | Finishing a task (`/ship`) |
-| `ponytail` | Choosing the smallest implementation, *after* comprehension |
+| `ponytail` | Choosing the smallest implementation, *after* comprehension, in pair with tdd|
 | `code-review` | Reviewing a branch or PR |
 | `improve-codebase-architecture` · `grill-with-docs` · `to-spec` | On request |
 | `research` | Primary-source investigation |
