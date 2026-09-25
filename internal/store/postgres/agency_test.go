@@ -7,6 +7,7 @@ import (
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
@@ -136,6 +137,9 @@ func TestStore_ArchivedAgencyPropertyLeavesBuyerSearch(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 	query := search.Query{Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "USD", Limit: 10}
+	if err := store.SaveReview(ctx, created.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
 	before, err := store.Search(ctx, query)
 	if err != nil {
 		t.Fatalf("Search before remove: %v", err)

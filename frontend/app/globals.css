@@ -2621,7 +2621,17 @@
   margin-top: 1.5rem;
 }
 
-.eligibility-section h3 {
+.qualitative-section + .qualitative-section {
+  margin-top: 2rem;
+}
+
+.qualitative-section > h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.eligibility-section h3,
+.eligibility-section h4 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
   font-weight: 600;

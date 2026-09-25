@@ -1,14 +1,96 @@
 package postgres_test
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
+
+func TestQualitySnapshotCannotApproveChangedListingText(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	item := listing.Listing{URL: "snapshot-change", Neighborhood: "palermo", Description: "Muy luminoso.", Operation: "alquiler", ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	var snapshot bytes.Buffer
+	if _, err := store.ExportReviews(ctx, &snapshot, map[string]bool{item.URL: true}); err != nil {
+		t.Fatal(err)
+	}
+	item.Description = "Recibe poca luz natural."
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	report, err := pipeline.LoadQuality(ctx, &snapshot, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Loaded != 0 || report.Failed != 1 || mustSearch(t, store, search.Query{Neighborhoods: []string{"palermo"}}).TotalMatches != 0 {
+		t.Fatalf("stale review republished changed text: %+v", report)
+	}
+}
+
+func TestSearchPublishesOnlyReviewedListings(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	item := listing.Listing{URL: "quality-test", Neighborhood: "palermo", Description: "Luminoso.", Operation: "alquiler", ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	q := search.Query{Neighborhoods: []string{"palermo"}}
+	if got := mustSearch(t, store, q).TotalMatches; got != 0 {
+		t.Fatalf("pending listing leaked: %d", got)
+	}
+	if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustSearch(t, store, q).TotalMatches; got != 1 {
+		t.Fatalf("reviewed listing missing: %d", got)
+	}
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustSearch(t, store, q).TotalMatches; got != 1 {
+		t.Fatalf("idempotent load lost its review: %d", got)
+	}
+	area := 45.0
+	item.TotalAreaM2 = &area
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustSearch(t, store, q).TotalMatches; got != 0 {
+		t.Fatalf("changed published area must wait for review: %d", got)
+	}
+	if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Withheld, Conflicts: []quality.Conflict{{First: "a", Second: "b", Detail: "light"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustSearch(t, store, q).TotalMatches; got != 0 {
+		t.Fatalf("withheld listing leaked: %d", got)
+	}
+	if candidates, err := store.Candidates(ctx, q); err != nil || len(candidates) != 0 {
+		t.Fatalf("withheld listing leaked into buyer candidates: %+v, %v", candidates, err)
+	}
+	item.Description = "Changed description."
+	if err := store.Save(ctx, item); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustSearch(t, store, q).TotalMatches; got != 0 {
+		t.Fatalf("changed listing must wait for re-review: %d", got)
+	}
+}
 
 // The fixture is a worked example: eight listings whose expected answer to each
 // query below was decided by reading them, not by re-running the SQL.
@@ -95,6 +177,9 @@ func seedSearchFixture(t *testing.T, store *postgres.Store) {
 	for _, item := range items {
 		if err := store.Save(ctx, item); err != nil {
 			t.Fatalf("seeding %s failed: %v", item.URL, err)
+		}
+		if err := store.SaveReview(ctx, item.URL, quality.Review{Status: quality.Passed}); err != nil {
+			t.Fatal(err)
 		}
 	}
 }

@@ -7,8 +7,20 @@ Rental search that resolves, at discovery, whether a property fits what the sear
 ### Searching
 
 **Requirement**:
-A quality the searcher needs, or rejects, in the property they are looking for, in their own terms: "luminoso", "con cochera", "cerca del subte", "olvidate de la cochera" (no cochera).
+A quality the searcher treats as necessary, or rejects, in the property they are looking for, in their own terms: "quiero que sea luminoso", "con cochera", "olvidate de la cochera" (no cochera). A listing without support for a required quality is not an exact match.
 _Avoid_: criterion, wish, need
+
+**Preference**:
+A quality the searcher would like but would trade away, as in "idealmente luminoso". It affects ordering without excluding properties.
+_Avoid_: soft requirement
+
+**Qualitative evidence**:
+A passage or published field about the particular property used to assess a subjective requirement. A direct claim can support or contradict it in equivalent wording, but only at the scope described ("dormitorio luminoso" is not a claim about the whole home); structural clues can adjust ranking without establishing a match.
+_Avoid_: verified quality, match probability
+
+**Inconsistent listing**:
+An ad containing two explicit, incompatible claims about the same property detail at the same time, with both claims traceable to its text. It is withheld from buyer search until the inconsistency is resolved.
+_Avoid_: uncertain listing, weakly inferred conflict
 
 **Branch**:
 One or more neighborhoods that share the same requirements within a single search; a search has several branches only when the searcher ties different requirements to different neighborhoods.

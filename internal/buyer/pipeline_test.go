@@ -2,12 +2,14 @@ package buyer_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
@@ -15,6 +17,90 @@ type fakePlanner struct {
 	plans    []intake.Plan
 	turns    [][]string
 	previous []intake.Plan
+}
+
+type evidenceClassifier struct{ fail bool }
+
+type batchEvidenceClassifier struct{ calls int }
+
+func (b *batchEvidenceClassifier) Classify(context.Context, matching.Candidate, []matching.Criterion) ([]matching.Assessment, error) {
+	return nil, errors.New("single candidate call is too expensive")
+}
+func (b *batchEvidenceClassifier) ClassifyBatch(_ context.Context, candidates []matching.Candidate, qs []matching.Criterion) ([][]matching.Assessment, error) {
+	b.calls++
+	out := make([][]matching.Assessment, len(candidates))
+	for i, c := range candidates {
+		answer, refs := "insufficient_evidence", []string{}
+		if c.ID == "explicit" {
+			answer, refs = "supported", []string{"description"}
+		}
+		out[i] = []matching.Assessment{{CriterionID: qs[0].ID, Assessment: answer, EvidenceRefs: refs, Status: "evaluated"}}
+	}
+	return out, nil
+}
+
+func (f evidenceClassifier) Classify(_ context.Context, c matching.Candidate, qs []matching.Criterion) ([]matching.Assessment, error) {
+	if f.fail {
+		return nil, errors.New("gateway unavailable")
+	}
+	assessment := "insufficient_evidence"
+	refs := []string{}
+	if c.ID == "explicit" || c.ID == "z-explicit" {
+		assessment, refs = "supported", []string{"description"}
+	}
+	out := make([]matching.Assessment, len(qs))
+	for i, q := range qs {
+		out[i] = matching.Assessment{CriterionID: q.ID, Assessment: assessment, EvidenceRefs: refs, Status: "evaluated"}
+	}
+	return out, nil
+}
+
+func TestRequiredLightGroupsEvidenceBeforeHintsAndSurvivesGatewayFailure(t *testing.T) {
+	plan := palermoPlan("price_asc")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	explicit := candidate("explicit", "palermo", 750000, nil)
+	explicit.Listing.Description = "Departamento luminoso con luz natural en living y dormitorio."
+	hint := candidate("hint", "palermo", 500000, nil, listing.Attribute{Type: "exposure", Value: "frente", Provenance: listing.Stated})
+	hint.Listing.Description = "Departamento al frente."
+	inv := stock{requireAttributes: true, byHood: map[string][]eligibility.Candidate{"palermo": {hint, explicit}}}
+	good := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{})), "luminoso", nil)
+	if got := urls(good); len(got) != 2 || got[0] != "explicit" || got[1] != "hint" || good.Listings[0].QualitativeFit != "exact" || good.Listings[1].QualitativeFit != "unconfirmed" {
+		t.Fatalf("direct evidence should precede a cheaper hint: %+v", good.Listings)
+	}
+	unavailable := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{fail: true})), "luminoso", nil)
+	if len(unavailable.Listings) != 2 || unavailable.Listings[0].QualitativeFit != "unconfirmed" {
+		t.Fatalf("classification outage should preserve candidates as unconfirmed: %+v", unavailable.Listings)
+	}
+}
+
+func TestBuyerAssessesComparableListingsInOneBatch(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	explicit := candidate("explicit", "palermo", 700000, nil)
+	explicit.Listing.Description = "Muy luminoso."
+	unknown := candidate("unknown", "palermo", 600000, nil)
+	unknown.Listing.Description = "Al frente."
+	classifier := &batchEvidenceClassifier{}
+	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {unknown, explicit}}}, &fakeWriter{}), buyer.WithMatching(classifier)), "luminoso", nil)
+	if classifier.calls != 1 || resp.Listings[0].URL != "explicit" || resp.Listings[1].QualitativeFit != "unconfirmed" {
+		t.Fatalf("buyer must batch one comparable group: calls=%d listings=%+v", classifier.calls, resp.Listings)
+	}
+}
+
+func TestPreferredLightRanksExplicitStatementAboveOrientationHint(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	explicit := candidate("z-explicit", "palermo", 750000, nil)
+	explicit.Listing.Description = "Living y dormitorio muy luminosos."
+	hint := candidate("a-hint", "palermo", 500000, nil,
+		listing.Attribute{Type: "exposure", Value: "frente", Provenance: listing.Stated},
+		listing.Attribute{Type: "orientation", Value: "norte", Provenance: listing.Stated})
+	hint.Listing.Description = "Departamento al frente, orientado al norte."
+	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": {hint, explicit}}}
+	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{})), "idealmente luminoso", nil)
+	if got := urls(resp); len(got) != 2 || got[0] != "z-explicit" || resp.Listings[0].QualitativeFit != "" {
+		t.Fatalf("preferred direct claim should rank above weak hints without exact grouping: %+v", resp.Listings)
+	}
 }
 
 func (f *fakePlanner) Plan(_ context.Context, turns []string, previous intake.Plan) (intake.Plan, error) {
@@ -27,15 +113,37 @@ func (f *fakePlanner) Plan(_ context.Context, turns []string, previous intake.Pl
 }
 
 type stock struct {
-	byHood map[string][]eligibility.Candidate
+	byHood            map[string][]eligibility.Candidate
+	requireAttributes bool
 }
 
 func (f stock) Candidates(_ context.Context, q search.Query) ([]eligibility.Candidate, error) {
+	if f.requireAttributes && len(q.RequiredAttributes) > 0 {
+		return nil, nil // the stored inventory has no natural_light rows
+	}
 	var out []eligibility.Candidate
 	for _, h := range q.Neighborhoods {
 		out = append(out, f.byHood[h]...)
 	}
 	return out, nil
+}
+
+func TestRequiredLightStillShowsStoredProseAsUnconfirmedAlternative(t *testing.T) {
+	max := 800000.0
+	rooms := 2
+	plan := intake.Plan{Intent: "new_search", Branches: []search.Query{{
+		Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &max,
+		MinRooms: &rooms, MaxRooms: &rooms,
+		RequiredAttributes: []search.AttributeFilter{{Type: "natural_light", Value: "high"}},
+	}}}
+	brightProse := candidate("bright-prose", "palermo", 700000, nil)
+	brightProse.Listing.Description = "Departamento muy luminoso, dos ambientes."
+	inv := stock{requireAttributes: true, byHood: map[string][]eligibility.Candidate{"palermo": {brightProse}}}
+	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{})),
+		"Quiero alquilar un dos ambientes en Palermo, luminoso, hasta 800 mil pesos", nil)
+	if len(resp.Listings) != 1 || resp.Listings[0].URL != "bright-prose" || resp.Listings[0].QualitativeFit != "unconfirmed" {
+		t.Fatalf("missing light attribute must not make stored inventory vanish; got %+v", resp.Listings)
+	}
 }
 
 func (stock) AdmissibleFacts(context.Context) (map[string]bool, error) {

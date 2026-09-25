@@ -68,6 +68,7 @@ export interface Listing {
   parsed_at?: string;
   parser_model?: string;
   eligibility?: Eligibility;
+  qualitative_fit?: 'exact' | 'unconfirmed';
 }
 
 export interface Requirement {

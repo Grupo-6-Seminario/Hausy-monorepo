@@ -70,6 +70,11 @@ type Classifier interface {
 	Classify(context.Context, Candidate, []Criterion) ([]Assessment, error)
 }
 
+// BatchClassifier can assess a whole comparable group in one provider call.
+type BatchClassifier interface {
+	ClassifyBatch(context.Context, []Candidate, []Criterion) ([][]Assessment, error)
+}
+
 type Evaluator struct{ classifier Classifier }
 
 func New(classifier Classifier) *Evaluator { return &Evaluator{classifier: classifier} }
@@ -103,14 +108,29 @@ func (e *Evaluator) Evaluate(ctx context.Context, req Request) (Result, error) {
 	}
 	result := Result{PolicyVersion: "evidence-tiers-v1", Matches: []Match{}}
 	urls := map[string]string{}
-	for _, candidate := range req.Candidates {
+	var batched [][]Assessment
+	if batch, ok := e.classifier.(BatchClassifier); ok && len(req.Criteria) > 0 && len(req.Candidates) > 1 {
+		var err error
+		batched, err = batch.ClassifyBatch(ctx, req.Candidates, req.Criteria)
+		if err != nil {
+			return Result{}, err
+		}
+		if len(batched) != len(req.Candidates) {
+			return Result{}, fmt.Errorf("matching: incomplete batch")
+		}
+	}
+	for i, candidate := range req.Candidates {
 		var assessments []Assessment
 		var err error
 		if len(req.Criteria) > 0 {
 			if e.classifier == nil {
 				return Result{}, fmt.Errorf("matching: missing classifier")
 			}
-			assessments, err = e.classifier.Classify(ctx, candidate, req.Criteria)
+			if batched != nil {
+				assessments = batched[i]
+			} else {
+				assessments, err = e.classifier.Classify(ctx, candidate, req.Criteria)
+			}
 		}
 		if err != nil {
 			return Result{}, err

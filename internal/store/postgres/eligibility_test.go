@@ -10,6 +10,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
@@ -20,6 +21,9 @@ func TestCandidatesReturnEveryHardFilterMatchWithItsRules(t *testing.T) {
 		t.Helper()
 		if err := store.Save(ctx, listing.Listing{Source: "zonaprop", URL: url, Neighborhood: hood, Description: "Departamento.", Operation: "alquiler",
 			Price: listing.Money{Amount: float64Ptr(price), Currency: "ARS"}, ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}); err != nil {
+			t.Fatal(err)
+		}
+		if err := store.SaveReview(ctx, url, quality.Review{Status: quality.Passed}); err != nil {
 			t.Fatal(err)
 		}
 	}

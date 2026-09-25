@@ -95,10 +95,10 @@ INSERT INTO listings (
 	source, url, neighborhood, agency_id, address, description,
 	operation, price_amount, price_currency, expenses_amount, expenses_currency,
 	total_area_m2, covered_area_m2, rooms, bedrooms, bathrooms, parking_spaces,
-	age_years, floor, scraped_at, parsed_at, parser_model
+	age_years, floor, scraped_at, parsed_at, parser_model, quality_status
 ) VALUES (
 	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-	$12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+	$12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, 'pending'
 )
 ON CONFLICT (url) DO UPDATE SET
 	source = EXCLUDED.source,

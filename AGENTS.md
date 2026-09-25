@@ -109,6 +109,11 @@ frontend (/api/agent) → cmd/hausy POST /api/messages → internal/buyer pipeli
 frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Postgres
 ```
 
+After the first inventory audit, `cmd/listings audit` reads stored descriptions
+from Postgres and writes `data/listings.quality.jsonl`; `load` restores those
+review decisions after the other JSONL files. Each decision is bound to a
+content fingerprint, so changed listings remain pending.
+
 | Path | Role |
 | --- | --- |
 | `cmd/hausy` | HTTP API serving the buyer agent |
@@ -136,11 +141,11 @@ frontend (/api/agency/catalog) → cmd/hausy → internal/agency.Catalog → Pos
 
 ### Data rules
 
-- **All three JSONL files are committed.** Model parsing is not reproducible; `load` alone must rebuild
+- **All four JSONL files are committed.** Model parsing and quality review are not reproducible; `load` alone must rebuild
   an identical database.
 - **Deterministic fields** (price, expensas, m², rooms, baths, parking, age, disposition) are
   parsed by pure functions in `internal/listing`.
-- **The LLM reads only prose-only qualities** (light, noise, condition, amenities, transit).
+- **At parse time, the LLM reads only prose-only qualities** (light, noise, condition, amenities, transit). The separate quality audit compares stored prose with published facts.
 - A published field always outranks the model's reading.
 - Normalization bugs: fix `internal/listing`, re-run `load`. Never re-scrape to fix parsing.
 
@@ -149,6 +154,7 @@ docker compose up -d
 go run ./cmd/listings load     # fast, idempotent
 go run ./cmd/listings parse    # slow, resumable, non-deterministic — deliberate only
 go run ./cmd/listings eligibility  # Jev; slow, resumable, non-deterministic — deliberate only
+go run ./cmd/listings audit        # review stored DB descriptions; writes committed quality snapshot
 ```
 
 ## Engineering workflow
