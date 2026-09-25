@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -190,6 +191,72 @@ describe('SearchExperience', () => {
         body: expect.stringContaining('Dos ambientes con luz'),
       }),
     );
+  });
+
+  it('opens the workspace as one animated change before asking Hausy, and animates a follow-up as a turn', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ reply: 'Respuesta del agente.', listings: [] }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    // The browser captures the old view before it lets the page change.
+    let captureOldView = () => {};
+    const startViewTransition = vi.fn((update: () => void) => {
+      const updated = new Promise<void>((resolve) => {
+        captureOldView = () => {
+          update();
+          resolve();
+        };
+      });
+      return {
+        updateCallbackDone: updated,
+        ready: updated,
+        finished: new Promise<void>(() => {}),
+      };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: startViewTransition,
+    });
+    try {
+      render(<SearchExperience />);
+
+      await user.type(screen.getByRole('textbox'), 'Dos ambientes{Enter}');
+
+      expect(startViewTransition).toHaveBeenCalledOnce();
+      expect(document.documentElement).toHaveAttribute(
+        'data-morphing',
+        'workspace',
+      );
+      expect(
+        screen.getByRole('heading', {
+          name: 'Un lugar para tu forma de vivir.',
+        }),
+      ).toBeVisible();
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await act(async () => captureOldView());
+
+      expect(
+        screen.getByRole('heading', { name: 'Sigamos con tu búsqueda.' }),
+      ).toBeVisible();
+      expect(screen.getByText('Dos ambientes')).toBeVisible();
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith('/api/agent', expect.anything()),
+      );
+      await screen.findByText('Respuesta del agente.');
+
+      // A follow-up joins the conversation in place instead.
+      await user.type(screen.getByRole('textbox'), 'Con balcón{Enter}');
+      expect(document.documentElement).toHaveAttribute('data-morphing', 'turn');
+      await act(async () => captureOldView());
+      expect(screen.getByText('Con balcón')).toBeVisible();
+    } finally {
+      Reflect.deleteProperty(document, 'startViewTransition');
+      document.documentElement.removeAttribute('data-morphing');
+    }
   });
 
   it('sends the declared qualification with every message and shows the zero-results line', async () => {

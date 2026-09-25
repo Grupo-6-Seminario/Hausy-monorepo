@@ -20,6 +20,7 @@ import type {
 } from '@/lib/types';
 import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
+import { morph } from '@/lib/view-transition';
 
 import { AgentReply } from './agent-reply';
 import { LandingDiscovery, LandingPortrait } from './landing-discovery';
@@ -119,18 +120,23 @@ export function SearchExperience() {
         return Promise.reject(new Error('La consulta no puede estar vacía.'));
       }
 
-      setError('');
-      setState('loading');
-      setQualificationOpen(false);
-      setPendingQuery(normalizedQuery);
-      setPendingReply('');
-      setQuery('');
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
 
       sessionRef.current ||= `browser-${crypto.randomUUID()}`;
       try {
+        // The request waits for the new view: its results render into it.
+        // Read from the page: this callback outlives the render it came from.
+        const fromWelcome = shellRef.current?.dataset.view === 'welcome';
+        await morph(fromWelcome ? 'workspace' : 'turn', () => {
+          setError('');
+          setState('loading');
+          setQualificationOpen(false);
+          setPendingQuery(normalizedQuery);
+          setPendingReply('');
+          setQuery('');
+        });
         const response = await fetch('/api/agent', {
           method: 'POST',
           headers: {
