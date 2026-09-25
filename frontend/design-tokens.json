@@ -59,6 +59,7 @@
   "motion": {
     "fast": { "$type": "duration", "$value": "180ms" },
     "enter": { "$type": "duration", "$value": "640ms" },
+    "morph": { "$type": "duration", "$value": "560ms" },
     "focusEase": {
       "$type": "cubicBezier",
       "$value": [0.16, 1, 0.3, 1]

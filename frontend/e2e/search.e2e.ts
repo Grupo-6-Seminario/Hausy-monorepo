@@ -210,6 +210,76 @@ test('a failed request restores the query without requiring WebGPU', async ({
   await expectNoOverflow(page);
 });
 
+// The view-transition layers that animate during the next 1.5 s, by name.
+function morphLayers(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const seen = new Set<string>();
+        const started = performance.now();
+        const look = () => {
+          for (const animation of document.getAnimations()) {
+            const layer = (animation.effect as KeyframeEffect | null)
+              ?.pseudoElement;
+            if (layer?.startsWith('::view-transition')) seen.add(layer);
+          }
+          if (performance.now() - started < 1500) requestAnimationFrame(look);
+          else resolve([...seen]);
+        };
+        requestAnimationFrame(look);
+      }),
+  );
+}
+
+test('sending glides the composer and the message into the workspace', async ({
+  page,
+}) => {
+  await page.route('**/api/agent', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.fulfill({
+      json: { reply: 'Una opción.', listings: [listing] },
+    });
+  });
+  await openSearch(page);
+  await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
+
+  const layers = morphLayers(page);
+  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+
+  expect(await layers).toEqual(
+    expect.arrayContaining([
+      '::view-transition-group(composer)',
+      '::view-transition-group(sent-message)',
+      '::view-transition-old(landing-visual)',
+      '::view-transition-new(results)',
+    ]),
+  );
+  await expect(
+    page.getByRole('heading', { name: 'Humboldt 1900', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('html')).not.toHaveAttribute('data-morphing');
+});
+
+test('reduced motion sends without animating the view', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('**/api/agent', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.fulfill({
+      json: { reply: 'Una opción.', listings: [listing] },
+    });
+  });
+  await openSearch(page);
+  await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
+
+  const layers = morphLayers(page);
+  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+
+  expect(await layers).toEqual([]);
+  await expect(
+    page.getByRole('heading', { name: 'Humboldt 1900', exact: true }),
+  ).toBeVisible();
+});
+
 test('reduced motion stays usable after resize', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openSearch(page);
