@@ -74,7 +74,11 @@ func declaredOnly(q eligibility.Qualification, text string) eligibility.Qualific
 
 // repair undoes what the local model was seen doing (experiments/intake,
 // 2026-09-23): copying every field of the JSON shape with 0, which would reach
-// SQL as a real bound, and naming an amenity as a type ("cochera").
+// SQL as a real bound, naming an amenity as a type ("cochera"), and inventing
+// a value ("amenities" as amenity=any). "sin amenities" came back as excluded
+// and preferred amenity=any, a withdrawal, so those are dropped; a required one
+// is a demand the query cannot express, and stays for validation to reject
+// rather than vanish.
 func repair(q *search.Query) {
 	for _, f := range []**float64{&q.MinPrice, &q.MaxPrice, &q.MaxExpensesARS, &q.MinTotalAreaM2} {
 		if *f != nil && **f == 0 {
@@ -87,9 +91,11 @@ func repair(q *search.Query) {
 		}
 	}
 	q.RequiredAttributes = repairFilters(q.RequiredAttributes)
-	q.PreferredAttributes = repairFilters(q.PreferredAttributes)
-	q.ExcludedAttributes = repairFilters(q.ExcludedAttributes)
+	q.PreferredAttributes = slices.DeleteFunc(repairFilters(q.PreferredAttributes), invented)
+	q.ExcludedAttributes = slices.DeleteFunc(repairFilters(q.ExcludedAttributes), invented)
 }
+
+func invented(f search.AttributeFilter) bool { return !listing.AllowsValue(f.Type, f.Value) }
 
 func repairFilters(filters []search.AttributeFilter) []search.AttributeFilter {
 	var out []search.AttributeFilter

@@ -58,6 +58,32 @@ func TestQwenTreatsZerosAsUnmentionedAndRepairsAmenityShorthand(t *testing.T) {
 	}
 }
 
+// Seen live (2026-09-25): "sin amenities" came back as amenity=any, which is
+// not a value, and the whole turn failed with a 502.
+func TestQwenDropsAnAttributeValueOutsideTheVocabulary(t *testing.T) {
+	f := &fakeLLM{reply: `{"intent":"refine","sort":"relevance","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","currency":"ARS","max_price":800000,"min_rooms":2,"required_attributes":[],"preferred_attributes":[{"type":"amenity","value":"any"}],"excluded_attributes":[{"type":"amenity","value":"any"}]}],"qualification":{"guarantee":[],"income_band":[]}}`}
+	p, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k", "sin amenities"}, intake.Plan{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := p.Branches[0]
+	if b.Neighborhoods[0] != "palermo" || *b.MaxPrice != 800000 || *b.MinRooms != 2 {
+		t.Fatalf("the rest of the search must survive: %+v", b)
+	}
+	if len(b.RequiredAttributes)+len(b.PreferredAttributes)+len(b.ExcludedAttributes) != 0 {
+		t.Fatalf("amenity=any must not reach the query: %+v", b)
+	}
+}
+
+// "con amenities" is a requirement without saying which: dropping it would
+// widen the search behind the user's back, so it must reach the caller.
+func TestQwenNeverDropsARequirementItCannotRead(t *testing.T) {
+	f := &fakeLLM{reply: `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","currency":"ARS","max_price":800000,"min_rooms":2,"required_attributes":[{"type":"amenity","value":"any"}]}]}`}
+	if p, err := (intake.Planner{Primary: intake.Qwen{Client: f}}).Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k"}, intake.Plan{}); err == nil {
+		t.Fatalf("a required amenity=any must not be dropped silently, got %+v", p)
+	}
+}
+
 // Seen live: the model filled income_band "0-1000000" for users who never
 // mentioned income. A declared fact changes eligibility, so it must be said.
 func TestQwenKeepsOnlyQualificationTheUserActuallyMentioned(t *testing.T) {
