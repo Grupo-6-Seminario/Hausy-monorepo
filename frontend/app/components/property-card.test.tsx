@@ -434,6 +434,28 @@ describe('PropertyCard qualities', () => {
     expect(screen.queryByText('Seguridad')).toBeNull();
   });
 
+  // Seen live 2026-09-26: an ad names its amenities in one sentence, and the
+  // card quoted that sentence once per amenity.
+  it('quotes a sentence once when it names several of the asked qualities', () => {
+    const sentence = 'Piscina, SUM, Parrilla, Gimnasio';
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          matched: [
+            { type: 'amenity', value: 'gimnasio', provenance: 'stated', evidence: sentence },
+            { type: 'amenity', value: 'pileta', provenance: 'stated', evidence: sentence },
+          ],
+        }}
+      />,
+    );
+
+    const items = within(screen.getByRole('region', { name: 'Coincide con lo que pediste' })).getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toHaveTextContent('Gimnasio · Pileta');
+    expect(screen.getAllByText(sentence)).toHaveLength(1);
+  });
+
   it('shows no qualities when the search asked for none', () => {
     render(<PropertyCard listing={{ ...sampleListing, matched: undefined }} />);
 
