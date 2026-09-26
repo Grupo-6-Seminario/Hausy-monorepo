@@ -108,7 +108,7 @@ export function PropertyCard({
     bedrooms,
     bathrooms,
     floor,
-    attributes = [],
+    matched = [],
     eligibility,
   } = listing;
   const conditions = (eligibility?.conditions ?? []).filter(
@@ -233,14 +233,14 @@ export function PropertyCard({
         </ul>
       ) : null}
 
-      {attributes.length > 0 ? (
+      {matched.length > 0 ? (
         <section
           className="property-evidence"
-          aria-label="Cualidades identificadas"
+          aria-label="Coincide con lo que pediste"
         >
-          <h5>Cualidades identificadas</h5>
+          <h5>Coincide con lo que pediste</h5>
           <ul>
-            {attributes.map((attribute, index) => {
+            {matched.map((attribute, index) => {
               const isStated = attribute.provenance === 'stated';
               return (
                 <li

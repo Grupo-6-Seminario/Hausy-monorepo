@@ -34,6 +34,7 @@ const sampleListing: Listing = {
     },
   ],
 };
+sampleListing.matched = sampleListing.attributes;
 
 beforeEach(() => window.sessionStorage.clear());
 

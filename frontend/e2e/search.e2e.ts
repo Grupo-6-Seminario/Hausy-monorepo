@@ -1,6 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // Deliberately fixed UI fixtures; these tests do not claim backend/model quality.
+const attributes = [
+  {
+    type: 'natural_light',
+    value: 'high',
+    provenance: 'stated',
+    evidence: 'Muy luminoso.',
+  },
+  {
+    type: 'noise_level',
+    value: 'quiet',
+    provenance: 'inferred',
+    evidence: 'Ubicado al contrafrente.',
+  },
+];
 const listing = {
   id: 101,
   rank: 1,
@@ -15,20 +29,8 @@ const listing = {
   bedrooms: 1,
   bathrooms: 1,
   total_area_m2: 50,
-  attributes: [
-    {
-      type: 'natural_light',
-      value: 'high',
-      provenance: 'stated',
-      evidence: 'Muy luminoso.',
-    },
-    {
-      type: 'noise_level',
-      value: 'quiet',
-      provenance: 'inferred',
-      evidence: 'Ubicado al contrafrente.',
-    },
-  ],
+  attributes,
+  matched: attributes,
 };
 
 async function openSearch(page: Page) {
@@ -76,7 +78,7 @@ test('welcome, shortlist and return to conversation remain usable', async ({
     animations: 'disabled',
     fullPage: true,
   });
-  await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
+  await page.getByRole('textbox').fill('Dos ambientes con luz y silencio en Palermo');
   await page.getByRole('button', { name: 'Buscar hogares' }).click();
   await expect(
     page.getByRole('heading', { name: 'Humboldt 1900', exact: true }),

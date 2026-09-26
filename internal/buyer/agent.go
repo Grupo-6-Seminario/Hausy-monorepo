@@ -51,6 +51,9 @@ type Result struct {
 	// QualitativeFit distinguishes evidenced matches from results that still
 	// need a human to confirm a required prose-only quality.
 	QualitativeFit string `json:"qualitative_fit,omitempty"`
+	// Matched are the attributes that answer what the searcher asked for. The
+	// card shows only these; Attributes keeps the rest for a detail view.
+	Matched []listing.Attribute `json:"matched,omitempty"`
 }
 
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.
