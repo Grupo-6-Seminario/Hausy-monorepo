@@ -227,5 +227,4 @@ returned agent reply in a modal.
 
 Accounts are optional: searching never requires one. `/ingresar` signs searchers and realtors in
 through `/api/auth/*`, which keeps the backend's session token in an HttpOnly `hausy_session`
-cookie. Without a reachable database the API keeps accounts in memory, so they disappear on
-restart.
+cookie. Accounts live in Postgres.
