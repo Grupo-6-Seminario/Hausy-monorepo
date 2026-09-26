@@ -90,6 +90,20 @@ func writerClient(ctx context.Context, c serverConfig, shared llm.Client) (llm.C
 	return client, nil
 }
 
+// awsCredentials resolves the Bedrock credentials once. The SDK otherwise
+// resolves them on the first model call, so an expired `aws login` would start
+// a server whose every reply falls back to the template.
+func awsCredentials() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = cfg.Credentials.Retrieve(ctx)
+	return err
+}
+
 func envOrDefault(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -131,6 +145,12 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("model_configured", "provider", config.llmProvider, "writer_provider", config.writerProvider)
+	if config.llmProvider == "bedrock" || config.writerProvider == "bedrock" {
+		if err := awsCredentials(); err != nil {
+			slog.Error("startup_failed", "stage", "aws_credentials", "error_class", logging.ErrorClass(err))
+			os.Exit(1)
+		}
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	store, err := postgres.Open(ctx, config.databaseURI)
