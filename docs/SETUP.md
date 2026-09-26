@@ -202,6 +202,8 @@ By default, the API listens at `http://127.0.0.1:8080` and sends messages to the
 OpenAI-compatible model at `http://127.0.0.1:8000`. Set `LOCAL_LLM_TOKEN` when the local model
 requires authentication. With `HAUSY_LLM=bedrock`, it sends them to `BEDROCK_MODEL_ID` on
 Bedrock instead, signed with `AWS_PROFILE`; Jev still plans when `HAUSY_PLANNER=jev`.
+Either Bedrock setting makes the API refuse to start until those credentials resolve: a
+`startup_failed` log with `"stage":"aws_credentials"` means `aws login` again (section 4).
 
 The API writes one JSON log line per event to stdout. Set `HAUSY_LOG_LEVEL` to `debug`,
 `info` (default), `warn`, or `error`. Each request has an `X-Request-ID` response header
@@ -225,5 +227,4 @@ returned agent reply in a modal.
 
 Accounts are optional: searching never requires one. `/ingresar` signs searchers and realtors in
 through `/api/auth/*`, which keeps the backend's session token in an HttpOnly `hausy_session`
-cookie. Without a reachable database the API keeps accounts in memory, so they disappear on
-restart.
+cookie. Accounts live in Postgres.

@@ -295,7 +295,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 				hidden++
 				continue
 			}
-			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative, requiredAmenities: amenities})
+			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict, Matched: matched(c.Listing, branch)}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative, requiredAmenities: amenities})
 		}
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_eligibility", slog.Int("branch", branchIndex),
 			slog.Int("count", len(candidates)), slog.Int("hidden", hidden-previousHidden),
@@ -360,6 +360,19 @@ func statesAll(l listing.Listing, filters []search.AttributeFilter) bool {
 		}
 	}
 	return true
+}
+
+// matched returns the listing's attributes that answer a quality the branch
+// asks for, required or preferred, in the listing's order.
+func matched(l listing.Listing, q search.Query) []listing.Attribute {
+	var out []listing.Attribute
+	for _, a := range l.Attributes {
+		asked := func(f search.AttributeFilter) bool { return f.Type == a.Type && f.Value == a.Value }
+		if slices.ContainsFunc(q.RequiredAttributes, asked) || slices.ContainsFunc(q.PreferredAttributes, asked) {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // confirmAmenities ranks a listing that does not state every required amenity

@@ -108,12 +108,24 @@ export function PropertyCard({
     bedrooms,
     bathrooms,
     floor,
-    attributes = [],
+    matched = [],
     eligibility,
   } = listing;
   const conditions = (eligibility?.conditions ?? []).filter(
     (condition) => condition.rule.evidence,
   );
+  // Ads name their amenities in one sentence, so a shared quote shows once.
+  const qualities: { labels: string[]; attribute: ListingAttribute }[] = [];
+  for (const attribute of matched) {
+    const same = qualities.find(
+      ({ attribute: first }) =>
+        attribute.evidence &&
+        first.evidence === attribute.evidence &&
+        first.provenance === attribute.provenance,
+    );
+    if (same) same.labels.push(formatAttributeLabel(attribute));
+    else qualities.push({ labels: [formatAttributeLabel(attribute)], attribute });
+  }
 
   // Recording interest must never stand between the searcher and the agency, so
   // "Contactar" stays a plain link to the publication: the browser navigates
@@ -233,22 +245,22 @@ export function PropertyCard({
         </ul>
       ) : null}
 
-      {attributes.length > 0 ? (
+      {qualities.length > 0 ? (
         <section
           className="property-evidence"
-          aria-label="Cualidades identificadas"
+          aria-label="Coincide con lo que pediste"
         >
-          <h5>Cualidades identificadas</h5>
+          <h5>Coincide con lo que pediste</h5>
           <ul>
-            {attributes.map((attribute, index) => {
+            {qualities.map(({ labels, attribute }) => {
               const isStated = attribute.provenance === 'stated';
               return (
                 <li
-                  key={`${attribute.type}-${attribute.value}-${index}`}
+                  key={labels.join()}
                   className={isStated ? 'is-published' : 'is-inferred'}
                 >
                   <div>
-                    <span>{formatAttributeLabel(attribute)}</span>
+                    <span>{labels.join(' · ')}</span>
                     <small
                       className={isStated ? undefined : 'evidence-provenance'}
                     >
