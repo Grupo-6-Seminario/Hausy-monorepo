@@ -367,3 +367,51 @@ func TestBranchCountSeparatesUnconfirmedListings(t *testing.T) {
 		t.Fatalf("want 2 matches and 1 unconfirmed, got %+v", got)
 	}
 }
+
+// Seen live 2026-09-26: the searcher picked two amenities and every card listed
+// all ten parsed qualities. A card carries only what answers the request.
+func TestResultsCarryOnlyTheQualitiesTheSearcherAskedFor(t *testing.T) {
+	pool := listing.Attribute{Type: "amenity", Value: "pileta", Provenance: listing.Stated, Evidence: "PILETA"}
+	gym := listing.Attribute{Type: "amenity", Value: "gimnasio", Provenance: listing.Stated, Evidence: "GYM"}
+	front := listing.Attribute{Type: "exposure", Value: "frente", Provenance: listing.Stated, Evidence: "Frente"}
+	balcony := listing.Attribute{Type: "outdoor_space", Value: "balcon", Provenance: listing.Stated, Evidence: "SALIDA A BALCON"}
+	security := listing.Attribute{Type: "amenity", Value: "seguridad", Provenance: listing.Stated, Evidence: "SEGURIDAD"}
+	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": {
+		candidate("all", "palermo", 700000, nil, security, pool, balcony, gym, front),
+		candidate("pool-only", "palermo", 700000, nil, balcony, pool),
+	}}}
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "pileta"}, {Type: "amenity", Value: "gimnasio"}}
+	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{{Type: "exposure", Value: "frente"}}
+
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), "Dos ambientes en Palermo con pileta y gimnasio, al frente", nil)
+
+	body, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Listings []struct {
+			URL     string `json:"url"`
+			Matched []struct{ Type, Value, Evidence string }
+		}
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatal(err)
+	}
+	var cards []string
+	for _, l := range got.Listings {
+		card := l.URL + ":"
+		for _, m := range l.Matched {
+			card += " " + m.Type + "=" + m.Value + "«" + m.Evidence + "»"
+		}
+		cards = append(cards, card)
+	}
+	want := []string{
+		"all: amenity=pileta«PILETA» amenity=gimnasio«GYM» exposure=frente«Frente»",
+		"pool-only: amenity=pileta«PILETA»",
+	}
+	if !slices.Equal(cards, want) {
+		t.Fatalf("got %q\nwant %q", cards, want)
+	}
+}

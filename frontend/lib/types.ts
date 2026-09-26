@@ -65,6 +65,8 @@ export interface Listing {
   floor?: string | null;
   scraped_at?: string;
   attributes?: ListingAttribute[];
+  // The attributes that answer what the searcher asked for; the card shows only these.
+  matched?: ListingAttribute[];
   parsed_at?: string;
   parser_model?: string;
   eligibility?: Eligibility;

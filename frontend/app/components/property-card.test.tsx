@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -46,6 +46,7 @@ const sampleListing: Listing = {
     },
   ],
 };
+sampleListing.matched = sampleListing.attributes;
 
 describe('PropertyCard', () => {
   // "Sin datos de requisitos" was shown even when the ad publishes its
@@ -400,5 +401,43 @@ describe('PropertyCard eligibility', () => {
     const condition = screen.getByText(/ver cuáles permite la propietaria/);
     expect(badge.closest('article')).not.toBeNull();
     expect(condition.closest('article')).toBe(badge.closest('article'));
+  });
+});
+
+describe('PropertyCard qualities', () => {
+  // Seen live 2026-09-26: the searcher picked two amenities and the card listed
+  // all ten qualities Hausy had parsed from the ad.
+  it('shows only the qualities that answer the search', () => {
+    const pool = { type: 'amenity', value: 'pileta', provenance: 'stated', evidence: 'PILETA' } as const;
+    const gym = { type: 'amenity', value: 'gimnasio', provenance: 'stated', evidence: 'GYM' } as const;
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          attributes: [
+            { type: 'amenity', value: 'seguridad', provenance: 'stated', evidence: 'SEGURIDAD' },
+            pool,
+            { type: 'outdoor_space', value: 'balcon', provenance: 'stated', evidence: 'SALIDA A BALCON' },
+            gym,
+          ],
+          matched: [pool, gym],
+        }}
+      />,
+    );
+
+    const qualities = screen.getByRole('region', { name: 'Coincide con lo que pediste' });
+    const items = within(qualities).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Pileta');
+    expect(items[1]).toHaveTextContent('Gimnasio');
+    expect(screen.queryByText('Balcón')).toBeNull();
+    expect(screen.queryByText('Seguridad')).toBeNull();
+  });
+
+  it('shows no qualities when the search asked for none', () => {
+    render(<PropertyCard listing={{ ...sampleListing, matched: undefined }} />);
+
+    expect(screen.queryByRole('region', { name: 'Coincide con lo que pediste' })).toBeNull();
+    expect(screen.queryByText(/luz natural/i)).toBeNull();
   });
 });
