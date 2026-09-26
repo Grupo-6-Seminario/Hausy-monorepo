@@ -98,8 +98,8 @@ func TestQuestionAboutAListingFreezesThePlan(t *testing.T) {
 }
 
 // Captured live: the local model required every amenity for "con amenities".
-// Only amenities the searcher names may stay required; otherwise the phrase
-// stays unresolved (amenity=any fails validation) for clarification.
+// Only amenities the searcher names may stay required; otherwise the plan
+// comes back unresolved, with no amenity invented, for clarification.
 func TestGenericAmenitiesKeepOnlyWhatTheSearcherNamed(t *testing.T) {
 	// A source returns a fresh plan per call; resolve writes into it.
 	everyAmenity := func(context.Context, []string) (intake.Plan, error) {
@@ -114,7 +114,7 @@ func TestGenericAmenitiesKeepOnlyWhatTheSearcherNamed(t *testing.T) {
 		want       []search.AttributeFilter
 		unresolved bool
 	}{
-		{"Busco en Palermo con amenities", []search.AttributeFilter{{Type: "amenity", Value: "any"}}, true},
+		{"Busco en Palermo con amenities", nil, true},
 		{"Busco en Palermo con amenities: pileta y gym", []search.AttributeFilter{{Type: "amenity", Value: "pileta"}, {Type: "amenity", Value: "gimnasio"}}, false},
 		// A generic request in other words: nothing named, nothing required;
 		// asking which amenities is the clarification judge's job.
@@ -125,6 +125,26 @@ func TestGenericAmenitiesKeepOnlyWhatTheSearcherNamed(t *testing.T) {
 		if (err != nil) != tc.unresolved || len(plan.Branches) != 1 || !slices.Equal(plan.Branches[0].RequiredAttributes, tc.want) {
 			t.Errorf("%q: want %v (unresolved=%v), got %+v %v", tc.message, tc.want, tc.unresolved, plan.Branches, err)
 		}
+	}
+}
+
+// Measured live 2026-09-25: Jev planned "dos ambientes en palermo con
+// amenities" in about a second, then every such turn also ran the Bedrock
+// fallback for about 2.5 s, because unnamed amenities looked like a failed
+// plan. No planner can name them; asking is the clarification's job.
+func TestUnnamedAmenitiesAreNotAPlannerFailure(t *testing.T) {
+	jev := sourceFunc(func(context.Context, []string) (intake.Plan, error) {
+		two := 2
+		return intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"palermo"}, MinRooms: &two, MaxRooms: &two}}}, nil
+	})
+	fallbackCalls := 0
+	fallback := sourceFunc(func(context.Context, []string) (intake.Plan, error) {
+		fallbackCalls++
+		return intake.Plan{}, errors.New("the fallback cannot name them either")
+	})
+	plan, err := intake.Planner{Primary: jev, Fallback: fallback}.Plan(context.Background(), []string{"dos ambientes en palermo con amenities"}, intake.Plan{})
+	if err == nil || fallbackCalls != 0 || plan.PlannedBy != "primary" || len(plan.Branches) != 1 || *plan.Branches[0].MinRooms != 2 || len(plan.Branches[0].RequiredAttributes) != 0 {
+		t.Fatalf("want Jev's plan back unresolved without a fallback call, got %d fallback calls, %+v, %v", fallbackCalls, plan, err)
 	}
 }
 
