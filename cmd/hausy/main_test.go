@@ -154,3 +154,29 @@ func TestServerRefusesToStartWithoutItsDatabase(t *testing.T) {
 		t.Fatalf("the server kept running without its database:\n%s", out.String())
 	}
 }
+
+// Seen live 2026-09-26: the `aws login` session had expired hours before the
+// API started, yet it served every search with the template reply because
+// Bedrock credentials resolve on the first call, not at startup.
+func TestServerRefusesToStartWithoutBedrockCredentials(t *testing.T) {
+	if os.Getenv("HAUSY_TEST_RUN_MAIN") == "1" {
+		main()
+		return
+	}
+	var env []string
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "AWS_") {
+			env = append(env, kv)
+		}
+	}
+	nowhere := t.TempDir() + "/missing"
+	cmd := exec.Command(os.Args[0], "-test.run=^TestServerRefusesToStartWithoutBedrockCredentials$")
+	cmd.Env = append(env, "HAUSY_TEST_RUN_MAIN=1", "HAUSY_LLM=local", "HAUSY_WRITER_LLM=bedrock", "HAUSY_LOG_LEVEL=info",
+		"HAUSY_API_ADDR=127.0.0.1:0", "DATABASE_URI=postgresql://hausy:hausy@127.0.0.1:1/hausy",
+		"AWS_CONFIG_FILE="+nowhere, "AWS_SHARED_CREDENTIALS_FILE="+nowhere, "AWS_EC2_METADATA_DISABLED=true", "AWS_REGION=us-east-1")
+	out, err := cmd.CombinedOutput()
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 1 || !strings.Contains(string(out), `"msg":"startup_failed"`) || !strings.Contains(string(out), `"stage":"aws_credentials"`) {
+		t.Fatalf("want exit status 1 naming the AWS credentials, got %v:\n%s", err, out)
+	}
+}
