@@ -124,6 +124,9 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		plan = resumed.plan
 	} else {
 		plan, err = p.planner.Plan(ctx, turns, previous)
+		if plan.PlannedBy != "" {
+			plannerName = plan.PlannedBy
+		}
 		if err == nil && plan.Intent != "ask_about_listing" && len(confirmed) > 0 {
 			plan, confirmed = preserveConfirmed(plan, confirmed, message)
 			a.mu.Lock()

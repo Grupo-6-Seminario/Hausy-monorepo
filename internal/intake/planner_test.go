@@ -143,7 +143,8 @@ func TestUnnamedAmenitiesAreNotAPlannerFailure(t *testing.T) {
 		return intake.Plan{}, errors.New("the fallback cannot name them either")
 	})
 	plan, err := intake.Planner{Primary: jev, Fallback: fallback}.Plan(context.Background(), []string{"dos ambientes en palermo con amenities"}, intake.Plan{})
-	if err == nil || fallbackCalls != 0 || plan.PlannedBy != "primary" || len(plan.Branches) != 1 || *plan.Branches[0].MinRooms != 2 || len(plan.Branches[0].RequiredAttributes) != 0 {
+	var unresolved *intake.Unresolved
+	if !errors.As(err, &unresolved) || unresolved.Phrase != "con amenities" || fallbackCalls != 0 || plan.PlannedBy != "primary" || len(plan.Branches) != 1 || *plan.Branches[0].MinRooms != 2 || len(plan.Branches[0].RequiredAttributes) != 0 {
 		t.Fatalf("want Jev's plan back unresolved without a fallback call, got %d fallback calls, %+v, %v", fallbackCalls, plan, err)
 	}
 }

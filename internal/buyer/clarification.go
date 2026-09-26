@@ -265,7 +265,7 @@ func (a *DefaultAgent) prepareClarification(ctx context.Context, sess *session, 
 		}
 		candidates = append(candidates, q)
 	}
-	if q, ok := clarification.UnnamedAmenities(plan, turns[len(turns)-1]); ok && !asksAmenities {
+	if q, ok := clarification.UnnamedAmenities(planErr); ok && !asksAmenities {
 		candidates = append(candidates, q)
 	}
 	var questions []clarification.Question
