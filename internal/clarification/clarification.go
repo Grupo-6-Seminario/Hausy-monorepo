@@ -110,23 +110,15 @@ Devolvé sólo JSON {"questions":[{"source":"frase textual del usuario","prompt"
 var amenityLabels = map[string]string{"pileta": "Pileta", "gimnasio": "Gimnasio", "laundry": "Laundry", "coworking": "Coworking", "sum": "SUM",
 	"seguridad": "Seguridad", "parrilla": "Parrilla", "ascensor": "Ascensor", "cochera": "Cochera", "solarium": "Solárium", "terraza_comun": "Terraza común"}
 
-// UnnamedAmenities asks which amenities a generic "amenities" means when the
-// tentative plan holds the amenity=any placeholder. The vocabulary is known,
-// so this question needs no model and survives a malformed proposal.
-func UnnamedAmenities(plan intake.Plan, latest string) (Question, bool) {
-	placeholder := false
-	for _, b := range plan.Branches {
-		placeholder = placeholder || slices.Contains(b.RequiredAttributes, search.AttributeFilter{Type: "amenity", Value: "any"})
-	}
-	text := strings.ToLower(latest)
-	if !placeholder || !strings.Contains(text, "amenities") {
+// UnnamedAmenities asks which amenities an unresolved "con amenities" means.
+// The vocabulary is known, so this question needs no model and survives a
+// malformed proposal.
+func UnnamedAmenities(planErr error) (Question, bool) {
+	var unresolved *intake.Unresolved
+	if !errors.As(planErr, &unresolved) {
 		return Question{}, false
 	}
-	source := "amenities"
-	if strings.Contains(text, "con amenities") {
-		source = "con amenities"
-	}
-	return Question{Source: source, Prompt: "Cuando dijiste «" + source + "», ¿cuáles necesitás sí o sí?", Kind: "search", Multi: true, Choices: amenityChoices()}, true
+	return Question{Source: unresolved.Phrase, Prompt: "Cuando dijiste «" + unresolved.Phrase + "», ¿cuáles necesitás sí o sí?", Kind: "search", Multi: true, Choices: amenityChoices()}, true
 }
 
 // Validate checks the public question and every possible typed effect. Source
@@ -210,7 +202,7 @@ func ValidateEffect(e Effect) error {
 }
 
 // Apply returns a fresh plan. A selected option replaces a conflicting draft
-// value, including an invalid amenity=any placeholder, without replanning text.
+// value, including an invalid one the model wrote, without replanning text.
 func Apply(plan intake.Plan, effects []Effect) (intake.Plan, error) {
 	plan.Branches = slices.Clone(plan.Branches)
 	plan.Qualification = cloneQualification(plan.Qualification)

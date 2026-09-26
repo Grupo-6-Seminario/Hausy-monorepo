@@ -55,9 +55,9 @@ func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan,
 		defer cancel()
 	}
 	plan, err := p.try(primaryCtx, p.Primary, turns, previous)
-	if err == nil {
+	if err == nil || errors.As(err, new(*Unresolved)) {
 		plan.PlannedBy = "primary"
-		return plan, nil
+		return plan, err
 	}
 	if p.Fallback == nil {
 		return plan, err
@@ -65,15 +65,23 @@ func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan,
 	logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "planner_fallback",
 		slog.String("error_class", logging.ErrorClass(err)))
 	fallback, ferr := p.try(ctx, p.Fallback, turns, previous)
-	if ferr != nil {
+	if ferr != nil && !errors.As(ferr, new(*Unresolved)) {
 		if len(plan.Branches) > 0 {
 			return plan, errors.Join(err, ferr)
 		}
 		return fallback, errors.Join(err, ferr)
 	}
 	fallback.PlannedBy = "fallback"
-	return fallback, nil
+	return fallback, ferr
 }
+
+// Unresolved is a request the searcher made that no plan can carry until
+// they say more: today, "con amenities" without naming one. The plan
+// returned beside it validates but must not be searched, and no other
+// planner would do better, so Planner returns it without falling back.
+type Unresolved struct{ Phrase string }
+
+func (u *Unresolved) Error() string { return "intake: unresolved request «" + u.Phrase + "»" }
 
 func (p Planner) try(ctx context.Context, source Source, turns []string, previous Plan) (Plan, error) {
 	if source == nil {
@@ -108,12 +116,13 @@ func resolve(plan, previous Plan, turns []string) (Plan, error) {
 		latest = normalize(turns[len(turns)-1])
 	}
 	said := extractNumbers(turns)
+	unnamed := false
 	for i, branch := range plan.Branches {
 		// A required amenity must be one some turn names: the model has
 		// expanded a generic request into every known amenity in real runs,
 		// on its turn and on later ones. A generic request is the
 		// clarification's to resolve; "con amenities" left unnamed on this
-		// turn stays as the unresolved amenity=any placeholder.
+		// turn comes back Unresolved.
 		var kept []search.AttributeFilter
 		named := false
 		for _, f := range branch.RequiredAttributes {
@@ -123,9 +132,7 @@ func resolve(plan, previous Plan, turns []string) (Plan, error) {
 				kept, named = append(kept, f), named || listing.NamesAmenity(f.Value, latest)
 			}
 		}
-		if strings.Contains(latest, "con amenities") && !named {
-			kept = append(kept, search.AttributeFilter{Type: "amenity", Value: "any"})
-		}
+		unnamed = unnamed || strings.Contains(latest, "con amenities") && !named
 		branch.RequiredAttributes = kept
 		if n, ok := habitaciones(conversation); ok {
 			// Seen live: "dos habitaciones" planned as two ambientes.
@@ -148,6 +155,9 @@ func resolve(plan, previous Plan, turns []string) (Plan, error) {
 	}
 	if plan.Sort == "" {
 		plan.Sort = "relevance"
+	}
+	if unnamed {
+		return plan, &Unresolved{Phrase: "con amenities"}
 	}
 	return plan, nil
 }

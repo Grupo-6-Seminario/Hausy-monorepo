@@ -20,7 +20,7 @@ func (failingWriter) Write(context.Context, buyer.Packet, func(string)) (string,
 }
 
 func TestAFailedWriterStillExplainsTheRanking(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), failingWriter{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), failingWriter{})
 	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	for _, want := range []string{"#1", "#2", "#3", "ver cuáles permite la propietaria", "caución"} {
 		if !strings.Contains(resp.Reply, want) {
@@ -39,7 +39,7 @@ func (r *recordingLLM) Chat(_ context.Context, req llm.ChatRequest) (*llm.ChatRe
 func TestLocalWriterExplainsFromThePacketInOneCall(t *testing.T) {
 	client := &recordingLLM{}
 	w := &fakeWriter{}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), w))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), w)
 	turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 
 	reply, err := buyer.LocalWriter{Client: client}.Write(context.Background(), w.packets[0], nil)
@@ -105,14 +105,14 @@ func TestATurnReportsItsRankingBeforeStreamingTheReply(t *testing.T) {
 		Reply:   func(d string) { log = append(log, "reply:"+d) },
 	}
 	q := eligibility.Qualification{"guarantee": {"propietaria"}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), streamingWriter{deltas: []string{"#1 ", "es la mejor"}}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), streamingWriter{deltas: []string{"#1 ", "es la mejor"}})
 	resp, err := agent.HandleMessage(context.Background(), "s", "Alquiler en Palermo", q, events)
 	if err != nil || strings.Join(log, ",") != "results,reply:#1 ,reply:es la mejor" || len(early.Listings) != 3 || early.Reply != "" || resp.Reply != "#1 es la mejor" {
 		t.Fatalf("got events %v, early %+v, reply %q, %v", log, early, resp.Reply, err)
 	}
 
 	// A writer that dies mid-reply: the template replaces the partial text.
-	cut := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), streamingWriter{deltas: []string{"#1 es"}, err: errors.New("cut")}))
+	cut := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), streamingWriter{deltas: []string{"#1 es"}, err: errors.New("cut")})
 	resp, err = cut.HandleMessage(context.Background(), "s", "Alquiler en Palermo", q, events)
 	if err != nil || !strings.Contains(resp.Reply, "## Mi lectura") || !strings.Contains(resp.Reply, "#3") {
 		t.Fatalf("want the template reply, got %q, %v", resp.Reply, err)
@@ -126,7 +126,7 @@ func TestTemplateSaysAPublishedRequirementIsPublished(t *testing.T) {
 		candidate("asks", "palermo", 500000, caucionOnly),
 		candidate("silent", "palermo", 600000, nil),
 	}}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{})
 	resp := turn(t, agent, "Alquiler en Palermo", nil)
 	for _, line := range strings.Split(resp.Reply, "\n") {
 		quotesRule := strings.Contains(line, caucionOnly[0].Evidence)

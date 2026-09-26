@@ -1,5 +1,9 @@
 # Local Postgres for the listing store. Matches the DATABASE_URI default in
 # .env.example and docs/SETUP.md, so a fresh clone needs no extra configuration.
+# The fixed project name makes every worktree address the same container:
+# without it compose names the project after the directory and collides with
+# container_name.
+name: hausy
 services:
   postgres:
     image: postgres:14.23-trixie

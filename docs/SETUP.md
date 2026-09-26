@@ -99,7 +99,18 @@ docker compose up -d
 That starts Postgres 14 on 5432 with database, user and password all `hausy`, matching the
 `DATABASE_URI` default in `.env.example`. Override it by setting `DATABASE_URI` in `.env`.
 No `createdb` is needed, and migrations apply themselves on the first `listings load` or
-`go run ./cmd/hausy`, whichever runs first.
+`go run ./cmd/hausy`, whichever runs first. `go run ./cmd/hausy` refuses to start while
+Postgres is down: without it there is nothing to search.
+
+Every worktree shares the one `hausy-db` container (the compose project is named `hausy`).
+If `docker compose up -d` reports `The container name "/hausy-db" is already in use`, that
+container predates the fixed name. Keep your accounts with a dump, then recreate it:
+
+```bash
+docker exec hausy-db pg_dump -U hausy -d hausy --clean --if-exists > hausy.sql
+docker rm -f hausy-db && docker compose up -d --wait
+docker exec -i hausy-db psql -U hausy -d hausy < hausy.sql
+```
 
 To populate it with the committed seed data:
 

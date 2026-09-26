@@ -207,7 +207,7 @@ func endToEnd(cases []labeled) {
 	}
 	defer store.Close()
 	judge := clarification.Judge{Evaluate: jev.New(jev.GatewayURL, os.Getenv("AI_GATEWAY_API_KEY"), nil).Evaluate}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: intake.Qwen{Client: client}}, store, silentWriter{}), buyer.WithClarifier(judge))
+	agent := buyer.NewAgent(intake.Planner{Primary: intake.Qwen{Client: client}}, store, silentWriter{}, buyer.WithClarifier(judge))
 	right := 0
 	for i, c := range cases {
 		want := c.Field

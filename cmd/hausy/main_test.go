@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"log/slog"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
@@ -116,5 +122,35 @@ func TestWriterClientFollowsTheModelUnlessSeparated(t *testing.T) {
 	t.Setenv("HAUSY_WRITER_LLM", "bedrok")
 	if _, err := writerClient(ctx, serverConfigFromEnv(), shared); err == nil {
 		t.Fatal("a typo must stop startup, not fall back to the local model")
+	}
+}
+
+// Seen live 2026-09-25: with Postgres stopped the API kept serving a
+// requirements-only chat whose replies looked real, so the clarification
+// feature seemed broken while no turn logged an error.
+func TestServerRefusesToStartWithoutItsDatabase(t *testing.T) {
+	if os.Getenv("HAUSY_TEST_RUN_MAIN") == "1" {
+		main()
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestServerRefusesToStartWithoutItsDatabase$")
+	cmd.Env = append(os.Environ(), "HAUSY_TEST_RUN_MAIN=1", "HAUSY_LLM=local", "HAUSY_WRITER_LLM=local", "HAUSY_LOG_LEVEL=info",
+		"HAUSY_API_ADDR=127.0.0.1:0", "DATABASE_URI=postgresql://hausy:hausy@127.0.0.1:1/hausy")
+	var out bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &out
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	exited := make(chan error, 1)
+	go func() { exited <- cmd.Wait() }()
+	select {
+	case err := <-exited:
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) || exit.ExitCode() != 1 || !strings.Contains(out.String(), `"msg":"startup_failed"`) || !strings.Contains(out.String(), `"stage":"database_open"`) {
+			t.Fatalf("want exit status 1 naming the database, got %v:\n%s", err, out.String())
+		}
+	case <-time.After(10 * time.Second):
+		cmd.Process.Kill()
+		t.Fatalf("the server kept running without its database:\n%s", out.String())
 	}
 }
