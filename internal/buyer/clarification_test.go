@@ -121,7 +121,7 @@ func intPtr(n int) *int { return &n }
 func TestClarificationGatesSearchAndAppliesTheSelectedTypedEffect(t *testing.T) {
 	planner := &fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}
 	writer := &fakeWriter{}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(planner, roomInventory{}, writer), buyer.WithClarifier(roomClarifier{}))
+	agent := buyer.NewAgent(planner, roomInventory{}, writer, buyer.WithClarifier(roomClarifier{}))
 
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco dos habitaciones en Palermo", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || len(writer.packets) != 0 {
@@ -138,7 +138,7 @@ func TestClarificationGatesSearchAndAppliesTheSelectedTypedEffect(t *testing.T) 
 }
 
 func TestClarificationSkipsQuestionsWhoseAnswersShowTheSameResults(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, &fakeWriter{}), buyer.WithClarifier(equivalentChoices{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, &fakeWriter{}, buyer.WithClarifier(equivalentChoices{}))
 	response, err := agent.HandleMessage(context.Background(), "chat", "Busco dos habitaciones en Palermo", nil, buyer.Events{})
 	if err != nil || response.Clarification != nil || len(response.Listings) != 3 {
 		t.Fatalf("equivalent answers must not interrupt search: response=%+v err=%v", response, err)
@@ -150,7 +150,7 @@ func TestConfirmedAnswerSurvivesLaterTurnUntilTheSearcherChangesIt(t *testing.T)
 	three.Intent = "refine"
 	three.Branches[0].MinRooms, three.Branches[0].MaxRooms = intPtr(3), intPtr(3)
 	planner := &fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), palermoPlan("relevance"), three}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(planner, roomInventory{}, &fakeWriter{}), buyer.WithClarifier(roomClarifier{}))
+	agent := buyer.NewAgent(planner, roomInventory{}, &fakeWriter{}, buyer.WithClarifier(roomClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco dos habitaciones en Palermo", nil, buyer.Events{})
 	if err != nil {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestConfirmedAnswerSurvivesLaterTurnUntilTheSearcherChangesIt(t *testing.T)
 }
 
 func TestUnresolvedRequiredAmenityBecomesAQuestionAndMultipleAnswersAreRequired(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: invalidAmenitySource{}}, amenityInventory{}, &fakeWriter{}), buyer.WithClarifier(amenityClarifier{}))
+	agent := buyer.NewAgent(intake.Planner{Primary: invalidAmenitySource{}}, amenityInventory{}, &fakeWriter{}, buyer.WithClarifier(amenityClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco en Palermo con amenities", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || !first.Clarification.Multi {
 		t.Fatalf("invalid amenity plan should ask, not fail: %+v %v", first, err)
@@ -202,7 +202,7 @@ func (malformedAmenityClarifier) Propose(context.Context, []string, intake.Plan,
 }
 
 func TestGenericAmenitiesAreAskedEvenWhenTheModelQuestionIsUnusable(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: everyAmenitySource{}}, amenityInventory{}, &fakeWriter{}), buyer.WithClarifier(malformedAmenityClarifier{}))
+	agent := buyer.NewAgent(intake.Planner{Primary: everyAmenitySource{}}, amenityInventory{}, &fakeWriter{}, buyer.WithClarifier(malformedAmenityClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco un dos ambientes en Palermo con amenities", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || first.Clarification.Kind != "search" || !first.Clarification.Multi {
 		t.Fatalf("searchable amenities must be asked about, not stopped as unsupported: %+v %v", first.Clarification, err)
@@ -216,7 +216,7 @@ func TestGenericAmenitiesAreAskedEvenWhenTheModelQuestionIsUnusable(t *testing.T
 // Captured live: on a later turn the planner re-reads the first message's
 // "con amenities" as every amenity again, with no error.
 func TestChosenAmenitiesSurviveTheNextTurnsRereading(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: everyAmenitySource{}}, amenityInventory{}, &fakeWriter{}), buyer.WithClarifier(amenityClarifier{}))
+	agent := buyer.NewAgent(intake.Planner{Primary: everyAmenitySource{}}, amenityInventory{}, &fakeWriter{}, buyer.WithClarifier(amenityClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco en Palermo con amenities", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil {
 		t.Fatalf("generic amenities should be asked about: %+v %v", first, err)
@@ -240,7 +240,7 @@ func (silentClarifier) Propose(context.Context, []string, intake.Plan, string, e
 // nothing, so only the known phrase can stop the search.
 func TestUnsupportedCommuteIsNamedAndItsRemovalReachesTheReply(t *testing.T) {
 	writer := &fakeWriter{}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, writer), buyer.WithClarifier(silentClarifier{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, writer, buyer.WithClarifier(silentClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Necesito alquilar en Palermo cerca del trabajo", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || first.Clarification.Kind != "unsupported" || first.Clarification.Source != "cerca del trabajo" || !strings.Contains(first.Clarification.Prompt, "«cerca del trabajo»") {
 		t.Fatalf("the stop should name the unsupported phrase: %+v %v", first.Clarification, err)
@@ -256,7 +256,7 @@ func TestUnsupportedCommuteIsNamedAndItsRemovalReachesTheReply(t *testing.T) {
 }
 
 func TestMissingAmenityInventoryExplainsTheLimitAndRequiresExplicitRemoval(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: invalidAmenitySource{}}, roomInventory{}, &fakeWriter{}), buyer.WithClarifier(amenityClarifier{}))
+	agent := buyer.NewAgent(intake.Planner{Primary: invalidAmenitySource{}}, roomInventory{}, &fakeWriter{}, buyer.WithClarifier(amenityClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco en Palermo con amenities", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || first.Clarification.Kind != "unsupported" || !first.Clarification.CanRemove {
 		t.Fatalf("no amenity data should explain the limit and offer removal: %+v %v", first, err)
@@ -268,7 +268,7 @@ func TestMissingAmenityInventoryExplainsTheLimitAndRequiresExplicitRemoval(t *te
 }
 
 func TestUnclearFreeTextKeepsTheQuestionOpen(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, &fakeWriter{}), buyer.WithClarifier(badAnswerClarifier{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, roomInventory{}, &fakeWriter{}, buyer.WithClarifier(badAnswerClarifier{}))
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco dos habitaciones en Palermo", nil, buyer.Events{})
 	if err != nil {
 		t.Fatal(err)
@@ -306,8 +306,9 @@ func flags(p map[string]float64) jev.Evaluator {
 func TestJudgedRoomAmbiguityAsksWithTypedOptions(t *testing.T) {
 	misread := palermoPlan("relevance")
 	misread.Branches[0].MinRooms = intPtr(2)
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{misread}}, roomInventory{}, &fakeWriter{}),
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{misread}}, roomInventory{}, &fakeWriter{},
 		buyer.WithClarifier(clarification.Judge{Evaluate: flags(map[string]float64{"rooms": 0.8})}))
+
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco 2 cuartos en Palermo", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || first.Clarification.Kind != "search" {
 		t.Fatalf("a judged room ambiguity should ask: %+v %v", first, err)
@@ -323,8 +324,9 @@ func TestJudgedRoomAmbiguityAsksWithTypedOptions(t *testing.T) {
 func TestJudgedAmbiguityThePlanAlreadyResolvesIsNotAsked(t *testing.T) {
 	plan := palermoPlan("relevance")
 	plan.Qualification = eligibility.Qualification{"guarantee": {"propietaria"}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, roomInventory{}, &fakeWriter{}),
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, roomInventory{}, &fakeWriter{},
 		buyer.WithClarifier(clarification.Judge{Evaluate: flags(map[string]float64{"guarantee": 0.65})}))
+
 	resp, err := agent.HandleMessage(context.Background(), "chat", "Busco alquilar en Palermo. Tengo garantía propietaria", nil, buyer.Events{})
 	if err != nil || resp.Clarification != nil || len(resp.Listings) != 3 {
 		t.Fatalf("a guarantee the plan carries must not be asked: %+v %v", resp.Clarification, err)
@@ -332,8 +334,9 @@ func TestJudgedAmbiguityThePlanAlreadyResolvesIsNotAsked(t *testing.T) {
 }
 
 func TestJudgedGenericAmenitiesAskFromTheVocabulary(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, amenityInventory{}, &fakeWriter{}),
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, amenityInventory{}, &fakeWriter{},
 		buyer.WithClarifier(clarification.Judge{Evaluate: flags(map[string]float64{"amenities": 0.85})}))
+
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco en Palermo, que tenga todos los chiches del edificio", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil || !first.Clarification.Multi || len(first.Clarification.Choices) != len(listing.Vocabulary["amenity"]) {
 		t.Fatalf("generic amenities should offer every amenity: %+v %v", first.Clarification, err)
@@ -365,8 +368,9 @@ func TestJudgedCurrencyAmbiguityOffersBothReadingsOfTheSameAmount(t *testing.T) 
 	plan := palermoPlan("relevance")
 	max := 900000.0
 	plan.Branches[0].Currency, plan.Branches[0].MaxPrice = "ARS", &max
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, priceInventory{}, &fakeWriter{}),
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, priceInventory{}, &fakeWriter{},
 		buyer.WithClarifier(clarification.Judge{Evaluate: flags(map[string]float64{"currency": 0.91})}))
+
 	first, err := agent.HandleMessage(context.Background(), "chat", "Busco en Palermo, puedo pagar hasta 900", nil, buyer.Events{})
 	if err != nil || first.Clarification == nil {
 		t.Fatalf("a judged currency ambiguity should ask: %+v %v", first, err)
@@ -405,8 +409,9 @@ func (h hoodInventory) HasAttributeData(ctx context.Context, q search.Query, typ
 func TestAnEmptyBarrioIsNotAnUnsupportedCondition(t *testing.T) {
 	plan := palermoPlan("relevance")
 	plan.Branches[0].Neighborhoods = []string{"nunez"}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, hoodInventory{}, &fakeWriter{}),
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, hoodInventory{}, &fakeWriter{},
 		buyer.WithClarifier(clarification.Judge{Evaluate: flags(map[string]float64{"amenities": 0.83})}))
+
 	resp, err := agent.HandleMessage(context.Background(), "chat", "Que tenga todos los chiches del edificio, en Núñez", nil, buyer.Events{})
 	if err != nil || resp.Clarification != nil || len(resp.Listings) != 0 {
 		t.Fatalf("an empty barrio should reach the zero-results flow, not stop: %+v %v", resp.Clarification, err)

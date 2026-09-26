@@ -2,8 +2,8 @@
 
 The realtor UI and any future machine-to-machine transport share the typed
 application boundary in `internal/agency`. HTTP authenticates and translates;
-it does not own catalog rules. Postgres persists the interface, while the
-in-memory adapter keeps local development functional without a database.
+it does not own catalog rules. Postgres persists the interface; the in-memory
+adapter stands in for it in tests.
 
 Current flow:
 

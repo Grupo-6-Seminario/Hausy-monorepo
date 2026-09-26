@@ -3,19 +3,12 @@ package buyer
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"log/slog"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 )
 
 // EligibilityState defines the four eligibility states outlined in core.md.
@@ -79,14 +72,10 @@ type Events struct {
 	Reply func(delta string)
 }
 
-// session tracks conversational state and accumulated requirements for a searcher.
+// session is one searcher's conversation: every user message so far, the
+// plan they produced, and what is on screen.
 type session struct {
-	id           string
-	requirements []Requirement
-	listings     []listing.Listing
-
-	// turns, plan and results belong to the pipeline: every user message so
-	// far, the plan they produced, and what is on screen.
+	id              string
 	turns           []string
 	plan            intake.Plan
 	results         []Result
@@ -100,25 +89,20 @@ type session struct {
 // Option configures an Agent at construction.
 type Option func(*DefaultAgent)
 
-// DefaultAgent implements Agent backed by an llm.Client.
-//
-// It runs in one of two modes. With a pipeline (WithPipeline) it plans, searches,
-// assesses eligibility and explains; without one it falls back to extracting
-// requirements from what the user says, which is all it can honestly do when
-// there is nothing to search.
+// DefaultAgent implements Agent: planner → SQL per branch → eligibility →
+// order → one writer call. See specs/002-eligibility-first-search.
 type DefaultAgent struct {
-	llmClient llm.Client
-	mu        sync.RWMutex
-	sessions  map[string]*session
+	mu       sync.RWMutex
+	sessions map[string]*session
 
 	pipeline *pipeline
 }
 
-// NewAgent creates a new Buyer Agent backed by the provided LLM client.
-func NewAgent(client llm.Client, options ...Option) *DefaultAgent {
+// NewAgent creates a Buyer Agent that searches inventory.
+func NewAgent(planner Planner, inventory Inventory, writer Writer, options ...Option) *DefaultAgent {
 	agent := &DefaultAgent{
-		llmClient: client,
-		sessions:  make(map[string]*session),
+		sessions: make(map[string]*session),
+		pipeline: &pipeline{planner: planner, inventory: inventory, writer: writer},
 	}
 	for _, option := range options {
 		option(agent)
@@ -126,117 +110,10 @@ func NewAgent(client llm.Client, options ...Option) *DefaultAgent {
 	return agent
 }
 
-const extractionSystemPrompt = `Extract property-search requirements from the user message. Return only valid JSON in this shape: {"requirements":[{"type":"...","value":"..."}]}. Do not use Markdown fences. Do not invent requirements.`
-
-type extractionResult struct {
-	Requirements []Requirement `json:"requirements"`
-}
-
-// HandleMessage receives a user's input, extracts typed requirements, updates state, and returns the agent's turn response.
+// HandleMessage runs one turn of the searcher's conversation.
 func (a *DefaultAgent) HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification, events Events) (*TurnResponse, error) {
 	if sessionID == "" {
 		sessionID = "default"
 	}
-
-	if a.pipeline != nil {
-		return a.handlePipeline(ctx, sessionID, message, q, events, nil)
-	}
-	started := time.Now()
-	logger := logging.FromContext(ctx)
-
-	req := llm.ChatRequest{
-		Messages: []llm.Message{
-			{Role: "system", Content: extractionSystemPrompt},
-			{Role: "user", Content: message},
-		},
-		Temperature: 0,
-		MaxTokens:   512,
-	}
-
-	resp, err := a.llmClient.Chat(ctx, req)
-	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_extraction", slog.String("outcome", "error"),
-			slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(started).Milliseconds()))
-		return nil, fmt.Errorf("llm extraction failed: %w", err)
-	}
-
-	extracted, err := parseExtraction(resp.Content)
-	if err != nil {
-		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_extraction", slog.String("outcome", "invalid_response"),
-			slog.Int64("duration_ms", time.Since(started).Milliseconds()))
-		return nil, fmt.Errorf("failed to parse extracted requirements: %w", err)
-	}
-
-	a.mu.Lock()
-	sess, ok := a.sessions[sessionID]
-	if !ok {
-		sess = &session{id: sessionID}
-		a.sessions[sessionID] = sess
-	}
-
-	sess.requirements = mergeRequirements(sess.requirements, extracted.Requirements)
-	accumulated := make([]Requirement, len(sess.requirements))
-	copy(accumulated, sess.requirements)
-	a.mu.Unlock()
-
-	reply := generateReply(accumulated)
-	logger.LogAttrs(ctx, slog.LevelInfo, "buyer_extraction", slog.String("outcome", "success"),
-		slog.Int("requirements", len(accumulated)), slog.Int64("duration_ms", time.Since(started).Milliseconds()))
-
-	return &TurnResponse{
-		Reply:        reply,
-		Requirements: accumulated,
-	}, nil
-}
-
-func parseExtraction(content string) (*extractionResult, error) {
-	content = strings.TrimSpace(content)
-	// Strip markdown code fences if present
-	if strings.HasPrefix(content, "```") {
-		lines := strings.Split(content, "\n")
-		if len(lines) >= 2 {
-			if strings.HasPrefix(lines[0], "```") {
-				lines = lines[1:]
-			}
-			if len(lines) > 0 && strings.HasPrefix(lines[len(lines)-1], "```") {
-				lines = lines[:len(lines)-1]
-			}
-			content = strings.TrimSpace(strings.Join(lines, "\n"))
-		}
-	}
-
-	var result extractionResult
-	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		return nil, fmt.Errorf("%w: raw content: %s", err, content)
-	}
-	return &result, nil
-}
-
-func mergeRequirements(existing, incoming []Requirement) []Requirement {
-	res := append([]Requirement{}, existing...)
-	for _, inc := range incoming {
-		found := false
-		for _, ex := range res {
-			if strings.EqualFold(ex.Type, inc.Type) && strings.EqualFold(ex.Value, inc.Value) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			res = append(res, inc)
-		}
-	}
-	return res
-}
-
-func generateReply(reqs []Requirement) string {
-	if len(reqs) == 0 {
-		return "Entendido. ¿Podrías darme más detalles sobre lo que estás buscando?"
-	}
-
-	var parts []string
-	for _, r := range reqs {
-		parts = append(parts, fmt.Sprintf("%s: %s", r.Type, r.Value))
-	}
-	return fmt.Sprintf("Entendido. Requisitos registrados: %s.", strings.Join(parts, ", "))
+	return a.handlePipeline(ctx, sessionID, message, q, events, nil)
 }

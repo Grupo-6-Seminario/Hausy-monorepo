@@ -64,14 +64,6 @@ type pipeline struct {
 	clarifier clarification.Proposer
 }
 
-// WithPipeline replaces the tool loop: planner → SQL per branch → eligibility
-// → order → one writer call. See specs/002-eligibility-first-search.
-func WithPipeline(planner Planner, inventory Inventory, writer Writer) Option {
-	return func(agent *DefaultAgent) {
-		agent.pipeline = &pipeline{planner: planner, inventory: inventory, writer: writer}
-	}
-}
-
 // WithClarifier adds a generative clarification pass before search.
 func WithClarifier(proposer clarification.Proposer) Option {
 	return func(agent *DefaultAgent) { agent.pipeline.clarifier = proposer }

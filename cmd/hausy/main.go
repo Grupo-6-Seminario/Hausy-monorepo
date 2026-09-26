@@ -13,7 +13,6 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
@@ -54,7 +53,7 @@ func serverConfigFromEnv() serverConfig {
 }
 
 // newLLMClient returns the model behind the writer, the planner's fallback and
-// the no-database chat. HAUSY_LLM picks it: "local" (the default) or
+// the clarification answers. HAUSY_LLM picks it: "local" (the default) or
 // "bedrock", which signs with the ambient AWS credentials (AWS_PROFILE) and
 // defaults to us-east-1. Any other value is an error, so a typo never
 // silently measures the wrong model.
@@ -133,50 +132,39 @@ func main() {
 	}
 	slog.Info("model_configured", "provider", config.llmProvider, "writer_provider", config.writerProvider)
 
-	// A missing database degrades the agent rather than stopping it: without
-	// one it can still take requirements down, and saying so at startup beats
-	// a fresh clone failing to boot before anything has been ingested.
-	var options []buyer.Option
-	var qualifications httpapi.Qualifications
-	var accounts auth.Store = auth.NewMemoryStore()
-	var catalog agency.Catalog = agency.NewMemoryCatalog()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	storeStage := "open"
 	store, err := postgres.Open(ctx, config.databaseURI)
-	if err == nil {
-		storeStage = "migrate"
-		// Accounts need their tables even on a database no one has loaded yet.
-		if err = store.Migrate(ctx); err != nil {
-			store.Close()
-		}
+	if err != nil {
+		cancel()
+		slog.Error("startup_failed", "stage", "database_open", "error_class", logging.ErrorClass(err))
+		os.Exit(1)
 	}
+	err = store.Migrate(ctx)
 	cancel()
 	if err != nil {
-		slog.Warn("database_unavailable", "stage", storeStage, "error_class", logging.ErrorClass(err), "mode", "requirements_only")
-	} else {
-		defer store.Close()
-		options = append(options, buyer.WithPipeline(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: writer}))
-		// Jev judges ambiguity and the schema supplies the options (ADR 0004).
-		// Without a gateway key only the deterministic checks ask.
-		judge := clarification.Judge{Answers: clarification.Model{Client: llmClient}}
-		if key := os.Getenv("AI_GATEWAY_API_KEY"); key != "" {
-			judge.Evaluate = jev.New(jev.GatewayURL, key, nil).Evaluate
-			options = append(options, buyer.WithMatching(matchingjev.New(matchingjev.GatewayURL, key, nil)))
-		}
-		options = append(options, buyer.WithClarifier(judge))
-		accounts = store
-		qualifications = store
-		catalog = store
-		slog.Info("database_connected", "mode", "search")
+		store.Close()
+		slog.Error("startup_failed", "stage", "database_migrate", "error_class", logging.ErrorClass(err))
+		os.Exit(1)
 	}
+	defer store.Close()
+	slog.Info("database_connected")
 
-	agent := buyer.NewAgent(llmClient, options...)
+	// Jev judges ambiguity and the schema supplies the options (ADR 0004).
+	// Without a gateway key only the deterministic checks ask.
+	judge := clarification.Judge{Answers: clarification.Model{Client: llmClient}}
+	var options []buyer.Option
+	if key := os.Getenv("AI_GATEWAY_API_KEY"); key != "" {
+		judge.Evaluate = jev.New(jev.GatewayURL, key, nil).Evaluate
+		options = append(options, buyer.WithMatching(matchingjev.New(matchingjev.GatewayURL, key, nil)))
+	}
+	options = append(options, buyer.WithClarifier(judge))
+	agent := buyer.NewAgent(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: writer}, options...)
 	// ponytail: the only Provider today is Local; an AWS Cognito Provider would
 	// be chosen here from configuration without changing httpapi or the frontend.
-	provider := auth.NewLocal(accounts)
+	provider := auth.NewLocal(store)
 	server := &http.Server{
 		Addr:              config.address,
-		Handler:           httpapi.NewHandler(agent, provider, catalog, qualifications),
+		Handler:           httpapi.NewHandler(agent, provider, store, store),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

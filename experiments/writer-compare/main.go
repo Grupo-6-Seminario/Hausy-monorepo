@@ -89,7 +89,7 @@ func main() {
 			continue
 		}
 		c := &capture{}
-		agent := buyer.NewAgent(nil, buyer.WithPipeline(intake.Planner{Primary: intake.Qwen{Client: localClient}}, store, c))
+		agent := buyer.NewAgent(intake.Planner{Primary: intake.Qwen{Client: localClient}}, store, c)
 		turn, err := agent.HandleMessage(ctx, fmt.Sprintf("writer-compare-%d", i), message, nil, buyer.Events{})
 		if err != nil || c.packet == nil {
 			fmt.Fprintf(os.Stderr, "%d: no packet: %v\n", i, err)

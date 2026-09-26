@@ -30,7 +30,7 @@ func TestBuyerLogsTurnStagesAndFallbackWithoutPrivateContent(t *testing.T) {
 	ctx := logging.WithLogger(context.Background(), slog.New(slog.NewJSONHandler(&logs, nil)).With("request_id", "test-request"))
 	plan := palermoPlan("relevance")
 	plan.PlannedBy = "fallback"
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, fourStates(), unavailableWriter{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, fourStates(), unavailableWriter{})
 	response, err := agent.HandleMessage(ctx, "private-session", "private search text", eligibility.Qualification{"guarantee": {"propietaria"}}, buyer.Events{})
 	if err != nil || response == nil || response.Reply == "" {
 		t.Fatalf("writer fallback should retain a usable reply: %v, %+v", err, response)
@@ -101,11 +101,11 @@ func TestRequiredLightGroupsEvidenceBeforeHintsAndSurvivesGatewayFailure(t *test
 	hint := candidate("hint", "palermo", 500000, nil, listing.Attribute{Type: "exposure", Value: "frente", Provenance: listing.Stated})
 	hint.Listing.Description = "Departamento al frente."
 	inv := stock{requireAttributes: true, byHood: map[string][]eligibility.Candidate{"palermo": {hint, explicit}}}
-	good := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{})), "luminoso", nil)
+	good := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(evidenceClassifier{})), "luminoso", nil)
 	if got := urls(good); len(got) != 2 || got[0] != "explicit" || got[1] != "hint" || good.Listings[0].QualitativeFit != "exact" || good.Listings[1].QualitativeFit != "unconfirmed" {
 		t.Fatalf("direct evidence should precede a cheaper hint: %+v", good.Listings)
 	}
-	unavailable := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{fail: true})), "luminoso", nil)
+	unavailable := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(evidenceClassifier{fail: true})), "luminoso", nil)
 	if len(unavailable.Listings) != 2 || unavailable.Listings[0].QualitativeFit != "unconfirmed" {
 		t.Fatalf("classification outage should preserve candidates as unconfirmed: %+v", unavailable.Listings)
 	}
@@ -118,9 +118,10 @@ func TestBuyerLogsQualitativeAssessmentTime(t *testing.T) {
 	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
 	item := candidate("listing-1", "palermo", 700000, nil)
 	item.Listing.Description = "Muy luminoso."
-	agent := buyer.NewAgent(nil,
-		buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {item}}}, &fakeWriter{}),
+	agent := buyer.NewAgent(
+		&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {item}}}, &fakeWriter{},
 		buyer.WithMatching(evidenceClassifier{}))
+
 	if _, err := agent.HandleMessage(ctx, "session", "luminoso", nil, buyer.Events{}); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +138,7 @@ func TestBuyerAssessesComparableListingsInOneBatch(t *testing.T) {
 	unknown := candidate("unknown", "palermo", 600000, nil)
 	unknown.Listing.Description = "Al frente."
 	classifier := &batchEvidenceClassifier{}
-	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {unknown, explicit}}}, &fakeWriter{}), buyer.WithMatching(classifier)), "luminoso", nil)
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {unknown, explicit}}}, &fakeWriter{}, buyer.WithMatching(classifier)), "luminoso", nil)
 	if classifier.calls != 1 || resp.Listings[0].URL != "explicit" || resp.Listings[1].QualitativeFit != "unconfirmed" {
 		t.Fatalf("buyer must batch one comparable group: calls=%d listings=%+v", classifier.calls, resp.Listings)
 	}
@@ -153,7 +154,7 @@ func TestPreferredLightRanksExplicitStatementAboveOrientationHint(t *testing.T) 
 		listing.Attribute{Type: "orientation", Value: "norte", Provenance: listing.Stated})
 	hint.Listing.Description = "Departamento al frente, orientado al norte."
 	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": {hint, explicit}}}
-	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), buyer.WithMatching(evidenceClassifier{})), "idealmente luminoso", nil)
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(evidenceClassifier{})), "idealmente luminoso", nil)
 	if got := urls(resp); len(got) != 2 || got[0] != "z-explicit" || resp.Listings[0].QualitativeFit != "" {
 		t.Fatalf("preferred direct claim should rank above weak hints without exact grouping: %+v", resp.Listings)
 	}
@@ -195,7 +196,7 @@ func TestRequiredLightStillShowsStoredProseAsUnconfirmedAlternative(t *testing.T
 	brightProse := candidate("bright-prose", "palermo", 700000, nil)
 	brightProse.Listing.Description = "Departamento muy luminoso, dos ambientes."
 	inv := stock{requireAttributes: true, byHood: map[string][]eligibility.Candidate{"palermo": {brightProse}}}
-	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{})),
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}),
 		"Quiero alquilar un dos ambientes en Palermo, luminoso, hasta 800 mil pesos", nil)
 	if len(resp.Listings) != 1 || resp.Listings[0].URL != "bright-prose" || resp.Listings[0].QualitativeFit != "unconfirmed" {
 		t.Fatalf("missing light attribute must not make stored inventory vanish; got %+v", resp.Listings)
@@ -257,7 +258,7 @@ func urls(resp *buyer.TurnResponse) []string {
 }
 
 func TestResultsAreOrderedByEligibilityWithIneligibleHidden(t *testing.T) {
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), &fakeWriter{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), &fakeWriter{})
 	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	got := urls(resp)
 	if len(got) != 3 || got[0] != "eligible" || got[1] != "conditional" || got[2] != "unknown" {
@@ -283,12 +284,12 @@ func TestWithinASectionTheUsersSortWinsElseRequirementFit(t *testing.T) {
 	}}}
 	plan := palermoPlan("relevance")
 	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
-	byFit := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{})), "luminoso", nil)
+	byFit := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), "luminoso", nil)
 	if urls(byFit)[0] != "pricey-bright" {
 		t.Fatalf("relevance must follow requirement fit, got %v", urls(byFit))
 	}
 	plan.Sort = "price_asc"
-	byPrice := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{})), "el más barato", nil)
+	byPrice := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}), "el más barato", nil)
 	if urls(byPrice)[0] != "cheap-dark" {
 		t.Fatalf("an explicit sort must win within the section, got %v", urls(byPrice))
 	}
@@ -299,7 +300,7 @@ func TestBranchesMergeIntoOneListAndEmptyBranchesAreReported(t *testing.T) {
 		{Neighborhoods: []string{"palermo"}}, {Neighborhoods: []string{"caballito"}},
 	}}
 	w := &fakeWriter{}
-	resp := turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, fourStates(), w)), "Palermo o Caballito", eligibility.Qualification{"guarantee": {"propietaria"}})
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, fourStates(), w), "Palermo o Caballito", eligibility.Qualification{"guarantee": {"propietaria"}})
 	if len(resp.Listings) != 3 {
 		t.Fatalf("got %v", urls(resp))
 	}
@@ -314,7 +315,7 @@ func TestChatQualificationAddsToTheDeclaredOneAndPlansSeeTheHistory(t *testing.T
 	second.Intent = "refine"
 	second.Qualification = eligibility.Qualification{"guarantee": {"caucion"}}
 	planner := &fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), second}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(planner, fourStates(), &fakeWriter{}))
+	agent := buyer.NewAgent(planner, fourStates(), &fakeWriter{})
 	turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	resp := turn(t, agent, "tengo caución también", eligibility.Qualification{"guarantee": {"propietaria"}})
 	if len(resp.Listings) != 4 || len(resp.Relaxations) != 0 {
@@ -329,7 +330,7 @@ func TestQuestionAboutAListingSendsTheShownListingsToTheWriter(t *testing.T) {
 	asked := palermoPlan("relevance")
 	asked.Intent = "ask_about_listing"
 	w := &fakeWriter{}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), asked}}, fourStates(), w))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), asked}}, fourStates(), w)
 	first := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	second := turn(t, agent, "¿el primero tiene balcón?", eligibility.Qualification{"guarantee": {"propietaria"}})
 	if w.packets[1].Intent != "ask_about_listing" || w.packets[1].Question != "¿el primero tiene balcón?" || urls(second)[0] != urls(first)[0] {
@@ -342,7 +343,7 @@ func TestQuestionAboutAListingSendsTheShownListingsToTheWriter(t *testing.T) {
 func TestRequiredAmenityRanksUnconfirmedListingsLast(t *testing.T) {
 	plan := palermoPlan("relevance")
 	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}
-	agent := buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, &fakeWriter{}))
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, &fakeWriter{})
 
 	resp := turn(t, agent, "Busco en Palermo con pileta", nil)
 
@@ -361,7 +362,7 @@ func TestBranchCountSeparatesUnconfirmedListings(t *testing.T) {
 	plan := palermoPlan("relevance")
 	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}
 	writer := &fakeWriter{}
-	turn(t, buyer.NewAgent(nil, buyer.WithPipeline(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, writer)), "Busco en Palermo con pileta", nil)
+	turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, amenityInventory{}, writer), "Busco en Palermo con pileta", nil)
 	if got := writer.packets[0].Branches; len(got) != 1 || got[0].Matches != 2 || got[0].Unconfirmed != 1 {
 		t.Fatalf("want 2 matches and 1 unconfirmed, got %+v", got)
 	}
