@@ -33,8 +33,8 @@ type TurnResponse struct {
 	Requirements []Requirement `json:"requirements"`
 
 	// Listings are the properties the agent settled on this turn, whole rather
-	// than trimmed: the interface renders them as cards, so it wants the
-	// seller's full prose and the evidence behind every parsed attribute.
+	// than trimmed: a card shows only each result's Matched, and the rest
+	// stays for a detail view.
 	Listings []Result `json:"listings,omitempty"`
 
 	// Relaxations is the zero-results line: hidden ineligible listings that
