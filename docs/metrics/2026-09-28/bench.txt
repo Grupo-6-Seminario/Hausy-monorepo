@@ -1,0 +1,116 @@
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy	0.369s
+?   	github.com/Grupo-6-Seminario/proyecto-angus-back/cmd/listings	[no test files]
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency	0.320s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth	0.268s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock	0.321s
+goos: darwin
+goarch: arm64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer
+cpu: Apple M4 Pro
+BenchmarkTurn-12    	    5905	    203181 ns/op	  649194 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5449	    201545 ns/op	  649190 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5950	    201725 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5767	    203680 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5558	    201836 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5655	    200285 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    6049	    203279 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5709	    203801 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5833	    203458 ns/op	  649191 B/op	     572 allocs/op
+BenchmarkTurn-12    	    5796	    203377 ns/op	  649191 B/op	     572 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer	12.096s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification	0.305s
+goos: darwin
+goarch: arm64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility
+cpu: Apple M4 Pro
+BenchmarkAssess-12         	  105643	      9808 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  122529	      9700 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  119834	      9745 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  123855	      9695 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  124503	      9679 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  122696	      9723 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  123184	      9733 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  123561	      9750 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  123584	      9717 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-12         	  123205	      9685 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkRelaxations-12    	   79978	     15136 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79419	     15080 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79563	     15099 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79524	     15061 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79496	     15107 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79576	     15089 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   80535	     15057 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79657	     15238 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   74922	     15211 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-12    	   79749	     15147 ns/op	   17104 B/op	     175 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility	24.181s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi	0.317s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake	0.285s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev	0.399s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing	0.271s
+?   	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm	[no test files]
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local	0.388s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging	0.366s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching	0.271s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching/jev	0.298s
+goos: darwin
+goarch: arm64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline
+cpu: Apple M4 Pro
+BenchmarkParse-12    	     237	   4914123 ns/op	 3203209 B/op	   45303 allocs/op
+BenchmarkParse-12    	     247	   4823072 ns/op	 3203141 B/op	   45302 allocs/op
+BenchmarkParse-12    	     248	   4814840 ns/op	 3200388 B/op	   45302 allocs/op
+BenchmarkParse-12    	     246	   4844147 ns/op	 3200248 B/op	   45302 allocs/op
+BenchmarkParse-12    	     247	   4901644 ns/op	 3209584 B/op	   45304 allocs/op
+BenchmarkParse-12    	     246	   4852369 ns/op	 3207434 B/op	   45304 allocs/op
+BenchmarkParse-12    	     247	   4836978 ns/op	 3201289 B/op	   45302 allocs/op
+BenchmarkParse-12    	     248	   4835122 ns/op	 3205867 B/op	   45303 allocs/op
+BenchmarkParse-12    	     249	   4817709 ns/op	 3204491 B/op	   45303 allocs/op
+BenchmarkParse-12    	     247	   4829218 ns/op	 3204016 B/op	   45302 allocs/op
+BenchmarkLoad-12     	     228	   5254703 ns/op	 3405862 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     229	   5257288 ns/op	 3403881 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     228	   5278142 ns/op	 3404738 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     225	   5288614 ns/op	 3403730 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     226	   5272906 ns/op	 3405491 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     226	   5287712 ns/op	 3407629 B/op	   27490 allocs/op
+BenchmarkLoad-12     	     226	   5265812 ns/op	 3402532 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     228	   5257181 ns/op	 3405218 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     226	   5267567 ns/op	 3404997 B/op	   27489 allocs/op
+BenchmarkLoad-12     	     226	   5268195 ns/op	 3407941 B/op	   27490 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline	24.285s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality	0.319s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search	0.274s
+goos: darwin
+goarch: arm64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres
+cpu: Apple M4 Pro
+BenchmarkCandidates-12    	      50	  24881100 ns/op	        92.00 candidates	  871875 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      50	  25292502 ns/op	        92.00 candidates	  871971 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      46	  25068552 ns/op	        92.00 candidates	  871881 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      46	  24025582 ns/op	        92.00 candidates	  871889 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      51	  25441312 ns/op	        92.00 candidates	  871859 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      54	  24132518 ns/op	        92.00 candidates	  871904 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      54	  23131561 ns/op	        92.00 candidates	  871904 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      46	  25753493 ns/op	        92.00 candidates	  871917 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      51	  24795342 ns/op	        92.00 candidates	  871852 B/op	   13016 allocs/op
+BenchmarkCandidates-12    	      46	  26059085 ns/op	        92.00 candidates	  871892 B/op	   13016 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres	20.481s
