@@ -14,7 +14,7 @@ import (
 // migrations. It skips rather than fails when HAUSY_TEST_DATABASE_URI is unset
 // or points to a non-disposable database, so `go test ./...` stays green on a
 // clone without wiping development data.
-func openTestStore(t *testing.T) *postgres.Store {
+func openTestStore(t testing.TB) *postgres.Store {
 	t.Helper()
 
 	uri := os.Getenv("HAUSY_TEST_DATABASE_URI")

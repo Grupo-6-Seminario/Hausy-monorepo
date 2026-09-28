@@ -118,6 +118,7 @@ content fingerprint, so changed listings remain pending.
 | --- | --- |
 | `cmd/hausy` | HTTP API serving the buyer agent |
 | `cmd/listings` | `parse`, `eligibility` and `load` subcommands |
+| `cmd/metrics` | Snapshot of package design (A, I, D), cyclomatic complexity and benchmarks into `docs/metrics/` |
 | `internal/buyer` | Buyer turn: plan → candidates per branch → eligibility → order → one reply call |
 | `internal/intake` | Planner: conversation → typed plan (branches, sort, volunteered qualification); Jev with the `HAUSY_LLM` model as fallback, or that model alone (`HAUSY_PLANNER`) |
 | `internal/eligibility` | Pure eligibility evaluator (four states), zero-results relaxations, rule extraction at load time ([ADR 0001](./docs/adr/0001-eligibility-rules-as-data.md)) |
@@ -136,6 +137,7 @@ content fingerprint, so changed listings remain pending.
 - Domain glossary: [CONTEXT.md](./CONTEXT.md). Decisions: [docs/adr/](./docs/adr/).
 - Schema and attribute vocabulary: [docs/DATA_MODEL.md](./docs/DATA_MODEL.md).
 - Realtor catalog and contact-intent API: [docs/AGENCY_CATALOG.md](./docs/AGENCY_CATALOG.md).
+- Metrics baselines and how to compare against them: [docs/metrics/README.md](./docs/metrics/README.md).
 - Account-specific values live in `.env` (see `.env.example`).
 - AWS infrastructure is Terraform under `infra/` ([ADR 0002](./docs/adr/0002-infrastructure-as-terraform-in-this-repo.md)). No CI.
 
