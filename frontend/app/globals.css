@@ -51,7 +51,7 @@
 :root {
   color-scheme: light dark;
 
-  /* Cozy green palette. See frontend/DESIGN.md. */
+  /* Cozy green theme tokens. */
   --background: #f5f9e6;
   --foreground: #193724;
   --card: #fdfefa;
@@ -70,7 +70,7 @@
   --border: #b8c99c;
   --input: #9eb487;
   --ring: #3a7e4f;
-  /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+  /* Semantic signal colors encode state. */
   --signal-conditional: #8a5a18;
   --signal-conditional-surface: #f0e0bd;
   --signal-evidence: #1f5f63;
@@ -137,7 +137,7 @@
     --border: #3d5d46;
     --input: #56745d;
     --ring: #6fbe91;
-    /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+    /* Semantic signal colors encode state. */
     --signal-conditional: #e0b464;
     --signal-conditional-surface: #523f1e;
     --signal-evidence: #6cc2bd;
@@ -184,7 +184,7 @@
   --border: #3d5d46;
   --input: #56745d;
   --ring: #6fbe91;
-  /* Semantic signal colors. Encode state only; never decoration. See DESIGN.md. */
+  /* Semantic signal colors encode state. */
   --signal-conditional: #e0b464;
   --signal-conditional-surface: #523f1e;
   --signal-evidence: #6cc2bd;

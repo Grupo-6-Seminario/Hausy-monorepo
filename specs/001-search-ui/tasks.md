@@ -1,5 +1,6 @@
 # Tasks: Natural-language property search
 
+> Historical implementation record. The referenced `frontend/DESIGN.md` was retired on 2026-09-30. Future UI work follows [frontend instructions](../../frontend/AGENTS.md), BADESIGN, and its approved brief.
 ## Setup
 
 - [x] T001 Create the separate `feat/ui-prototype` worktree.

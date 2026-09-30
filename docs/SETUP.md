@@ -11,8 +11,9 @@ Setup is done when every check in [Verify](#verify) passes.
 | Tool | Why | Install (Windows, PowerShell) | Install (macOS) |
 | --- | --- | --- | --- |
 | Go 1.26.4+ | builds the module | `winget install GoLang.Go` | `brew install go` |
-| uv | runs both MCP servers via `uvx` | `winget install astral-sh.uv` | `brew install uv` |
-| Node 18+ | runs `npx skills` for skill updates | `winget install OpenJS.NodeJS.LTS` | `brew install node` |
+| uv | runs MCP servers and portable Python commands | `winget install astral-sh.uv` | `brew install uv` |
+| Node 22.13+ | runs the optional skill installer | `winget install OpenJS.NodeJS.LTS` | `brew install node` |
+| Python 3.11+ | runs project agent scripts | `uv python install 3.11` | `uv python install 3.11` |
 | AWS CLI v2 | credentials for Bedrock and the aws-mcp server | `winget install Amazon.AWSCLI` | `brew install awscli` |
 | Docker | runs the Postgres the listing store uses | `winget install Docker.DockerDesktop` | `brew install --cask docker` |
 | PostgreSQL client 14+ | optional, for `psql` against that database | `winget install PostgreSQL.PostgreSQL.17` | `brew install postgresql@17` |
@@ -78,17 +79,9 @@ To pin a specific profile, set `AWS_PROFILE` in `.env`.
 
 ## 5. Agent tooling
 
-Both MCP servers and the shared skill are committed, so there is nothing to install — but each
-one needs a one-time local approval the first time you open the repo in Claude Code:
+Restore the pinned skills with `python3 scripts/setup-agent-skills.py`, then run `python3 scripts/check-agent-instructions.py --installed`. When `python3` is not on PATH, including Windows, use `uv run --python 3.11 --no-project scripts/setup-agent-skills.py` and the same prefix for the checker or verification script. See [skill setup](agents/skill-setup.md). This setup does not enable a paid review service or an issue-tracker workflow.
 
-1. Run `claude` in the repo root.
-2. Approve the `claude-plugins-official` marketplace when prompted. This enables the
-   `mattpocock-skills` plugin declared in `.claude/settings.json`.
-3. Approve the `aws-mcp` and `postgres` MCP servers when prompted. Project-scoped servers
-   always require explicit local approval; that is the trust gate, not a bug.
-
-Other agents need no setup: Codex, Cursor and Copilot read `AGENTS.md` (or the pointer file
-placed for them) straight from the clone.
+For Claude Code, approve project-scoped MCP servers only when you intend to use them. The local Matt Pocock review skill is separate from paid review services and marketplace plugins. Other agents use the root instructions and the same restored project-local baseline.
 
 ## 6. Postgres
 
@@ -152,7 +145,7 @@ There is no CI, so the plan is reviewed in the PR:
 2. Put the plan in the PR body inside a collapsible `<details>` section. Paste **only** the
    resource address lines (`# aws_... will be created`) and the `Plan:` summary. Plans print
    remote attributes, which can include agent prompts, environment variables and the account id.
-3. After the merge into `dev`, the author pulls `dev` and runs `terraform -chdir=infra apply` with
+3. After merge into `dev`, obtain explicit apply authorization for the reviewed plan before running `terraform -chdir=infra apply` with
    their own session. A plan from a feature branch is only a preview; never apply from one.
 
 State lives in the S3 bucket `hausy-tfstate-csofja`, locked with a lock file next to the state

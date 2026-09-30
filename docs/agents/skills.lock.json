@@ -1,0 +1,690 @@
+{
+  "version": 1,
+  "confirmed": "2026-09-30",
+  "repositories": {
+    "mattpocock": {
+      "url": "https://github.com/mattpocock/skills.git",
+      "revision": "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+    },
+    "pstack": {
+      "url": "https://github.com/cursor/plugins.git",
+      "revision": "ecc249f1e306fc64ddf83c7bed16cacf7c2239db"
+    }
+  },
+  "skills": {
+    "amazon-bedrock": {
+      "tracked": ".claude/skills/amazon-bedrock",
+      "sha256": "fef5703cfe0439e94454a861e2cdaf37bce80f8384c905b23fedb4d7aa7836b8",
+      "files": {
+        "SKILL.md": "fef5703cfe0439e94454a861e2cdaf37bce80f8384c905b23fedb4d7aa7836b8",
+        "assets/kb_shim.py.tmpl": "67802ea670c5ba754899f7990452ae4d17b36a375533de4390912ec81838aa48",
+        "assets/lambda_shim.py.tmpl": "104fa92274dc18e3b311db266a8fbf2dc5fea338341d3519da8a99a6c3c52072",
+        "assets/tool_schema.json.tmpl": "80b6f6963f1ed4ca421054ada7bc75ca067efbf99306e1914db2d390c39a4d0d",
+        "references/agentcore-credentials-and-security.md": "f392084b05f40bfc558a74e1964bd6df46af9ed5029c88d6e63a31f5fcdf906f",
+        "references/agentcore-gateway.md": "ae76ccfb36483817146dcafad235b24d009a2e31e240533186cb2e7a1f5d294a",
+        "references/agentcore-harness.md": "5ca71e3ae85f6b0401f59e850fbca5232533e12fbff58fa7b4508c7a65055f92",
+        "references/agentcore-memory-observability.md": "552c5157b8fbfa1baf39158593dcea1c8b1ade4dd7fd117b696885c01f0e86e4",
+        "references/agentcore-payments-setup-script.md": "b78937a86a9dff578409a99ca6fa41977eeed98e952d1a8cfdf3dfd98cc14ed1",
+        "references/agentcore-payments-wiring.md": "4fa5ae9707dbb22099c807161d9719266803ce1a993c43e7aab313c64a6ef41a",
+        "references/agentcore-payments.md": "60d7cd708a68dd96f7f2a894d1445cb53d414bef3352954a778e7e07e02380cf",
+        "references/agentcore-registry-evaluations.md": "e8bf1964d09b94df9e2590e12597eed4eebf4bbfecc33cbd1ccd4dea481199cc",
+        "references/agentcore-runtime-container-build.md": "1b782c4b4f1bd7973e31df5465f3503e53d62b5034820e488f91c988b0442922",
+        "references/agentcore-runtime.md": "eef148faa38245dc23becd21369aa2dc05699c2b67be35f767a5900335cbe910",
+        "references/agents-and-action-groups.md": "cb9c37658613cf97c4849bf34954873a747ba4f97deba5a930ad89189803a015",
+        "references/bedrock-agents-to-agentcore-harness/cli.md": "3082bebebf863d31691a92a4aa0a24c8e27fcf6614c901c6da262e65e9f711e9",
+        "references/bedrock-agents-to-agentcore-harness/deploy.md": "0a0670236d6098198b2f316f00746e9fa9d788a36a4b71b02e211e08b35458b4",
+        "references/bedrock-agents-to-agentcore-harness/discovery.md": "3267f827630664d1118ac10bbeddba89e4b8042a2d5cb2eb7de9fbb8826fbca0",
+        "references/bedrock-agents-to-agentcore-harness/eligibility.md": "d88a0de6e2ce711d8c40f3d3d6a14ebdfe9161750358b180a73cfb42ca3ed450",
+        "references/bedrock-agents-to-agentcore-harness/mapping.md": "42ed50ba6052bbed575377f3a2389c4b7f04fc67724cefffe1ad3662d50f9d57",
+        "references/cost-tracking.md": "54a44ff324b1e331a8b77f50ef5026cc59799d573f5b15b0528b076f12a6fb51",
+        "references/guardrails.md": "4f860fe86892f940c8054b2b6dd734d6b35295c6e8264de5498a922ffefc3b26",
+        "references/knowledge-bases-retrieval.md": "1be91ee485ba5ff1fd345778e49d09f50d0b871076e3f49d28bcba75c20776a2",
+        "references/knowledge-bases-setup.md": "5e4a306f351309fd3bba4263b388ec5a787ec84e658514716f1881cea70119e0",
+        "references/migrate-bedrock-agents-to-agentcore-harness.md": "58e200a668b4a040362289e5685986f86d568240de677362c0f705fae8c291aa",
+        "references/model-invocation.md": "e137ca48c64a483b962bffd07b9192947cd008c26bf6dbf50e580009aa382097",
+        "references/model-migration.md": "4c96e74626a7f76012529eab1effaa5a8743d6b57af9c6d0b5105bdab08cc5f0",
+        "references/model-selection-guide.md": "4a2f452df530e43cc284e82a1673b32c1c752f00e0415bd3e2b9231f35995624",
+        "references/prompt-caching.md": "c75898bcb9d737305d2acd48ff0e7dda047cea6c6e463ddd3f1f075b4622b397",
+        "references/prompt-engineering-by-model.md": "cb901d9162e4444aab9c0beca0d8b9bb4b7b4d3c1ee46fdbe28eac638fb04be8",
+        "references/quota-health.md": "f30d99715f25f65076768569e780a14b36f1f650143746b2ad4b85be7df70087",
+        "references/sdk-converse-api-python.md": "ea894c41ff2b16045662c6939b77cd86f199dce0edac026c543bf30dfec11d16",
+        "references/sdk-converse-api-typescript.md": "50e5dcdc13f0dd0c20db3f859b9de2e5cab467653fde63bb4b391f6f88e4a277",
+        "scripts/fetch_bedrock_agent.py": "0c0066a623551395dfaa9d9092ffa75659452a3d833792275c68310887049c10"
+      }
+    },
+    "architect": {
+      "repository": "pstack",
+      "path": "pstack/skills/architect",
+      "sha256": "3482791a38a39f8e30ba8aae28ef227a91ff30a5578755227e0588e113b35bf1",
+      "override": "docs/agents/skill-overrides/architect",
+      "files": {
+        "SKILL.md": "3482791a38a39f8e30ba8aae28ef227a91ff30a5578755227e0588e113b35bf1",
+        "references/design-red-flags.md": "905066f9bbac81c573c2b325be47751d2c0f9325e0a0772bd4384e82dafe9336",
+        "references/rationale-template.md": "0cedfccdc7b47fc881febd5a8293eecbc542c20f8df825639904a8102d2eb5d3",
+        "references/runner-prompt.md": "983bf2820cc14ed8ecab6e448e1033e5cfe6031967d0a9287b48c7fa9c33d925"
+      }
+    },
+    "arena": {
+      "repository": "pstack",
+      "path": "pstack/skills/arena",
+      "sha256": "f24e1ba6958611239438667413f02410616e5db004d03f1aebaca0bc3055d5af",
+      "override": "docs/agents/skill-overrides/arena",
+      "files": {
+        "SKILL.md": "f24e1ba6958611239438667413f02410616e5db004d03f1aebaca0bc3055d5af"
+      }
+    },
+    "automate-me": {
+      "repository": "pstack",
+      "path": "pstack/skills/automate-me",
+      "sha256": "bb96d8737a9ce7619020a973d70c3ac83ee4524a2e21382c26f19fc8e59e63f1",
+      "override": "docs/agents/skill-overrides/automate-me",
+      "files": {
+        "SKILL.md": "bb96d8737a9ce7619020a973d70c3ac83ee4524a2e21382c26f19fc8e59e63f1"
+      }
+    },
+    "badesign-skill": {
+      "snapshot": "docs/agents/skill-sources/badesign-skill",
+      "note": "Preserved original local skill content; no trustworthy original revision was recorded.",
+      "sha256": "2bf755f5da60ccecea0f78b6d210cfad3e50e5fe84b28df27bc5734e139b04ea",
+      "files": {
+        "SKILL.md": "2bf755f5da60ccecea0f78b6d210cfad3e50e5fe84b28df27bc5734e139b04ea"
+      }
+    },
+    "blast-radius": {
+      "repository": "pstack",
+      "path": "pstack/skills/blast-radius",
+      "sha256": "302737e195a235ffafe348250be69955c89c5db455ceb96b576dc91a828c5208",
+      "override": "docs/agents/skill-overrides/blast-radius",
+      "files": {
+        "SKILL.md": "302737e195a235ffafe348250be69955c89c5db455ceb96b576dc91a828c5208"
+      }
+    },
+    "bro": {
+      "repository": "pstack",
+      "path": "pstack/skills/bro",
+      "sha256": "8b822d47b9299627f5e4fe42684a031105792c8531443da1ae3423adfa2de96f",
+      "override": "docs/agents/skill-overrides/bro",
+      "files": {
+        "SKILL.md": "8b822d47b9299627f5e4fe42684a031105792c8531443da1ae3423adfa2de96f"
+      }
+    },
+    "code-review": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/code-review",
+      "sha256": "cd06d5e02c4f8725761476de8928b0e3436898ac3de2cc5ac1b91c96781317db",
+      "override": "docs/agents/skill-overrides/code-review",
+      "files": {
+        "SKILL.md": "cd06d5e02c4f8725761476de8928b0e3436898ac3de2cc5ac1b91c96781317db",
+        "agents/openai.yaml": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+      }
+    },
+    "codebase-design": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/codebase-design",
+      "sha256": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
+      "override": "docs/agents/skill-overrides/codebase-design",
+      "files": {
+        "DEEPENING.md": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1",
+        "DESIGN-IT-TWICE.md": "52b52e75655a27aea59c6966b410bac82448968ad46ef1ebb9f07c274e3ae010",
+        "SKILL.md": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
+        "agents/openai.yaml": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f"
+      }
+    },
+    "create-verification-skill": {
+      "repository": "pstack",
+      "path": "pstack/skills/create-verification-skill",
+      "sha256": "f7137776207fc15cf099fad37a06cc8e479f7026e77762a174324f42a2e2aa3e",
+      "override": "docs/agents/skill-overrides/create-verification-skill",
+      "files": {
+        "SKILL.md": "f7137776207fc15cf099fad37a06cc8e479f7026e77762a174324f42a2e2aa3e",
+        "references/feature-map-example/README.md": "cb7bd782cf89968a4ba3d58a5151db837430db92d19a6f52a906973b77b516ba",
+        "references/feature-map-example/create-note.md": "644a44c74f35d38c2feb7cd05a0121fdebbb623e8dc376c185b565a581d1ccf7",
+        "references/feature-map-example/search.md": "6e87b9e7f2791a7776ba1bb83f371cd285c306c67f19d245cc4dd6ca3015c823"
+      }
+    },
+    "deslop": {
+      "tracked": ".claude/skills/deslop",
+      "sha256": "e47d383b003997980a1e53699658d504b1385d42b372acd38ea0dcc9f699c3a6",
+      "files": {
+        "SKILL.md": "e47d383b003997980a1e53699658d504b1385d42b372acd38ea0dcc9f699c3a6"
+      }
+    },
+    "diagnosing-bugs": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/diagnosing-bugs",
+      "sha256": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
+      "override": "docs/agents/skill-overrides/diagnosing-bugs",
+      "files": {
+        "SKILL.md": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
+        "agents/openai.yaml": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b",
+        "scripts/hitl-loop.template.sh": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+      }
+    },
+    "domain-modeling": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/domain-modeling",
+      "sha256": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
+      "override": "docs/agents/skill-overrides/domain-modeling",
+      "files": {
+        "ADR-FORMAT.md": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0",
+        "CONTEXT-FORMAT.md": "9b317f46d0e8a775eed8b837e4e4d6ca4fdf26f2711fc6d7811879d4caa5ac0b",
+        "GLOSSARY-FORMAT.md": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801",
+        "SKILL.md": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
+        "agents/openai.yaml": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+      }
+    },
+    "figure-it-out": {
+      "repository": "pstack",
+      "path": "pstack/skills/figure-it-out",
+      "sha256": "c8a013411b2884fac6670bdb1960c074cb15ebc861813b8432376cd17db01cad",
+      "override": "docs/agents/skill-overrides/figure-it-out",
+      "files": {
+        "SKILL.md": "c8a013411b2884fac6670bdb1960c074cb15ebc861813b8432376cd17db01cad"
+      }
+    },
+    "grill-with-docs": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/grill-with-docs",
+      "sha256": "fc6401cbf34f1f3b6cb5e97253e25671d822733fc3f985117fe0d162639abf61",
+      "override": "docs/agents/skill-overrides/grill-with-docs",
+      "files": {
+        "SKILL.md": "fc6401cbf34f1f3b6cb5e97253e25671d822733fc3f985117fe0d162639abf61",
+        "agents/openai.yaml": "94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
+      }
+    },
+    "grilling": {
+      "repository": "mattpocock",
+      "path": "skills/productivity/grilling",
+      "sha256": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
+      "override": "docs/agents/skill-overrides/grilling",
+      "files": {
+        "SKILL.md": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
+        "agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
+      }
+    },
+    "how": {
+      "repository": "pstack",
+      "path": "pstack/skills/how",
+      "sha256": "1d4fa2203585a2637cce2eeba46ff3bbf640ed67b2109f69b12457169d7f2fcf",
+      "override": "docs/agents/skill-overrides/how",
+      "files": {
+        "SKILL.md": "1d4fa2203585a2637cce2eeba46ff3bbf640ed67b2109f69b12457169d7f2fcf",
+        "references/explainer-prompt.md": "ddb89cebefc24e2b54517a331aedfe045b6971e101f45c71b8cef4cccff45bff",
+        "references/explorer-prompt.md": "a3b44a6e5bb16a6d4d1cac19db8ed5322ffd5f5f5d45baca4e73990ca096f8be"
+      }
+    },
+    "improve-codebase-architecture": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/improve-codebase-architecture",
+      "sha256": "8bc581f033581fa1902db51c1bf53b705fa2eface437891f7df2e973c04dab88",
+      "override": "docs/agents/skill-overrides/improve-codebase-architecture",
+      "files": {
+        "HTML-REPORT.md": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
+        "SKILL.md": "8bc581f033581fa1902db51c1bf53b705fa2eface437891f7df2e973c04dab88",
+        "agents/openai.yaml": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+      }
+    },
+    "interrogate": {
+      "repository": "pstack",
+      "path": "pstack/skills/interrogate",
+      "sha256": "a6af7707a25c31453e4e66a8e0e51f8cf68f8a3a165e4df5eb362aa2348b3774",
+      "override": "docs/agents/skill-overrides/interrogate",
+      "files": {
+        "SKILL.md": "a6af7707a25c31453e4e66a8e0e51f8cf68f8a3a165e4df5eb362aa2348b3774",
+        "references/code-quality-review.md": "79162fda183eafd40d51661fbb5e151c7ba250f89e506ba17f5bd135dcbd50a8",
+        "references/lead-judgment.md": "6e5bdf5670eb34017692e9b6c546f36ac7552e6bb9f3f2f3429164fcc46a9361",
+        "references/reviewer-prompt.md": "e0598e254792b56de39bb16b1e6db559b03a522fdc54b98f942d254090920ae6",
+        "references/rubric.md": "a85aa801abbaf14434f00579440abc0d8e2723227ba8bf57de7cca8d6e7d2f25"
+      }
+    },
+    "maintain-verification-skill": {
+      "repository": "pstack",
+      "path": "pstack/skills/maintain-verification-skill",
+      "sha256": "5fcae77634fc6a862068ecbcda03b69644a5223df62f11be618328f82f78c6a2",
+      "override": "docs/agents/skill-overrides/maintain-verification-skill",
+      "files": {
+        "SKILL.md": "5fcae77634fc6a862068ecbcda03b69644a5223df62f11be618328f82f78c6a2"
+      }
+    },
+    "no-comments": {
+      "repository": "pstack",
+      "path": "pstack/skills/no-comments",
+      "sha256": "8584f15de6ac3e06f7e719ddeb01e79be29985881a978f5cca0fd3213c27268b",
+      "override": "docs/agents/skill-overrides/no-comments",
+      "files": {
+        "SKILL.md": "8584f15de6ac3e06f7e719ddeb01e79be29985881a978f5cca0fd3213c27268b"
+      }
+    },
+    "ponytail": {
+      "snapshot": "docs/agents/skill-sources/ponytail",
+      "note": "Preserved original local skill content; no trustworthy original revision was recorded.",
+      "sha256": "e64761287bc29032950ab349b2531e53b747847d58ec518586bc740b626d8375",
+      "override": "docs/agents/skill-overrides/ponytail",
+      "files": {
+        "SKILL.md": "e64761287bc29032950ab349b2531e53b747847d58ec518586bc740b626d8375"
+      }
+    },
+    "poteto-mode": {
+      "repository": "pstack",
+      "path": "pstack/skills/poteto-mode",
+      "sha256": "c4fc2229d1f368ae2f2489a954b673eeb3d929126934c1ae4590a211f637e0d0",
+      "override": "docs/agents/skill-overrides/poteto-mode",
+      "files": {
+        "SKILL.md": "c4fc2229d1f368ae2f2489a954b673eeb3d929126934c1ae4590a211f637e0d0",
+        "playbooks/authoring-a-skill.md": "5a2889b5d4def267b9a3a608d767fb80bdcaa893386ee170bcffbba898de4591",
+        "playbooks/autonomous-run.md": "2176af563abb161e5878e579494f4d2b27e5ffaf3ec942a10c78ed897126b1a1",
+        "playbooks/autopilot-full.md": "7d32e1f1c77da682728627bd3c67eddca5be6afe7ac9fc76bff37554110fb3bf",
+        "playbooks/autopilot-stack.md": "67416f82fcc5e2b56c993925d7ebc92f8975149060eb4da788f43f8128af77bc",
+        "playbooks/babysit.md": "c94f21fd06a6ac07be7501d2f396aa1d571405b4761dfb72785de957719ffd5b",
+        "playbooks/bug-fix.md": "51b0886f1b2af9d98eb81dbcf3e3ca08eef1a5efeebe1aee64b02ed3258c9f4a",
+        "playbooks/eval.md": "60636d9edc4049b829ecfcee537313556b6c82976c028804827c409ff700f91e",
+        "playbooks/feature.md": "044297efdfa4c21d27337e42b58854cdf9b4e454281c412d8299bc81ecbb344a",
+        "playbooks/hillclimb.md": "6cf4833a5ba595c02f59d50d5f8868767e5ac1361883bd527aec6ea06260f15e",
+        "playbooks/investigation.md": "8a119d873c46edcb935ed6cdfe472465407e31c8f7c4f9f0d2c14fb74082f4c6",
+        "playbooks/multi-phase-plan.md": "daeeb5926ce0428118147745149ff6a73653ecce61cd349c9aa6025dfb113993",
+        "playbooks/opening-a-pr.md": "678643eca2fee414fe259865a6e1db0112e58e312aefae49f2bafa4011923113",
+        "playbooks/orchestrate.md": "2846c329358fc63016b82a076de300f8302c6ab0ea2d2d9b858fa2978ef0a4a1",
+        "playbooks/pause-safely.md": "882259ce0c64ef5ed1f4befb512e34630801b73751a33084102cd001e3897818",
+        "playbooks/perf-issue.md": "d34615adacb390506cb857bac79e7999d5e06a8c971f783c832c002ee5ab4cd0",
+        "playbooks/prototype.md": "c255607e09274ffef2ed180a76f87dfce9611d9b3b8822abf557ecdb021dd065",
+        "playbooks/refactoring.md": "88f675507c654c8b283e94f881fa61f1dfb321d9a957b8463a28e18279e3fce9",
+        "playbooks/runtime-forensics.md": "d5ffcf27c015db61d2e88aa540d9181263887661fad74ae52f33c4d2dc7b45ce",
+        "playbooks/session-pickup.md": "3f2f1075710278843cd4fe5e54f3f2eaab9936a1a044c3f17cc5ab8ac229d07d",
+        "playbooks/shipping.md": "091e0e8a1b52942eb369dab1e493eaf29d10d5efa4ab397fc1cabc13b826b5b3",
+        "playbooks/trace-forensics.md": "2b5fdc381ec2381ddec06e2afe62c9b98612da5fbf3f4404d2ca20b4815ef8ab",
+        "playbooks/visual-parity.md": "66145d72227cefe7dbfd88ef96b1a1dea381d894df77dc2c5aa6251e92bf2bc6",
+        "playbooks/worktree-cleanup.md": "be277c5cbd564d1b6e9acc27de33e3222fd4897265d2b9353f5bfabb61e7f9fa",
+        "references/bugbot-triage.md": "2d7caea4829699fa6f7312711ed1de4e694bc62c6e6b07e500d5d7f3e857f6dd",
+        "scripts/bootstrap.ts": "ccd2ed08fd9da9d0d942e5f2491cfc74bb92d8a08fa51755e0da1ac8de287361",
+        "scripts/bun.lock": "667d9cf7222e9aae3fa42a4be383e657784216e9df115da02227fbc5ac7bbe46",
+        "scripts/check-plan.mjs": "1f9e788ce90a13a9973e35e8c3a52737857c375e057bdccc13c8510a9af30f04",
+        "scripts/orch/orch.test.ts": "174b86d21ff51ccd28d1a8c938cb2e0c6fa287b209d4ca6c03932fcb1b53372e",
+        "scripts/orch/orch.ts": "f091687df627a0b75fabd54af58945a9cd6c7039ef0622012ac9ed60cd8ec434",
+        "scripts/orch/store.ts": "0eae7cf69282e827b1227166f2e32cee3560f2f3e65b3f1f2faf6fb83d3b4c5b",
+        "scripts/package.json": "d1f815091209d49763775cc188e8e06ff32d5fec648bffd2272bc25a165e87c3",
+        "scripts/watch-pr/cli.test.ts": "a35592b4c6da96caf8d47987e9cd503fab6c7774ab87d11a43f24b4b5df2a9d1",
+        "scripts/watch-pr/cli.ts": "89c08863089181a232be782c4b2ed90a1552f44aeecb0dcb7aac2c623620e680",
+        "scripts/watch-pr/fakes.test-helper.ts": "e53e31b7f03068063f53a99a3591b052aaed66e4e2b196b3a364980f60324ab1",
+        "scripts/watch-pr/github.test.ts": "0cbce011050522938523e36bb42a260e92b812dcd2076930fa681672ad316b24",
+        "scripts/watch-pr/github.ts": "d1bbbafbe8e2c703c84da2029de7f2c4011412512f8cf65a42100f46bcb92c8a",
+        "scripts/watch-pr/policy.test.ts": "a9fedb25feefd1f57ef6a662f80c99018690170a3a8070773a08eaf694d1d3d9",
+        "scripts/watch-pr/policy.ts": "68d240505852cf23c9b2dea463342e9e61243f486b3cc86c735d140f9ee7be49",
+        "scripts/watch-pr/render.ts": "2b709e86628d5b8fdb61f860e60ababc342b0626c67576305442cf548283a604",
+        "scripts/watch-pr/tsconfig.json": "1ecccc72320b086c63ce3f73c959896fd747363e63553b3b1136296ea4069e45",
+        "scripts/watch-pr/types.compile.ts": "621af4c9a664fbf699a9737efccdc248abb416df8819c9dc5f824beae2b9b1d6",
+        "scripts/watch-pr/types.ts": "64ba6221e3bfe61bbb292337d199cdec6309455477280efb060203dba34e0e91",
+        "scripts/watch-pr/watch-pr": "d955603be6cc0e8b8ffcec722f635192b2261410b1f2929abea94480e47eb5d4",
+        "scripts/worktree-audit.sh": "95b8530f3c0ccada8cabc4b0727c052fbc85c141531375aaace65c427af8aecc"
+      }
+    },
+    "principle-attack-the-premise": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-attack-the-premise",
+      "sha256": "58c2998cbe0318b648d2f78c080003c5d3685a0ede2a98e56bc29e2fdfa7417a",
+      "override": "docs/agents/skill-overrides/principle-attack-the-premise",
+      "files": {
+        "SKILL.md": "58c2998cbe0318b648d2f78c080003c5d3685a0ede2a98e56bc29e2fdfa7417a"
+      }
+    },
+    "principle-boundary-discipline": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-boundary-discipline",
+      "sha256": "29852b3ab0e3b043c62318751f445a38fedb36f3b050e71e80aab41fb08a8b00",
+      "override": "docs/agents/skill-overrides/principle-boundary-discipline",
+      "files": {
+        "SKILL.md": "29852b3ab0e3b043c62318751f445a38fedb36f3b050e71e80aab41fb08a8b00"
+      }
+    },
+    "principle-build-the-lever": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-build-the-lever",
+      "sha256": "b49b29d4f2be7ee4862b2fd81fffd2534b990142c332f78d8a315f671fa26853",
+      "override": "docs/agents/skill-overrides/principle-build-the-lever",
+      "files": {
+        "SKILL.md": "b49b29d4f2be7ee4862b2fd81fffd2534b990142c332f78d8a315f671fa26853"
+      }
+    },
+    "principle-encode-lessons-in-structure": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-encode-lessons-in-structure",
+      "sha256": "e66d95bd954a1e8ba298bc451ba1e9190c758f6d77c240540bedf8f28c895694",
+      "override": "docs/agents/skill-overrides/principle-encode-lessons-in-structure",
+      "files": {
+        "SKILL.md": "e66d95bd954a1e8ba298bc451ba1e9190c758f6d77c240540bedf8f28c895694"
+      }
+    },
+    "principle-exhaust-the-design-space": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-exhaust-the-design-space",
+      "sha256": "67e7e29ab4f484bfddcac55ece4d70f6efc25ccbf91de7de31fcec385f9f059e",
+      "override": "docs/agents/skill-overrides/principle-exhaust-the-design-space",
+      "files": {
+        "SKILL.md": "67e7e29ab4f484bfddcac55ece4d70f6efc25ccbf91de7de31fcec385f9f059e"
+      }
+    },
+    "principle-experience-first": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-experience-first",
+      "sha256": "3013367ce42fabb55799ffbcc51ad20b2ae7ec1b898bad4ac4ceaa2f093edbe1",
+      "override": "docs/agents/skill-overrides/principle-experience-first",
+      "files": {
+        "SKILL.md": "3013367ce42fabb55799ffbcc51ad20b2ae7ec1b898bad4ac4ceaa2f093edbe1"
+      }
+    },
+    "principle-fix-root-causes": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-fix-root-causes",
+      "sha256": "6b5787202ddac723c8b1d06c12934562c7b02ac9c672bfc33dbd2d9c96d32f18",
+      "override": "docs/agents/skill-overrides/principle-fix-root-causes",
+      "files": {
+        "SKILL.md": "6b5787202ddac723c8b1d06c12934562c7b02ac9c672bfc33dbd2d9c96d32f18"
+      }
+    },
+    "principle-foundational-thinking": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-foundational-thinking",
+      "sha256": "2c0b6cc3b7d35178ebe5ab40a2a525fca51d420647354fb7bb2de8cc2554b688",
+      "override": "docs/agents/skill-overrides/principle-foundational-thinking",
+      "files": {
+        "SKILL.md": "2c0b6cc3b7d35178ebe5ab40a2a525fca51d420647354fb7bb2de8cc2554b688"
+      }
+    },
+    "principle-guard-the-context-window": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-guard-the-context-window",
+      "sha256": "064678b4546f530adc670a8731822bbf2419195e3887b940eee27d57ae5524c4",
+      "override": "docs/agents/skill-overrides/principle-guard-the-context-window",
+      "files": {
+        "SKILL.md": "064678b4546f530adc670a8731822bbf2419195e3887b940eee27d57ae5524c4"
+      }
+    },
+    "principle-laziness-protocol": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-laziness-protocol",
+      "sha256": "f45159ad7ea5f01a08d364897307f69ca18fa57b87d6ed6b89ca222a2388bf7d",
+      "override": "docs/agents/skill-overrides/principle-laziness-protocol",
+      "files": {
+        "SKILL.md": "f45159ad7ea5f01a08d364897307f69ca18fa57b87d6ed6b89ca222a2388bf7d"
+      }
+    },
+    "principle-make-operations-idempotent": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-make-operations-idempotent",
+      "sha256": "6ff9aed07af7c3e57c4ef247f1a236b6ffdd1b294732cfedb9845413395d659c",
+      "override": "docs/agents/skill-overrides/principle-make-operations-idempotent",
+      "files": {
+        "SKILL.md": "6ff9aed07af7c3e57c4ef247f1a236b6ffdd1b294732cfedb9845413395d659c"
+      }
+    },
+    "principle-migrate-callers-then-delete-legacy-apis": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-migrate-callers-then-delete-legacy-apis",
+      "sha256": "388e9cbc9e52bd72d9044d7e37126bd3355c4e8f1188447e2a6850fe4fc549d7",
+      "override": "docs/agents/skill-overrides/principle-migrate-callers-then-delete-legacy-apis",
+      "files": {
+        "SKILL.md": "388e9cbc9e52bd72d9044d7e37126bd3355c4e8f1188447e2a6850fe4fc549d7"
+      }
+    },
+    "principle-minimize-reader-load": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-minimize-reader-load",
+      "sha256": "d44ded81ac7cfc194dca65c9943a55fe8a058660485049a6e607e6bdf5d70738",
+      "override": "docs/agents/skill-overrides/principle-minimize-reader-load",
+      "files": {
+        "SKILL.md": "d44ded81ac7cfc194dca65c9943a55fe8a058660485049a6e607e6bdf5d70738"
+      }
+    },
+    "principle-model-the-domain": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-model-the-domain",
+      "sha256": "b50a9ca53a9cd445b6804ff4eeb2904bba5e9d502a8e51c0ebd8cbe830c8be26",
+      "override": "docs/agents/skill-overrides/principle-model-the-domain",
+      "files": {
+        "SKILL.md": "b50a9ca53a9cd445b6804ff4eeb2904bba5e9d502a8e51c0ebd8cbe830c8be26"
+      }
+    },
+    "principle-never-block-on-the-human": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-never-block-on-the-human",
+      "sha256": "dd9ee8b936a19b4e24194de8cc8ca1e51e8d15b7b973eeb023f608c5434f73e4",
+      "override": "docs/agents/skill-overrides/principle-never-block-on-the-human",
+      "files": {
+        "SKILL.md": "dd9ee8b936a19b4e24194de8cc8ca1e51e8d15b7b973eeb023f608c5434f73e4"
+      }
+    },
+    "principle-outcome-oriented-execution": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-outcome-oriented-execution",
+      "sha256": "922ade1be5f671575b3c93367c3d08c9dbb2f7444a42bacbfb834656724d61ac",
+      "override": "docs/agents/skill-overrides/principle-outcome-oriented-execution",
+      "files": {
+        "SKILL.md": "922ade1be5f671575b3c93367c3d08c9dbb2f7444a42bacbfb834656724d61ac"
+      }
+    },
+    "principle-prove-it-works": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-prove-it-works",
+      "sha256": "89b9eb71b5d20d258830b31569ec47b7295441ae8e66178dddd0076d02ed8c87",
+      "override": "docs/agents/skill-overrides/principle-prove-it-works",
+      "files": {
+        "SKILL.md": "89b9eb71b5d20d258830b31569ec47b7295441ae8e66178dddd0076d02ed8c87"
+      }
+    },
+    "principle-redesign-from-first-principles": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-redesign-from-first-principles",
+      "sha256": "b3ac6bc1c707aa8ad1a331851ad71aeb48f179136907ab2015f34881c674d056",
+      "override": "docs/agents/skill-overrides/principle-redesign-from-first-principles",
+      "files": {
+        "SKILL.md": "b3ac6bc1c707aa8ad1a331851ad71aeb48f179136907ab2015f34881c674d056"
+      }
+    },
+    "principle-separate-before-serializing-shared-state": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-separate-before-serializing-shared-state",
+      "sha256": "8b1770a78e89adb0076a30aba568d0a9fe3072048a96d908eff1b20394161d60",
+      "override": "docs/agents/skill-overrides/principle-separate-before-serializing-shared-state",
+      "files": {
+        "SKILL.md": "8b1770a78e89adb0076a30aba568d0a9fe3072048a96d908eff1b20394161d60"
+      }
+    },
+    "principle-sequence-verifiable-units": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-sequence-verifiable-units",
+      "sha256": "20f9fe62d2136cd47f3e5dcedebabff42727a5fdb997832c1b92b51f6a94f2cc",
+      "override": "docs/agents/skill-overrides/principle-sequence-verifiable-units",
+      "files": {
+        "SKILL.md": "20f9fe62d2136cd47f3e5dcedebabff42727a5fdb997832c1b92b51f6a94f2cc"
+      }
+    },
+    "principle-subtract-before-you-add": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-subtract-before-you-add",
+      "sha256": "65fa4e1a2a630040eb0abbcfeaf0e82241fd968443021b535f94b4b6d4b7aa0f",
+      "override": "docs/agents/skill-overrides/principle-subtract-before-you-add",
+      "files": {
+        "SKILL.md": "65fa4e1a2a630040eb0abbcfeaf0e82241fd968443021b535f94b4b6d4b7aa0f"
+      }
+    },
+    "principle-test-behavior-not-implementation": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-test-behavior-not-implementation",
+      "sha256": "c6104107aa4902342d36eb5c6b7f99862eadff5ba27f367cde011ccdde4d8d17",
+      "override": "docs/agents/skill-overrides/principle-test-behavior-not-implementation",
+      "files": {
+        "SKILL.md": "c6104107aa4902342d36eb5c6b7f99862eadff5ba27f367cde011ccdde4d8d17"
+      }
+    },
+    "principle-type-system-discipline": {
+      "repository": "pstack",
+      "path": "pstack/skills/principle-type-system-discipline",
+      "sha256": "1fa13e29e277c87fbd25e87bc77145bfe539bef12e529fd20809f324e0d7a2d3",
+      "override": "docs/agents/skill-overrides/principle-type-system-discipline",
+      "files": {
+        "SKILL.md": "1fa13e29e277c87fbd25e87bc77145bfe539bef12e529fd20809f324e0d7a2d3"
+      }
+    },
+    "recall": {
+      "repository": "pstack",
+      "path": "pstack/skills/recall",
+      "sha256": "46bb30891e2f7426d97baa07c815effda0b84f80675025016b5bce0cbf5269ef",
+      "override": "docs/agents/skill-overrides/recall",
+      "files": {
+        "SKILL.md": "46bb30891e2f7426d97baa07c815effda0b84f80675025016b5bce0cbf5269ef"
+      }
+    },
+    "reflect": {
+      "repository": "pstack",
+      "path": "pstack/skills/reflect",
+      "sha256": "75273668b35067c1d413d47c1e8794abc06ec17c4404ba6cdf70ad1804c0ad1e",
+      "override": "docs/agents/skill-overrides/reflect",
+      "files": {
+        "SKILL.md": "75273668b35067c1d413d47c1e8794abc06ec17c4404ba6cdf70ad1804c0ad1e",
+        "references/divergent-reviewer.md": "221dfc0abf7cbcd25e1da3cd87323f5d1050fc3bf652e096d093584e183c98fb",
+        "references/judgment-reviewer.md": "a40ecb9b28bd2a3491e11a541157fe58efe158e0eda7b61a5006c14590aabe61",
+        "references/synthesizer.md": "2f76c847eb45b182dc6fbcbf7d96c8ee7e2986ecfd9e0d640fec44e3cc5a617c",
+        "references/tooling-reviewer.md": "bc49ced90fa81eaba3083b88aeb430d900a6d8f14ff40c1d6b52263bacfc77b6"
+      }
+    },
+    "research": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/research",
+      "sha256": "960a3e32833c4bcbbf6afa31f199c0d9d11b6a920fb5881df4ad80111b7a63c5",
+      "override": "docs/agents/skill-overrides/research",
+      "files": {
+        "SKILL.md": "960a3e32833c4bcbbf6afa31f199c0d9d11b6a920fb5881df4ad80111b7a63c5",
+        "agents/openai.yaml": "9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
+      }
+    },
+    "ship": {
+      "tracked": ".claude/skills/ship",
+      "sha256": "41430a7688966043f4d2cfe2bf628e25adf3161a2e9a565b3a43a44f14757263",
+      "files": {
+        "SKILL.md": "41430a7688966043f4d2cfe2bf628e25adf3161a2e9a565b3a43a44f14757263"
+      }
+    },
+    "show-me": {
+      "snapshot": "docs/agents/skill-sources/show-me",
+      "note": "Preserved original local skill content; no trustworthy original revision was recorded.",
+      "sha256": "bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810",
+      "files": {
+        "SKILL.md": "bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810"
+      }
+    },
+    "show-me-your-work": {
+      "repository": "pstack",
+      "path": "pstack/skills/show-me-your-work",
+      "sha256": "1e2ed363f13d23fdcd208299e7d980c25182ae0052b58b9fd5f6de3e9c761430",
+      "override": "docs/agents/skill-overrides/show-me-your-work",
+      "files": {
+        "SKILL.md": "1e2ed363f13d23fdcd208299e7d980c25182ae0052b58b9fd5f6de3e9c761430",
+        "references/decision-log-template.tsv": "6779378006a2f5225e8c06deb84f1d913fb532041ebbb6e50d94600bfe3f4b76",
+        "scripts/log.sh": "a65a4bc5fb7cdeadbdb7b7ff1ca4682f4d9c42420942b2977cd17b46c4ac338e"
+      }
+    },
+    "swarm": {
+      "repository": "pstack",
+      "path": "pstack/skills/swarm",
+      "sha256": "d2751f056cc9fcd916eabb6cf6eed656ca257ffa9442e32d409b7e954c6f6d4d",
+      "override": "docs/agents/skill-overrides/swarm",
+      "files": {
+        "SKILL.md": "d2751f056cc9fcd916eabb6cf6eed656ca257ffa9442e32d409b7e954c6f6d4d"
+      }
+    },
+    "tdd": {
+      "repository": "mattpocock",
+      "path": "skills/engineering/tdd",
+      "sha256": "9dc7be48b5f2db89657fe11f2a73040d0f61198701aed22f88da33ac08d8e4d8",
+      "override": "docs/agents/skill-overrides/tdd",
+      "files": {
+        "SKILL.md": "9dc7be48b5f2db89657fe11f2a73040d0f61198701aed22f88da33ac08d8e4d8",
+        "agents/openai.yaml": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b",
+        "mocking.md": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef",
+        "tests.md": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+      }
+    },
+    "teach": {
+      "repository": "pstack",
+      "path": "pstack/skills/teach",
+      "sha256": "e1c7089614942ab8982d389538915ec1be2a714ace6a5bdbf3a9b10c9c9ac251",
+      "override": "docs/agents/skill-overrides/teach",
+      "files": {
+        "SKILL.md": "e1c7089614942ab8982d389538915ec1be2a714ace6a5bdbf3a9b10c9c9ac251"
+      }
+    },
+    "technical-writing": {
+      "repository": "pstack",
+      "path": "pstack/skills/technical-writing",
+      "sha256": "a450d685f477833640054828477fff97e1fd4ffb396a845b512d131b633c1919",
+      "override": "docs/agents/skill-overrides/technical-writing",
+      "files": {
+        "SKILL.md": "a450d685f477833640054828477fff97e1fd4ffb396a845b512d131b633c1919"
+      }
+    },
+    "test-audit": {
+      "tracked": ".claude/skills/test-audit",
+      "sha256": "52537871fd088a1d1e81fb61605b06bbefc96eb23507c323fb70052d2e57724e",
+      "files": {
+        "SKILL.md": "52537871fd088a1d1e81fb61605b06bbefc96eb23507c323fb70052d2e57724e"
+      }
+    },
+    "typescript-best-practices": {
+      "repository": "pstack",
+      "path": "pstack/skills/typescript-best-practices",
+      "sha256": "fd61fe218e2d08226a63533d344277ccacd6e92fd07a81ca663817594585221d",
+      "override": "docs/agents/skill-overrides/typescript-best-practices",
+      "files": {
+        "SKILL.md": "fd61fe218e2d08226a63533d344277ccacd6e92fd07a81ca663817594585221d",
+        "references/patterns.md": "62e9cd32d2fa066a35d0d1349aac22dce31a48ad7d5eaf142570770cfe707384"
+      }
+    },
+    "unslop": {
+      "repository": "pstack",
+      "path": "pstack/skills/unslop",
+      "sha256": "290a10a90e52f080fdf0f225f043088990b5cd8d8b8307c800a91cfeb1568aa4",
+      "override": "docs/agents/skill-overrides/unslop",
+      "files": {
+        "SKILL.md": "290a10a90e52f080fdf0f225f043088990b5cd8d8b8307c800a91cfeb1568aa4"
+      }
+    },
+    "why": {
+      "repository": "pstack",
+      "path": "pstack/skills/why",
+      "sha256": "334bbac22c765510adb145e6f52eb82e59fc1050538c8be1c808e6aa5aba2b6b",
+      "override": "docs/agents/skill-overrides/why",
+      "files": {
+        "SKILL.md": "334bbac22c765510adb145e6f52eb82e59fc1050538c8be1c808e6aa5aba2b6b",
+        "references/epistemics.md": "fcc0f559c072832c869a5ada72434b4849320a637ae63c09e8ee14f7ad787059",
+        "references/investigator-prompt.md": "6892956a7ab0b5ee6c4babaf4f793703abe89b350ea7cb9463b4a56eea1c8266",
+        "references/source-playbook.md": "9ae9dcb9d09111c9facc68510331c5aba4aed9b1b057314ff1fc0e166ad3993a",
+        "references/sources/code-archaeology.md": "8c14aa382f0de40829b2668d43e3f54814480bb93a486c9282ada4003f6b9dbd",
+        "references/sources/databricks.md": "236ede7aab6454662a992db088a5393537a5233a4c26719c93188f9e174488f6",
+        "references/sources/datadog.md": "ebe9c07bac28e47757ee7f16fb93b0c01d427a08c501957d047f395a2f37b7e7",
+        "references/sources/incident-postmortem.md": "a899470f05f86029630a13a2696491cc708ca7b56a6e822a69ff6e954d6ff8cf",
+        "references/sources/linear.md": "01304e7f1badfcfb78babbb0edcadeb3cc8dd3f713793420cdff24ba190f907c",
+        "references/sources/notion.md": "3bcfa695c49dfad4ac036d5d7181c12585f55ac04f1936198d16ab75a2788997",
+        "references/sources/sentry.md": "6f292bc4fb1548e956f95e1900b9481abf5134254419f1cd9edec95428c82d73",
+        "references/sources/slack.md": "58fee61d024b3700b407e7acbed367944720ff05adfddb6954d36c88368f3ba7",
+        "references/synthesizer-prompt.md": "5b5eccc9d463ae4c61dd8ab97f0c350afce1aa00bf513a25b5d2b5d3b2354d46"
+      }
+    },
+    "writing-for-agents": {
+      "repository": "mattpocock",
+      "path": "skills/productivity/writing-for-agents",
+      "sha256": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
+      "override": "docs/agents/skill-overrides/writing-for-agents",
+      "files": {
+        "SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
+        "SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
+        "agents/openai.yaml": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
+      }
+    }
+  },
+  "removed": [
+    "to-spec"
+  ],
+  "excluded_installations": [
+    "setup-matt-pocock-skills"
+  ],
+  "worker_wrapper": ".claude/agents/poteto-agent.md"
+}

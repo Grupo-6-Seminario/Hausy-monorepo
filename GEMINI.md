@@ -1,4 +1,3 @@
 @AGENTS.md
 
-Read `AGENTS.md` in the repository root before doing anything. It is the single
-source of truth for this project's context, architecture and engineering conventions.
+Read the root working agreement and the instructions linked for this task. Before frontend or infrastructure work, also read that directory's AGENTS.md. Project-local skill adaptations implement the shared workflow.

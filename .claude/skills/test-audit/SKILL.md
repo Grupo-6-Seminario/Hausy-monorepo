@@ -9,9 +9,7 @@ Three modes, one value bar. Authoring mode gates every new or changed test at
 write time. Audit mode runs focused sweeps of tests that re-assert source,
 duplicate stronger proof, couple behavior to implementation, or keep test-only
 production seams alive. Continue broad audits as separate coherent follow-up
-PRs; optimize for confidence, not deletion count. Campaign mode prunes one
-whole subsystem's test surface (every test file a plugin or core area owns);
-before starting one, read [CAMPAIGN.md](CAMPAIGN.md).
+PRs; optimize for confidence, not deletion count. A whole-subsystem campaign requires an explicit scoped request; use the same evidence bar and local verification flow.
 
 ## Authoring gate
 
@@ -81,7 +79,7 @@ or types directly.
 ## Discovery
 
 Keep discovery read-only and report evidence before editing. For broad scope,
-run parallel discovery lanes when available:
+inspect these areas sequentially, using one bounded investigator if useful:
 
 - core and packages (`src/`, `packages/`);
 - plugins (`extensions/`);
@@ -134,27 +132,13 @@ to increase deletion counts.
 
 ## Validation
 
-Never edit source or tests while Vitest is running in the checkout. Follow
-`$openclaw-testing`; route heavy proof through its `$crabbox` rules.
+Follow `docs/agents/testing.md` for Hausy commands and disposable database rules. Run the smallest owner/sibling proof, then the applicable completion baseline. Verify behavior through actual Go, Vitest, Playwright, or executable artifacts. Avoid editing files while their tests are running. Inspect `git diff --check` and the final diff.
 
-1. Run the smallest owner and sibling tests with
-   `node scripts/run-vitest.mjs <path-or-filter>`.
-2. For removed source greps or plan assertions, run the executable script or
-   dry-run that owns the real contract.
-3. Run targeted formatting, then `git diff --check`.
-4. Classify with
-   `node scripts/check-changed.mjs --dry-run -- <changed-paths>`, then run the
-   actual changed gate required by repository policy.
-5. Inspect `git diff --numstat`; report production/tooling separately from
-   tests and test support.
-6. After final audit edits, run mandatory `$autoreview`.
+Apply the authoring gate whenever touching tests. After long or multi-phase tasks, audit the affected area for duplicate or implementation-coupled proof. Use at most one concurrent subagent for discovery; workers do not delegate. Preserve meaningful regressions and report uncertain candidates rather than deleting them.
 
-## Landing and continuation
+## Delivery
 
-Commit, push, open a PR, or land only when authorized. Use
-`$openclaw-pr-maintainer` and the repository `scripts/pr` flow. Land one
-coherent PR at a time; after landing, refresh from current `main` and rerun
-read-only discovery for the next high-confidence batch.
+Keep findings and edits local. Only explicitly invoked `ship` commits, pushes, or creates a PR into `dev`. This skill does not publish issues or merge. Continue broader audits only when requested; a focused audit does not authorize an unrelated cleanup campaign.
 
 ## Handoff
 

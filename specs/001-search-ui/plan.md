@@ -1,5 +1,6 @@
 # Implementation Plan: Natural-language property search
 
+> Historical implementation record. The referenced `frontend/DESIGN.md` was retired on 2026-09-30. Future UI work follows [frontend instructions](../../frontend/AGENTS.md), BADESIGN, and its approved brief.
 **Branch**: `Nick2611/frontend-query-ui-refactor` | **Date**: 2026-09-04 | **Spec**: [spec.md](./spec.md)
 
 ## Summary

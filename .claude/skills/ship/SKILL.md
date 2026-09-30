@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commit the work in the current worktree, push its branch to origin, and open a pull request into dev. Use when the user runs /ship or says the task is done and ready for review.
+description: Commit the work in the current worktree, push its branch to origin, and open a pull request into dev. Use only when the user explicitly invokes ship or /ship.
 disable-model-invocation: true
 ---
 
@@ -8,6 +8,8 @@ Ship the current worktree's work as a pull request into `dev`. Run the steps in 
 **stop and report** at the first failure — never work around a failed check.
 
 ## 1. Preconditions
+
+Confirm the user explicitly invoked `ship`. Task completion, ready-for-review wording, or another skill's final step is not invocation. Read `docs/agents/testing.md` and run applicable domain checks; skipped required proof blocks shipping.
 
 ```bash
 git branch --show-current
@@ -21,6 +23,8 @@ gh auth status
 ## 2. Verify
 
 Look at `git status` and `git diff` (staged and unstaged) so you know exactly what is shipping.
+
+Run all applicable completion checks from `docs/agents/testing.md`, including frontend checks when frontend behavior changed.
 
 If any Go code changed on this branch (`git diff --name-only origin/dev...HEAD` plus uncommitted
 files), run `go test ./...`. If tests fail, stop — do not commit or push red code.
@@ -58,7 +62,7 @@ gh pr view --json url,state,baseRefName
 - **No open PR:** create one — ready for review, not a draft:
 
   ```bash
-  gh pr create --base dev --head "$(git branch --show-current)" --title "<title>" --body "<body>"
+  gh pr create --base dev --head "$(git branch --show-current)" --title "<title>" --body-file <prepared-body-file>
   ```
 
   Title: the conventional-commit summary of the whole branch. Body: what changed and why, a
@@ -72,6 +76,8 @@ gh pr view --json url,state,baseRefName
 
   If the PR already exists and has no `## Diagram` section, add one with
   `gh pr edit --body-file`.
+
+Only create or update the PR; merging and deployment require separate explicit authorization.
 
 ## 6. Report
 

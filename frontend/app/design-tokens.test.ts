@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Token contract between `app/globals.css` and `design-tokens.json`.
  *
- * Expected values are transcribed from the palette tables in `frontend/DESIGN.md`,
+ * Expected values pin the established theme palette independently of the rendered CSS,
  * never read back out of the file under test. A test that recomputed them from
  * globals.css would pass against any value the stylesheet happened to hold.
  */
