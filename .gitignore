@@ -12,10 +12,8 @@ credentials
 # pointers, .claude/settings.json, .claude/skills/, .mcp.json, skills-lock.json
 .claude/settings.local.json
 
-# Regenerable duplicate of .claude/skills/ for non-Claude agents. Keep it
-# ignored: when .agents/ is absent, `npx skills update` maintains
-# .claude/skills/ in place; when it is present, it replaces those files with
-# symlinks, which Windows checkouts cannot follow.
+# Generated copies for non-Claude agents; canonical skill files are committed
+# in .claude/skills/. Restore copies with scripts/setup-agent-skills.py.
 .agents/
 
 # --- Go build artifacts -----------------------------------------------------

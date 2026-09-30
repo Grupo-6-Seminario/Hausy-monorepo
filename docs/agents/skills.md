@@ -6,10 +6,11 @@ The authoritative shared process is [workflow](workflow.md); task-specific verif
 
 ## Baseline inventory
 
-The audit found 61 distinct original project skills. One is removed and one is added, leaving 61 active skills. Every original skill has a route or exclusion below.
+The audit found 61 distinct original project skills. One is removed and one is added, plus teammate onboarding, leaving 62 active skills. Every original skill has a route or exclusion below.
 
 | Skill | Activation | Flow |
 | --- | --- | --- |
+| `wizard` | User invoked | Teammate onboarding through docs/SETUP.md; restore skills and verify requested components. |
 | `amazon-bedrock` | Conditional | Explicit Bedrock/AgentCore work only; authentication and mutations retain approval gates. |
 | `architect` | Conditional | Substantial structural changes or unclear interface ownership. |
 | `arena` | Conditional | Materially different designs warrant comparison; bounded sequential alternatives. |

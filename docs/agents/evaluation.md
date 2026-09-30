@@ -21,7 +21,7 @@ The coordinator inspected command traces and complete responses rather than acce
 | Explain handling of bugs, refactors, tests, listings, Bedrock, and ready-for-review wording | Preserved hard conditions, distinguished bugs from features, described affected-area test audit and approval gates, and kept completion separate from ship | Pass |
 | Investigate slow follow-up searches with Poteto | Read adapted playbooks, located existing timings, proposed a repeatable workload and baseline, and left implementation/publication out of scope | Pass |
 
-The four workflow candidates made no write attempts in their recorded tool actions. Their responses are retained outside the repository: [saved-search brief](/tmp/hausy-agent-work/saved-search.answer.md), [frontend brief](/tmp/hausy-agent-work/welcome.answer.md), [work-queue response](/tmp/hausy-agent-work/work-queue.answer.md), and [Poteto investigation](/tmp/hausy-agent-work/poteto.answer.md).
+The four workflow candidates made no write attempts in their recorded tool actions. Their responses were recorded outside the repository and are unavailable in a fresh checkout: saved-search brief at `/tmp/hausy-agent-work/saved-search.answer.md`, frontend brief at `/tmp/hausy-agent-work/welcome.answer.md`, work-queue response at `/tmp/hausy-agent-work/work-queue.answer.md`, and Poteto investigation at `/tmp/hausy-agent-work/poteto.answer.md`.
 
 ## Independent findings and repairs
 
@@ -37,7 +37,7 @@ The four workflow candidates made no write attempts in their recorded tool actio
 | Python prerequisite and portable invocation were missing | Document Python 3.11+, uv installation, and a portable uv command; that command passes locally |
 | Broken supporting-document links were missed | Scan supporting Markdown too; repair inherited Bedrock pointers; a hash-matching broken-link fixture now fails |
 
-Review responses remain available: [first review](/tmp/hausy-agent-work/local-review.answer.md), [supporting-file review](/tmp/hausy-agent-work/local-review-final.answer.md), [encoding review](/tmp/hausy-agent-work/local-review-complete.answer.md), and [portability/link review](/tmp/hausy-agent-work/local-review-utf8.answer.md).
+Review responses were recorded at these local paths and are unavailable in a fresh checkout: first review at `/tmp/hausy-agent-work/local-review.answer.md`, supporting-file review at `/tmp/hausy-agent-work/local-review-final.answer.md`, encoding review at `/tmp/hausy-agent-work/local-review-complete.answer.md`, and portability/link review at `/tmp/hausy-agent-work/local-review-utf8.answer.md`.
 
 ## Reproduce verification
 

@@ -62,7 +62,8 @@
         "references/design-red-flags.md": "905066f9bbac81c573c2b325be47751d2c0f9325e0a0772bd4384e82dafe9336",
         "references/rationale-template.md": "0cedfccdc7b47fc881febd5a8293eecbc542c20f8df825639904a8102d2eb5d3",
         "references/runner-prompt.md": "983bf2820cc14ed8ecab6e448e1033e5cfe6031967d0a9287b48c7fa9c33d925"
-      }
+      },
+      "tracked": ".claude/skills/architect"
     },
     "arena": {
       "repository": "pstack",
@@ -71,7 +72,8 @@
       "override": "docs/agents/skill-overrides/arena",
       "files": {
         "SKILL.md": "f24e1ba6958611239438667413f02410616e5db004d03f1aebaca0bc3055d5af"
-      }
+      },
+      "tracked": ".claude/skills/arena"
     },
     "automate-me": {
       "repository": "pstack",
@@ -80,7 +82,8 @@
       "override": "docs/agents/skill-overrides/automate-me",
       "files": {
         "SKILL.md": "bb96d8737a9ce7619020a973d70c3ac83ee4524a2e21382c26f19fc8e59e63f1"
-      }
+      },
+      "tracked": ".claude/skills/automate-me"
     },
     "badesign-skill": {
       "snapshot": "docs/agents/skill-sources/badesign-skill",
@@ -88,7 +91,8 @@
       "sha256": "2bf755f5da60ccecea0f78b6d210cfad3e50e5fe84b28df27bc5734e139b04ea",
       "files": {
         "SKILL.md": "2bf755f5da60ccecea0f78b6d210cfad3e50e5fe84b28df27bc5734e139b04ea"
-      }
+      },
+      "tracked": ".claude/skills/badesign-skill"
     },
     "blast-radius": {
       "repository": "pstack",
@@ -97,7 +101,8 @@
       "override": "docs/agents/skill-overrides/blast-radius",
       "files": {
         "SKILL.md": "302737e195a235ffafe348250be69955c89c5db455ceb96b576dc91a828c5208"
-      }
+      },
+      "tracked": ".claude/skills/blast-radius"
     },
     "bro": {
       "repository": "pstack",
@@ -106,7 +111,8 @@
       "override": "docs/agents/skill-overrides/bro",
       "files": {
         "SKILL.md": "8b822d47b9299627f5e4fe42684a031105792c8531443da1ae3423adfa2de96f"
-      }
+      },
+      "tracked": ".claude/skills/bro"
     },
     "code-review": {
       "repository": "mattpocock",
@@ -116,7 +122,8 @@
       "files": {
         "SKILL.md": "cd06d5e02c4f8725761476de8928b0e3436898ac3de2cc5ac1b91c96781317db",
         "agents/openai.yaml": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
-      }
+      },
+      "tracked": ".claude/skills/code-review"
     },
     "codebase-design": {
       "repository": "mattpocock",
@@ -128,7 +135,8 @@
         "DESIGN-IT-TWICE.md": "52b52e75655a27aea59c6966b410bac82448968ad46ef1ebb9f07c274e3ae010",
         "SKILL.md": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
         "agents/openai.yaml": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f"
-      }
+      },
+      "tracked": ".claude/skills/codebase-design"
     },
     "create-verification-skill": {
       "repository": "pstack",
@@ -140,7 +148,8 @@
         "references/feature-map-example/README.md": "cb7bd782cf89968a4ba3d58a5151db837430db92d19a6f52a906973b77b516ba",
         "references/feature-map-example/create-note.md": "644a44c74f35d38c2feb7cd05a0121fdebbb623e8dc376c185b565a581d1ccf7",
         "references/feature-map-example/search.md": "6e87b9e7f2791a7776ba1bb83f371cd285c306c67f19d245cc4dd6ca3015c823"
-      }
+      },
+      "tracked": ".claude/skills/create-verification-skill"
     },
     "deslop": {
       "tracked": ".claude/skills/deslop",
@@ -158,7 +167,8 @@
         "SKILL.md": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
         "agents/openai.yaml": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b",
         "scripts/hitl-loop.template.sh": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
-      }
+      },
+      "tracked": ".claude/skills/diagnosing-bugs"
     },
     "domain-modeling": {
       "repository": "mattpocock",
@@ -171,7 +181,8 @@
         "GLOSSARY-FORMAT.md": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801",
         "SKILL.md": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
         "agents/openai.yaml": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
-      }
+      },
+      "tracked": ".claude/skills/domain-modeling"
     },
     "figure-it-out": {
       "repository": "pstack",
@@ -180,7 +191,8 @@
       "override": "docs/agents/skill-overrides/figure-it-out",
       "files": {
         "SKILL.md": "c8a013411b2884fac6670bdb1960c074cb15ebc861813b8432376cd17db01cad"
-      }
+      },
+      "tracked": ".claude/skills/figure-it-out"
     },
     "grill-with-docs": {
       "repository": "mattpocock",
@@ -190,7 +202,8 @@
       "files": {
         "SKILL.md": "fc6401cbf34f1f3b6cb5e97253e25671d822733fc3f985117fe0d162639abf61",
         "agents/openai.yaml": "94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
-      }
+      },
+      "tracked": ".claude/skills/grill-with-docs"
     },
     "grilling": {
       "repository": "mattpocock",
@@ -200,7 +213,8 @@
       "files": {
         "SKILL.md": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
         "agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
-      }
+      },
+      "tracked": ".claude/skills/grilling"
     },
     "how": {
       "repository": "pstack",
@@ -211,7 +225,8 @@
         "SKILL.md": "1d4fa2203585a2637cce2eeba46ff3bbf640ed67b2109f69b12457169d7f2fcf",
         "references/explainer-prompt.md": "ddb89cebefc24e2b54517a331aedfe045b6971e101f45c71b8cef4cccff45bff",
         "references/explorer-prompt.md": "a3b44a6e5bb16a6d4d1cac19db8ed5322ffd5f5f5d45baca4e73990ca096f8be"
-      }
+      },
+      "tracked": ".claude/skills/how"
     },
     "improve-codebase-architecture": {
       "repository": "mattpocock",
@@ -222,7 +237,8 @@
         "HTML-REPORT.md": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
         "SKILL.md": "8bc581f033581fa1902db51c1bf53b705fa2eface437891f7df2e973c04dab88",
         "agents/openai.yaml": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
-      }
+      },
+      "tracked": ".claude/skills/improve-codebase-architecture"
     },
     "interrogate": {
       "repository": "pstack",
@@ -235,7 +251,8 @@
         "references/lead-judgment.md": "6e5bdf5670eb34017692e9b6c546f36ac7552e6bb9f3f2f3429164fcc46a9361",
         "references/reviewer-prompt.md": "e0598e254792b56de39bb16b1e6db559b03a522fdc54b98f942d254090920ae6",
         "references/rubric.md": "a85aa801abbaf14434f00579440abc0d8e2723227ba8bf57de7cca8d6e7d2f25"
-      }
+      },
+      "tracked": ".claude/skills/interrogate"
     },
     "maintain-verification-skill": {
       "repository": "pstack",
@@ -244,7 +261,8 @@
       "override": "docs/agents/skill-overrides/maintain-verification-skill",
       "files": {
         "SKILL.md": "5fcae77634fc6a862068ecbcda03b69644a5223df62f11be618328f82f78c6a2"
-      }
+      },
+      "tracked": ".claude/skills/maintain-verification-skill"
     },
     "no-comments": {
       "repository": "pstack",
@@ -253,7 +271,8 @@
       "override": "docs/agents/skill-overrides/no-comments",
       "files": {
         "SKILL.md": "8584f15de6ac3e06f7e719ddeb01e79be29985881a978f5cca0fd3213c27268b"
-      }
+      },
+      "tracked": ".claude/skills/no-comments"
     },
     "ponytail": {
       "snapshot": "docs/agents/skill-sources/ponytail",
@@ -262,7 +281,8 @@
       "override": "docs/agents/skill-overrides/ponytail",
       "files": {
         "SKILL.md": "e64761287bc29032950ab349b2531e53b747847d58ec518586bc740b626d8375"
-      }
+      },
+      "tracked": ".claude/skills/ponytail"
     },
     "poteto-mode": {
       "repository": "pstack",
@@ -315,7 +335,8 @@
         "scripts/watch-pr/types.ts": "64ba6221e3bfe61bbb292337d199cdec6309455477280efb060203dba34e0e91",
         "scripts/watch-pr/watch-pr": "d955603be6cc0e8b8ffcec722f635192b2261410b1f2929abea94480e47eb5d4",
         "scripts/worktree-audit.sh": "95b8530f3c0ccada8cabc4b0727c052fbc85c141531375aaace65c427af8aecc"
-      }
+      },
+      "tracked": ".claude/skills/poteto-mode"
     },
     "principle-attack-the-premise": {
       "repository": "pstack",
@@ -324,7 +345,8 @@
       "override": "docs/agents/skill-overrides/principle-attack-the-premise",
       "files": {
         "SKILL.md": "58c2998cbe0318b648d2f78c080003c5d3685a0ede2a98e56bc29e2fdfa7417a"
-      }
+      },
+      "tracked": ".claude/skills/principle-attack-the-premise"
     },
     "principle-boundary-discipline": {
       "repository": "pstack",
@@ -333,7 +355,8 @@
       "override": "docs/agents/skill-overrides/principle-boundary-discipline",
       "files": {
         "SKILL.md": "29852b3ab0e3b043c62318751f445a38fedb36f3b050e71e80aab41fb08a8b00"
-      }
+      },
+      "tracked": ".claude/skills/principle-boundary-discipline"
     },
     "principle-build-the-lever": {
       "repository": "pstack",
@@ -342,7 +365,8 @@
       "override": "docs/agents/skill-overrides/principle-build-the-lever",
       "files": {
         "SKILL.md": "b49b29d4f2be7ee4862b2fd81fffd2534b990142c332f78d8a315f671fa26853"
-      }
+      },
+      "tracked": ".claude/skills/principle-build-the-lever"
     },
     "principle-encode-lessons-in-structure": {
       "repository": "pstack",
@@ -351,7 +375,8 @@
       "override": "docs/agents/skill-overrides/principle-encode-lessons-in-structure",
       "files": {
         "SKILL.md": "e66d95bd954a1e8ba298bc451ba1e9190c758f6d77c240540bedf8f28c895694"
-      }
+      },
+      "tracked": ".claude/skills/principle-encode-lessons-in-structure"
     },
     "principle-exhaust-the-design-space": {
       "repository": "pstack",
@@ -360,7 +385,8 @@
       "override": "docs/agents/skill-overrides/principle-exhaust-the-design-space",
       "files": {
         "SKILL.md": "67e7e29ab4f484bfddcac55ece4d70f6efc25ccbf91de7de31fcec385f9f059e"
-      }
+      },
+      "tracked": ".claude/skills/principle-exhaust-the-design-space"
     },
     "principle-experience-first": {
       "repository": "pstack",
@@ -369,7 +395,8 @@
       "override": "docs/agents/skill-overrides/principle-experience-first",
       "files": {
         "SKILL.md": "3013367ce42fabb55799ffbcc51ad20b2ae7ec1b898bad4ac4ceaa2f093edbe1"
-      }
+      },
+      "tracked": ".claude/skills/principle-experience-first"
     },
     "principle-fix-root-causes": {
       "repository": "pstack",
@@ -378,7 +405,8 @@
       "override": "docs/agents/skill-overrides/principle-fix-root-causes",
       "files": {
         "SKILL.md": "6b5787202ddac723c8b1d06c12934562c7b02ac9c672bfc33dbd2d9c96d32f18"
-      }
+      },
+      "tracked": ".claude/skills/principle-fix-root-causes"
     },
     "principle-foundational-thinking": {
       "repository": "pstack",
@@ -387,7 +415,8 @@
       "override": "docs/agents/skill-overrides/principle-foundational-thinking",
       "files": {
         "SKILL.md": "2c0b6cc3b7d35178ebe5ab40a2a525fca51d420647354fb7bb2de8cc2554b688"
-      }
+      },
+      "tracked": ".claude/skills/principle-foundational-thinking"
     },
     "principle-guard-the-context-window": {
       "repository": "pstack",
@@ -396,7 +425,8 @@
       "override": "docs/agents/skill-overrides/principle-guard-the-context-window",
       "files": {
         "SKILL.md": "064678b4546f530adc670a8731822bbf2419195e3887b940eee27d57ae5524c4"
-      }
+      },
+      "tracked": ".claude/skills/principle-guard-the-context-window"
     },
     "principle-laziness-protocol": {
       "repository": "pstack",
@@ -405,7 +435,8 @@
       "override": "docs/agents/skill-overrides/principle-laziness-protocol",
       "files": {
         "SKILL.md": "f45159ad7ea5f01a08d364897307f69ca18fa57b87d6ed6b89ca222a2388bf7d"
-      }
+      },
+      "tracked": ".claude/skills/principle-laziness-protocol"
     },
     "principle-make-operations-idempotent": {
       "repository": "pstack",
@@ -414,7 +445,8 @@
       "override": "docs/agents/skill-overrides/principle-make-operations-idempotent",
       "files": {
         "SKILL.md": "6ff9aed07af7c3e57c4ef247f1a236b6ffdd1b294732cfedb9845413395d659c"
-      }
+      },
+      "tracked": ".claude/skills/principle-make-operations-idempotent"
     },
     "principle-migrate-callers-then-delete-legacy-apis": {
       "repository": "pstack",
@@ -423,7 +455,8 @@
       "override": "docs/agents/skill-overrides/principle-migrate-callers-then-delete-legacy-apis",
       "files": {
         "SKILL.md": "388e9cbc9e52bd72d9044d7e37126bd3355c4e8f1188447e2a6850fe4fc549d7"
-      }
+      },
+      "tracked": ".claude/skills/principle-migrate-callers-then-delete-legacy-apis"
     },
     "principle-minimize-reader-load": {
       "repository": "pstack",
@@ -432,7 +465,8 @@
       "override": "docs/agents/skill-overrides/principle-minimize-reader-load",
       "files": {
         "SKILL.md": "d44ded81ac7cfc194dca65c9943a55fe8a058660485049a6e607e6bdf5d70738"
-      }
+      },
+      "tracked": ".claude/skills/principle-minimize-reader-load"
     },
     "principle-model-the-domain": {
       "repository": "pstack",
@@ -441,7 +475,8 @@
       "override": "docs/agents/skill-overrides/principle-model-the-domain",
       "files": {
         "SKILL.md": "b50a9ca53a9cd445b6804ff4eeb2904bba5e9d502a8e51c0ebd8cbe830c8be26"
-      }
+      },
+      "tracked": ".claude/skills/principle-model-the-domain"
     },
     "principle-never-block-on-the-human": {
       "repository": "pstack",
@@ -450,7 +485,8 @@
       "override": "docs/agents/skill-overrides/principle-never-block-on-the-human",
       "files": {
         "SKILL.md": "dd9ee8b936a19b4e24194de8cc8ca1e51e8d15b7b973eeb023f608c5434f73e4"
-      }
+      },
+      "tracked": ".claude/skills/principle-never-block-on-the-human"
     },
     "principle-outcome-oriented-execution": {
       "repository": "pstack",
@@ -459,7 +495,8 @@
       "override": "docs/agents/skill-overrides/principle-outcome-oriented-execution",
       "files": {
         "SKILL.md": "922ade1be5f671575b3c93367c3d08c9dbb2f7444a42bacbfb834656724d61ac"
-      }
+      },
+      "tracked": ".claude/skills/principle-outcome-oriented-execution"
     },
     "principle-prove-it-works": {
       "repository": "pstack",
@@ -468,7 +505,8 @@
       "override": "docs/agents/skill-overrides/principle-prove-it-works",
       "files": {
         "SKILL.md": "89b9eb71b5d20d258830b31569ec47b7295441ae8e66178dddd0076d02ed8c87"
-      }
+      },
+      "tracked": ".claude/skills/principle-prove-it-works"
     },
     "principle-redesign-from-first-principles": {
       "repository": "pstack",
@@ -477,7 +515,8 @@
       "override": "docs/agents/skill-overrides/principle-redesign-from-first-principles",
       "files": {
         "SKILL.md": "b3ac6bc1c707aa8ad1a331851ad71aeb48f179136907ab2015f34881c674d056"
-      }
+      },
+      "tracked": ".claude/skills/principle-redesign-from-first-principles"
     },
     "principle-separate-before-serializing-shared-state": {
       "repository": "pstack",
@@ -486,7 +525,8 @@
       "override": "docs/agents/skill-overrides/principle-separate-before-serializing-shared-state",
       "files": {
         "SKILL.md": "8b1770a78e89adb0076a30aba568d0a9fe3072048a96d908eff1b20394161d60"
-      }
+      },
+      "tracked": ".claude/skills/principle-separate-before-serializing-shared-state"
     },
     "principle-sequence-verifiable-units": {
       "repository": "pstack",
@@ -495,7 +535,8 @@
       "override": "docs/agents/skill-overrides/principle-sequence-verifiable-units",
       "files": {
         "SKILL.md": "20f9fe62d2136cd47f3e5dcedebabff42727a5fdb997832c1b92b51f6a94f2cc"
-      }
+      },
+      "tracked": ".claude/skills/principle-sequence-verifiable-units"
     },
     "principle-subtract-before-you-add": {
       "repository": "pstack",
@@ -504,7 +545,8 @@
       "override": "docs/agents/skill-overrides/principle-subtract-before-you-add",
       "files": {
         "SKILL.md": "65fa4e1a2a630040eb0abbcfeaf0e82241fd968443021b535f94b4b6d4b7aa0f"
-      }
+      },
+      "tracked": ".claude/skills/principle-subtract-before-you-add"
     },
     "principle-test-behavior-not-implementation": {
       "repository": "pstack",
@@ -513,7 +555,8 @@
       "override": "docs/agents/skill-overrides/principle-test-behavior-not-implementation",
       "files": {
         "SKILL.md": "c6104107aa4902342d36eb5c6b7f99862eadff5ba27f367cde011ccdde4d8d17"
-      }
+      },
+      "tracked": ".claude/skills/principle-test-behavior-not-implementation"
     },
     "principle-type-system-discipline": {
       "repository": "pstack",
@@ -522,7 +565,8 @@
       "override": "docs/agents/skill-overrides/principle-type-system-discipline",
       "files": {
         "SKILL.md": "1fa13e29e277c87fbd25e87bc77145bfe539bef12e529fd20809f324e0d7a2d3"
-      }
+      },
+      "tracked": ".claude/skills/principle-type-system-discipline"
     },
     "recall": {
       "repository": "pstack",
@@ -531,7 +575,8 @@
       "override": "docs/agents/skill-overrides/recall",
       "files": {
         "SKILL.md": "46bb30891e2f7426d97baa07c815effda0b84f80675025016b5bce0cbf5269ef"
-      }
+      },
+      "tracked": ".claude/skills/recall"
     },
     "reflect": {
       "repository": "pstack",
@@ -544,7 +589,8 @@
         "references/judgment-reviewer.md": "a40ecb9b28bd2a3491e11a541157fe58efe158e0eda7b61a5006c14590aabe61",
         "references/synthesizer.md": "2f76c847eb45b182dc6fbcbf7d96c8ee7e2986ecfd9e0d640fec44e3cc5a617c",
         "references/tooling-reviewer.md": "bc49ced90fa81eaba3083b88aeb430d900a6d8f14ff40c1d6b52263bacfc77b6"
-      }
+      },
+      "tracked": ".claude/skills/reflect"
     },
     "research": {
       "repository": "mattpocock",
@@ -554,7 +600,8 @@
       "files": {
         "SKILL.md": "960a3e32833c4bcbbf6afa31f199c0d9d11b6a920fb5881df4ad80111b7a63c5",
         "agents/openai.yaml": "9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
-      }
+      },
+      "tracked": ".claude/skills/research"
     },
     "ship": {
       "tracked": ".claude/skills/ship",
@@ -569,7 +616,8 @@
       "sha256": "bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810",
       "files": {
         "SKILL.md": "bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810"
-      }
+      },
+      "tracked": ".claude/skills/show-me"
     },
     "show-me-your-work": {
       "repository": "pstack",
@@ -580,7 +628,8 @@
         "SKILL.md": "1e2ed363f13d23fdcd208299e7d980c25182ae0052b58b9fd5f6de3e9c761430",
         "references/decision-log-template.tsv": "6779378006a2f5225e8c06deb84f1d913fb532041ebbb6e50d94600bfe3f4b76",
         "scripts/log.sh": "a65a4bc5fb7cdeadbdb7b7ff1ca4682f4d9c42420942b2977cd17b46c4ac338e"
-      }
+      },
+      "tracked": ".claude/skills/show-me-your-work"
     },
     "swarm": {
       "repository": "pstack",
@@ -589,7 +638,8 @@
       "override": "docs/agents/skill-overrides/swarm",
       "files": {
         "SKILL.md": "d2751f056cc9fcd916eabb6cf6eed656ca257ffa9442e32d409b7e954c6f6d4d"
-      }
+      },
+      "tracked": ".claude/skills/swarm"
     },
     "tdd": {
       "repository": "mattpocock",
@@ -601,7 +651,8 @@
         "agents/openai.yaml": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b",
         "mocking.md": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef",
         "tests.md": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
-      }
+      },
+      "tracked": ".claude/skills/tdd"
     },
     "teach": {
       "repository": "pstack",
@@ -610,7 +661,8 @@
       "override": "docs/agents/skill-overrides/teach",
       "files": {
         "SKILL.md": "e1c7089614942ab8982d389538915ec1be2a714ace6a5bdbf3a9b10c9c9ac251"
-      }
+      },
+      "tracked": ".claude/skills/teach"
     },
     "technical-writing": {
       "repository": "pstack",
@@ -619,7 +671,8 @@
       "override": "docs/agents/skill-overrides/technical-writing",
       "files": {
         "SKILL.md": "a450d685f477833640054828477fff97e1fd4ffb396a845b512d131b633c1919"
-      }
+      },
+      "tracked": ".claude/skills/technical-writing"
     },
     "test-audit": {
       "tracked": ".claude/skills/test-audit",
@@ -636,7 +689,8 @@
       "files": {
         "SKILL.md": "fd61fe218e2d08226a63533d344277ccacd6e92fd07a81ca663817594585221d",
         "references/patterns.md": "62e9cd32d2fa066a35d0d1349aac22dce31a48ad7d5eaf142570770cfe707384"
-      }
+      },
+      "tracked": ".claude/skills/typescript-best-practices"
     },
     "unslop": {
       "repository": "pstack",
@@ -645,7 +699,8 @@
       "override": "docs/agents/skill-overrides/unslop",
       "files": {
         "SKILL.md": "290a10a90e52f080fdf0f225f043088990b5cd8d8b8307c800a91cfeb1568aa4"
-      }
+      },
+      "tracked": ".claude/skills/unslop"
     },
     "why": {
       "repository": "pstack",
@@ -666,7 +721,8 @@
         "references/sources/sentry.md": "6f292bc4fb1548e956f95e1900b9481abf5134254419f1cd9edec95428c82d73",
         "references/sources/slack.md": "58fee61d024b3700b407e7acbed367944720ff05adfddb6954d36c88368f3ba7",
         "references/synthesizer-prompt.md": "5b5eccc9d463ae4c61dd8ab97f0c350afce1aa00bf513a25b5d2b5d3b2354d46"
-      }
+      },
+      "tracked": ".claude/skills/why"
     },
     "writing-for-agents": {
       "repository": "mattpocock",
@@ -677,6 +733,14 @@
         "SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
         "SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
         "agents/openai.yaml": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
+      },
+      "tracked": ".claude/skills/writing-for-agents"
+    },
+    "wizard": {
+      "tracked": ".claude/skills/wizard",
+      "sha256": "1b3e896835032dbbedc8b127d2dfbde3609a4193a9a02cde333de844d18f20fe",
+      "files": {
+        "SKILL.md": "1b3e896835032dbbedc8b127d2dfbde3609a4193a9a02cde333de844d18f20fe"
       }
     }
   },

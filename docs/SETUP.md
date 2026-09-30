@@ -79,6 +79,8 @@ To pin a specific profile, set `AWS_PROFILE` in `.env`.
 
 ## 5. Agent tooling
 
+Invoke `/wizard` for guided teammate onboarding. If the agent does not expose slash commands, ask it to follow `.claude/skills/wizard/SKILL.md`. All baseline skill files are included in the checkout.
+
 Restore the pinned skills with `python3 scripts/setup-agent-skills.py`, then run `python3 scripts/check-agent-instructions.py --installed`. When `python3` is not on PATH, including Windows, use `uv run --python 3.11 --no-project scripts/setup-agent-skills.py` and the same prefix for the checker or verification script. See [skill setup](agents/skill-setup.md). This setup does not enable a paid review service or an issue-tracker workflow.
 
 For Claude Code, approve project-scoped MCP servers only when you intend to use them. The local Matt Pocock review skill is separate from paid review services and marketplace plugins. Other agents use the root instructions and the same restored project-local baseline.

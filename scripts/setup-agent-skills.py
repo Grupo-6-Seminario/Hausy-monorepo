@@ -37,7 +37,11 @@ def install(root, refresh):
     with tempfile.TemporaryDirectory(prefix='hausy-skills-') as scratch:
         scratch = Path(scratch)
         repositories = {}
+        required_repositories = {source['repository'] for source in manifest['skills'].values()
+                                 if 'tracked' not in source and 'snapshot' not in source}
         for name, source in manifest['repositories'].items():
+            if name not in required_repositories:
+                continue
             checkout = scratch / name
             subprocess.run(['git', 'init', '-q', str(checkout)], check=True)
             subprocess.run(

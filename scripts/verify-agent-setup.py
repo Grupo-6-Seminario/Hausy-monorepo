@@ -29,8 +29,7 @@ def verify(source, root):
     paths = ['.gitignore', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'CONTEXT.md', 'frontend/AGENTS.md',
              'infra/AGENTS.md', 'docs/agents', 'docs/SETUP.md', 'docs/DATA_MODEL.md',
              'docs/metrics', 'docs/MATCHING_CONTRACT.md', 'docs/AGENCY_CATALOG.md', 'docs/adr', 'scripts',
-             '.claude/skills/amazon-bedrock', '.claude/skills/deslop',
-             '.claude/skills/ship', '.claude/skills/test-audit']
+             '.claude/skills']
     for relative in paths:
         origin, target = source / relative, root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
