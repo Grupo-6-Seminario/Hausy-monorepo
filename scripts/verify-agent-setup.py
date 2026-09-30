@@ -28,7 +28,7 @@ def installed_state(root):
 def verify(source, root):
     paths = ['.gitignore', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'CONTEXT.md', 'frontend/AGENTS.md',
              'infra/AGENTS.md', 'docs/agents', 'docs/SETUP.md', 'docs/DATA_MODEL.md',
-             'docs/MATCHING_CONTRACT.md', 'docs/AGENCY_CATALOG.md', 'docs/adr', 'scripts',
+             'docs/metrics', 'docs/MATCHING_CONTRACT.md', 'docs/AGENCY_CATALOG.md', 'docs/adr', 'scripts',
              '.claude/skills/amazon-bedrock', '.claude/skills/deslop',
              '.claude/skills/ship', '.claude/skills/test-audit']
     for relative in paths:

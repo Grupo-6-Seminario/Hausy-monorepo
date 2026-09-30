@@ -16,6 +16,7 @@ Allow one concurrent subagent across the task. Subagents do not delegate. The pa
 | --- | --- |
 | Frontend, UI, TS/TSX | [Frontend](frontend/AGENTS.md) |
 | Go, HTTP, providers, persistence | [Backend](docs/agents/backend.md) |
+| Package design metrics, complexity, benchmarks | [Metrics](docs/metrics/README.md) (`cmd/metrics`) |
 | Tests, verification, completion review | [Testing and review](docs/agents/testing.md) |
 | Listings, search, eligibility, model output | [Data and search](docs/agents/data.md), [domain glossary](CONTEXT.md) |
 | Terraform, AWS, authentication, deployment | [Infrastructure](infra/AGENTS.md) |

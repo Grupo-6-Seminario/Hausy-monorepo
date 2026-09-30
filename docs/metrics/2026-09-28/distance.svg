@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="632.4" height="644" viewBox="0 0 632.4 644" role="img" aria-label="Distance from the main sequence">
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.bg{fill:#fcfcfb}.title{fill:#0b0b0b;font-size:15px;font-weight:600}.subtitle{fill:#52514e;font-size:12px}
+.label{fill:#52514e;font-size:11px}.tick{fill:#898781;font-size:11px;font-variant-numeric:tabular-nums}
+.grid{stroke:#e1e0d9;stroke-width:1}.axis{stroke:#c3c2b7;stroke-width:1}.ref{stroke:#52514e;stroke-width:1.5}
+.zone{fill:#0b0b0b;fill-opacity:.05}.mark{fill:#2a78d6}.dot{fill:#2a78d6;stroke:#fcfcfb;stroke-width:2}.leader{stroke:#898781;stroke-width:1}
+@media (prefers-color-scheme:dark){.bg{fill:#1a1a19}.title{fill:#fff}.subtitle,.label{fill:#c3c2b7}.grid{stroke:#2c2c2a}.axis{stroke:#383835}
+.ref{stroke:#c3c2b7}.zone{fill:#fff;fill-opacity:.06}.mark{fill:#3987e5}.dot{fill:#3987e5;stroke:#1a1a19}}
+</style>
+<rect class="bg" width="632.4" height="644"/>
+<text x="24" y="30" class="title" text-anchor="start">Distance from the main sequence</text>
+<text x="24" y="50" class="subtitle" text-anchor="start">D = |A + I − 1| per package, 0 on the line, 1 at a corner.</text>
+<line x1="128.39999999999998" y1="90" x2="128.39999999999998" y2="600" class="grid"/>
+<text x="128.39999999999998" y="618" class="tick" text-anchor="middle">0</text>
+<line x1="238.39999999999998" y1="90" x2="238.39999999999998" y2="600" class="grid"/>
+<text x="238.39999999999998" y="618" class="tick" text-anchor="middle">0.25</text>
+<line x1="348.4" y1="90" x2="348.4" y2="600" class="grid"/>
+<text x="348.4" y="618" class="tick" text-anchor="middle">0.50</text>
+<line x1="458.4" y1="90" x2="458.4" y2="600" class="grid"/>
+<text x="458.4" y="618" class="tick" text-anchor="middle">0.75</text>
+<line x1="568.4" y1="90" x2="568.4" y2="600" class="grid"/>
+<text x="568.4" y="618" class="tick" text-anchor="middle">1</text>
+<g><title>internal/jev: D 1.00 (A 0.00, I 0.00)</title><path class="mark" d="M128.39999999999998 101H564.4Q568.4 101 568.4 105V111Q568.4 115 564.4 115H128.39999999999998Z"/><text x="574.4" y="112" class="tick">1.00</text></g>
+<text x="118.39999999999998" y="112" class="label" text-anchor="end">jev</text>
+<g><title>internal/logging: D 1.00 (A 0.00, I 0.00)</title><path class="mark" d="M128.39999999999998 125H564.4Q568.4 125 568.4 129V135Q568.4 139 564.4 139H128.39999999999998Z"/><text x="574.4" y="136" class="tick">1.00</text></g>
+<text x="118.39999999999998" y="136" class="label" text-anchor="end">logging</text>
+<g><title>internal/agency: D 0.90 (A 0.10, I 0.00)</title><path class="mark" d="M128.39999999999998 149H520.4Q524.4 149 524.4 153V159Q524.4 163 520.4 163H128.39999999999998Z"/><text x="530.4" y="160" class="tick">0.90</text></g>
+<text x="118.39999999999998" y="160" class="label" text-anchor="end">agency</text>
+<g><title>internal/listing: D 0.90 (A 0.00, I 0.10)</title><path class="mark" d="M128.39999999999998 173H520.4Q524.4 173 524.4 177V183Q524.4 187 520.4 187H128.39999999999998Z"/><text x="530.4" y="184" class="tick">0.90</text></g>
+<text x="118.39999999999998" y="184" class="label" text-anchor="end">listing</text>
+<g><title>internal/auth: D 0.85 (A 0.15, I 0.00)</title><path class="mark" d="M128.39999999999998 197H496.7076923076923Q500.7076923076923 197 500.7076923076923 201V207Q500.7076923076923 211 496.7076923076923 211H128.39999999999998Z"/><text x="506.7076923076923" y="208" class="tick">0.85</text></g>
+<text x="118.39999999999998" y="208" class="label" text-anchor="end">auth</text>
+<g><title>internal/matching: D 0.82 (A 0.18, I 0.00)</title><path class="mark" d="M128.39999999999998 221H484.4Q488.4 221 488.4 225V231Q488.4 235 484.4 235H128.39999999999998Z"/><text x="494.4" y="232" class="tick">0.82</text></g>
+<text x="118.39999999999998" y="232" class="label" text-anchor="end">matching</text>
+<g><title>internal/search: D 0.80 (A 0.00, I 0.20)</title><path class="mark" d="M128.39999999999998 245H476.4Q480.4 245 480.4 249V255Q480.4 259 476.4 259H128.39999999999998Z"/><text x="486.4" y="256" class="tick">0.80</text></g>
+<text x="118.39999999999998" y="256" class="label" text-anchor="end">search</text>
+<g><title>internal/eligibility: D 0.78 (A 0.00, I 0.22)</title><path class="mark" d="M128.39999999999998 269H466.6222222222222Q470.6222222222222 269 470.6222222222222 273V279Q470.6222222222222 283 466.6222222222222 283H128.39999999999998Z"/><text x="476.6222222222222" y="280" class="tick">0.78</text></g>
+<text x="118.39999999999998" y="280" class="label" text-anchor="end">eligibility</text>
+<g><title>internal/llm: D 0.75 (A 0.25, I 0.00)</title><path class="mark" d="M128.39999999999998 293H454.4Q458.4 293 458.4 297V303Q458.4 307 454.4 307H128.39999999999998Z"/><text x="464.4" y="304" class="tick">0.75</text></g>
+<text x="118.39999999999998" y="304" class="label" text-anchor="end">llm</text>
+<g><title>internal/local: D 0.67 (A 0.00, I 0.33)</title><path class="mark" d="M128.39999999999998 317H417.73333333333335Q421.73333333333335 317 421.73333333333335 321V327Q421.73333333333335 331 417.73333333333335 331H128.39999999999998Z"/><text x="427.73333333333335" y="328" class="tick">0.67</text></g>
+<text x="118.39999999999998" y="328" class="label" text-anchor="end">local</text>
+<g><title>internal/bedrock: D 0.50 (A 0.00, I 0.50)</title><path class="mark" d="M128.39999999999998 341H344.4Q348.4 341 348.4 345V351Q348.4 355 344.4 355H128.39999999999998Z"/><text x="354.4" y="352" class="tick">0.50</text></g>
+<text x="118.39999999999998" y="352" class="label" text-anchor="end">bedrock</text>
+<g><title>internal/quality: D 0.50 (A 0.00, I 0.50)</title><path class="mark" d="M128.39999999999998 365H344.4Q348.4 365 348.4 369V375Q348.4 379 344.4 379H128.39999999999998Z"/><text x="354.4" y="376" class="tick">0.50</text></g>
+<text x="118.39999999999998" y="376" class="label" text-anchor="end">quality</text>
+<g><title>internal/pipeline: D 0.42 (A 0.67, I 0.75)</title><path class="mark" d="M128.39999999999998 389H307.73333333333323Q311.73333333333323 389 311.73333333333323 393V399Q311.73333333333323 403 307.73333333333323 403H128.39999999999998Z"/><text x="317.73333333333323" y="400" class="tick">0.42</text></g>
+<text x="118.39999999999998" y="400" class="label" text-anchor="end">pipeline</text>
+<g><title>internal/matching/jev: D 0.33 (A 0.00, I 0.67)</title><path class="mark" d="M128.39999999999998 413H271.06666666666666Q275.06666666666666 413 275.06666666666666 417V423Q275.06666666666666 427 271.06666666666666 427H128.39999999999998Z"/><text x="281.06666666666666" y="424" class="tick">0.33</text></g>
+<text x="118.39999999999998" y="424" class="label" text-anchor="end">matching/jev</text>
+<g><title>internal/store/postgres: D 0.25 (A 0.00, I 0.75)</title><path class="mark" d="M128.39999999999998 437H234.39999999999998Q238.39999999999998 437 238.39999999999998 441V447Q238.39999999999998 451 234.39999999999998 451H128.39999999999998Z"/><text x="244.39999999999998" y="448" class="tick">0.25</text></g>
+<text x="118.39999999999998" y="448" class="label" text-anchor="end">store/postgres</text>
+<g><title>internal/intake: D 0.21 (A 0.12, I 0.67)</title><path class="mark" d="M128.39999999999998 461H216.06666666666666Q220.06666666666666 461 220.06666666666666 465V471Q220.06666666666666 475 216.06666666666666 475H128.39999999999998Z"/><text x="226.06666666666666" y="472" class="tick">0.21</text></g>
+<text x="118.39999999999998" y="472" class="label" text-anchor="end">intake</text>
+<g><title>internal/buyer: D 0.06 (A 0.26, I 0.80)</title><path class="mark" d="M128.39999999999998 485H150.47407407407408Q154.47407407407408 485 154.47407407407408 489V495Q154.47407407407408 499 150.47407407407408 499H128.39999999999998Z"/><text x="160.47407407407408" y="496" class="tick">0.06</text></g>
+<text x="118.39999999999998" y="496" class="label" text-anchor="end">buyer</text>
+<g><title>internal/clarification: D 0.05 (A 0.29, I 0.67)</title><path class="mark" d="M128.39999999999998 509H145.35238095238094Q149.35238095238094 509 149.35238095238094 513V519Q149.35238095238094 523 145.35238095238094 523H128.39999999999998Z"/><text x="155.35238095238094" y="520" class="tick">0.05</text></g>
+<text x="118.39999999999998" y="520" class="label" text-anchor="end">clarification</text>
+<g><title>internal/httpapi: D 0.02 (A 0.17, I 0.86)</title><path class="mark" d="M128.39999999999998 533H134.8761904761904Q138.8761904761904 533 138.8761904761904 537V543Q138.8761904761904 547 134.8761904761904 547H128.39999999999998Z"/><text x="144.8761904761904" y="544" class="tick">0.02</text></g>
+<text x="118.39999999999998" y="544" class="label" text-anchor="end">httpapi</text>
+<g><title>cmd/hausy: D 0.00 (A 0.00, I 1.00)</title><text x="134.39999999999998" y="568" class="tick">0.00</text></g>
+<text x="118.39999999999998" y="568" class="label" text-anchor="end">cmd/hausy</text>
+<g><title>cmd/listings: D 0.00 (A 0.00, I 1.00)</title><text x="134.39999999999998" y="592" class="tick">0.00</text></g>
+<text x="118.39999999999998" y="592" class="label" text-anchor="end">cmd/listings</text>
+<line x1="128.39999999999998" y1="90" x2="128.39999999999998" y2="600" class="axis"/>
+</svg>
