@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
 
 import { AgentReply } from './agent-reply';
+import { BrandLink } from './brand-link';
 import { LandingDiscovery } from './landing-discovery';
 import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
@@ -375,7 +376,7 @@ export function SearchExperience() {
 
   // A fresh backend session, so the planner stops reading the earlier search.
   // The qualification stays: it describes the searcher, not the search.
-  function startOver() {
+  function forgetSearch() {
     requestRef.current?.abort();
     sessionRef.current = '';
     window.sessionStorage.removeItem(chatStorageKey);
@@ -393,6 +394,10 @@ export function SearchExperience() {
     setQuery('');
     setError('');
     setState('idle');
+  }
+
+  function startOver() {
+    forgetSearch();
     inputRef.current?.focus();
   }
 
@@ -428,9 +433,8 @@ export function SearchExperience() {
       data-view={isWorkspace ? 'workspace' : 'welcome'}
     >
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Hausy, inicio">
-          hausy<span className="brand-mark" aria-hidden="true" />
-        </a>
+        {/* After a search the logo leads home, which means a fresh start. */}
+        <BrandLink href="#top" onClick={isWorkspace ? forgetSearch : undefined} />
         {isWorkspace ? null : (
           <nav className="header-sections" aria-label="Secciones">
             <a href="#como-funciona">Cómo funciona</a>

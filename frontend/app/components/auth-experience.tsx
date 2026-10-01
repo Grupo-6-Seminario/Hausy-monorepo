@@ -9,6 +9,7 @@ import type { AuthRole, AuthUser } from '@/lib/auth';
 import { rememberSignedIn } from '@/lib/session-hint';
 import { cn } from '@/lib/utils';
 
+import { BrandLink } from './brand-link';
 import { usePointerGlow } from './pointer-glow';
 import { ThemeToggle } from './theme-toggle';
 
@@ -137,11 +138,7 @@ export function AuthExperience() {
   return (
     <main ref={shellRef} className="site-shell">
       <header className="site-header">
-        {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
-        {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-        <a className="brand" href="/" aria-label="Hausy, inicio">
-          hausy<span className="brand-mark" aria-hidden="true" />
-        </a>
+        <BrandLink href="/" />
         <p className="prototype-note">Prototipo de acceso</p>
         <div className="header-actions">
           <ThemeToggle />
