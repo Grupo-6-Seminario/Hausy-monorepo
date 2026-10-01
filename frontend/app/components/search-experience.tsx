@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Bot, MoveUpRight, RotateCcw, Square } from 'lucide-react';
+import { ArrowRight, Square } from 'lucide-react';
 import {
   KeyboardEvent,
   useCallback,
@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
 
 import { AgentReply } from './agent-reply';
-import { LandingDiscovery, LandingPortrait } from './landing-discovery';
+import { LandingDiscovery } from './landing-discovery';
 import { usePointerGlow } from './pointer-glow';
 import { PropertyList } from './property-list';
 import {
@@ -34,16 +34,22 @@ import {
 import { PromptLuminary } from './prompt-luminary';
 import { ThemeToggle } from './theme-toggle';
 
+// Neighborhoods the committed catalog covers, so an example never starts empty.
 const exampleQueries = [
+  {
+    label: '2 amb en Palermo, con luz',
+    query:
+      'Busco 2 ambientes en Palermo con mucha luz natural. Puedo estirar un poco el presupuesto si vale la pena.',
+  },
   {
     label: 'Home office y Subte D',
     query:
       'Trabajo desde casa y necesito mucha luz natural, silencio y estar cerca del Subte D.',
   },
   {
-    label: 'Palermo con prioridades',
+    label: 'Con mascota en Congreso',
     query:
-      'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.',
+      'Busco un departamento en Congreso que acepte mascotas, con balcón si es posible.',
   },
 ];
 
@@ -396,6 +402,25 @@ export function SearchExperience() {
     inputRef.current?.focus();
   }
 
+  // The landing's closing call to action brings the reader back to the prompt.
+  function returnToComposer() {
+    inputRef.current?.scrollIntoView({ block: 'center' });
+    inputRef.current?.focus({ preventScroll: true });
+  }
+
+  const qualificationPanel = (
+    <QualificationPanel
+      initial={qualification}
+      open={qualificationOpen}
+      onOpenChange={setQualificationOpen}
+      onChange={(next) => {
+        qualificationRef.current = next;
+        setQualification(next);
+      }}
+    />
+  );
+  const declared = describeQualification(qualification);
+
   return (
     <main
       ref={shellRef}
@@ -404,10 +429,14 @@ export function SearchExperience() {
     >
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Hausy, inicio">
-          <img src="/hausy_logo.png" alt="Hausy" width="40" height="40" />
-          <span>Hausy</span>
+          hausy<span className="brand-mark" aria-hidden="true" />
         </a>
-        <p className="prototype-note">Prototipo de búsqueda</p>
+        {isWorkspace ? null : (
+          <nav className="header-sections" aria-label="Secciones">
+            <a href="#como-funciona">Cómo funciona</a>
+            <a href="#principios">Principios</a>
+          </nav>
+        )}
         <div className="header-actions">
           <nav className="header-nav" aria-label="Accesos">
             {hasSearched ? (
@@ -417,6 +446,10 @@ export function SearchExperience() {
               </a>
             ) : null}
             {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
+            {/* oxlint-disable-next-line next/no-html-link-for-pages */}
+            <a className="results-link header-agency" href="/inmobiliaria" data-glow>
+              Soy inmobiliaria
+            </a>
             {/* oxlint-disable-next-line next/no-html-link-for-pages */}
             <a className="results-link" href="/ingresar" data-glow>
               Ingresar
@@ -435,42 +468,49 @@ export function SearchExperience() {
         >
           <div className="experience-intro">
             {!isWorkspace ? (
-              <p className="eyebrow">Tu próximo hogar, en CABA</p>
+              <p className="eyebrow">
+                <span className="brand-dot" aria-hidden="true" />
+                Alquileres en CABA
+              </p>
             ) : null}
             <h1 id="experience-title">
-              {clarification && !hasSearched
-                ? 'Ajustemos un detalle de tu búsqueda.'
-                : isWorkspace
-                ? 'Sigamos con tu búsqueda.'
-                : 'Un lugar para tu forma de vivir.'}
+              {clarification && !hasSearched ? (
+                'Ajustemos un detalle de tu búsqueda.'
+              ) : isWorkspace ? (
+                'Tu búsqueda'
+              ) : (
+                <>
+                  Primero, a qué podés acceder. <em>Después, cuál te gusta.</em>
+                </>
+              )}
             </h1>
-            <p className="hero-subtitle">
-              {clarification && !hasSearched
-                ? 'Tu respuesta nos ayuda a buscar con el criterio que tenías en mente.'
-                : isWorkspace
-                ? 'Ajustá tus prioridades. Conservamos el contexto.'
-                : 'Contanos qué necesitás. Comparemos opciones, con lo que sabemos y lo que falta confirmar.'}
-            </p>
+            {isWorkspace && (hasSearched || !clarification) ? (
+              <button type="button" className="new-search" onClick={startOver}>
+                Empezar de nuevo
+              </button>
+            ) : (
+              <p className="hero-subtitle">
+                {clarification
+                  ? 'Tu respuesta nos ayuda a buscar con el criterio que tenías en mente.'
+                  : 'Contá qué buscás como se lo contarías a alguien. Antes de mostrarte propiedades, cruzamos tu garantía y tu ingreso con lo que pide cada aviso.'}
+              </p>
+            )}
           </div>
 
           {isWorkspace && (hasSearched || !clarification) ? (
             <div className="conversation-panel">
-              <div className="panel-heading">
-                <Bot aria-hidden="true" />
-                <div>
-                  <h2>Respuesta de Hausy</h2>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="new-search rounded-full"
-                  onClick={startOver}
-                >
-                  <RotateCcw aria-hidden="true" />
-                  Nueva búsqueda
-                </Button>
-              </div>
+              {requirements.length > 0 ? (
+                <ul className="criteria" aria-label="Criterios que estoy usando">
+                  {requirements.map((requirement, index) => (
+                    <li
+                      key={`${requirement.type}-${requirement.value}-${index}`}
+                    >
+                      <span>{requirement.type.replaceAll('_', ' ')}</span>{' '}
+                      {requirement.value}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
 
               <ol
                 ref={logRef}
@@ -515,52 +555,8 @@ export function SearchExperience() {
                   </li>
                 ) : null}
               </ol>
-
-              <p className="qualification-chips">
-                {describeQualification(qualification) ? (
-                  <span>Usando: {describeQualification(qualification)}</span>
-                ) : (
-                  <span>Sin garantía declarada</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setQualificationOpen(true)}
-                >
-                  {describeQualification(qualification)
-                    ? 'Editar'
-                    : 'Completar'}
-                </button>
-              </p>
-
-              {requirements.length > 0 ? (
-                <details className="criteria">
-                  <summary>
-                    <span>Criterios que estoy usando</span>
-                    <span>{requirements.length}</span>
-                  </summary>
-                  <ul>
-                    {requirements.map((requirement, index) => (
-                      <li
-                        key={`${requirement.type}-${requirement.value}-${index}`}
-                      >
-                        <span>{requirement.type.replaceAll('_', ' ')}</span>
-                        {requirement.value}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
             </div>
           ) : null}
-
-          <QualificationPanel
-            open={qualificationOpen}
-            onOpenChange={setQualificationOpen}
-            onChange={(next) => {
-              qualificationRef.current = next;
-              setQualification(next);
-            }}
-          />
 
           {clarification ? (
             <section className="clarification-card" aria-labelledby="clarification-prompt">
@@ -601,11 +597,9 @@ export function SearchExperience() {
               </div>
               {error ? <p role="alert">{error}</p> : null}
             </section>
-          ) : <form className="query-form" onSubmit={handleSubmit} noValidate>
+          ) : <search><form className="query-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="property-query">
-              {isWorkspace
-                ? 'Sumá una condición o hacé una pregunta'
-                : 'Describí cómo querés vivir'}
+              {isWorkspace ? 'Sumá a tu búsqueda' : '¿Qué estás buscando?'}
             </label>
             <div
               className="prompt-stage"
@@ -631,11 +625,16 @@ export function SearchExperience() {
                   aria-invalid={Boolean(error)}
                   placeholder={
                     isWorkspace
-                      ? 'Ejemplo: priorizá silencio aunque quede un poco más lejos del subte.'
-                      : 'Ejemplo: dos dormitorios en Palermo, mucha luz y poco ruido. Puedo estirar el presupuesto si realmente vale la pena.'
+                      ? 'Sumá algo: “que tenga balcón”, “priorizá el silencio”…'
+                      : 'Ej: 2 ambientes en Palermo, mucha luz y poco ruido. Hasta $850.000, puedo estirar un poco si vale la pena.'
                   }
                   rows={2}
                 />
+                <p id="query-help" className="query-hint">
+                  {isWorkspace
+                    ? 'Enter para sumar a tu búsqueda'
+                    : 'Enter para buscar · Shift + Enter para nueva línea'}
+                </p>
                 {isWorking ? (
                   <Button
                     type="button"
@@ -648,43 +647,40 @@ export function SearchExperience() {
                   </Button>
                 ) : (
                   <Button type="submit" size="lg" variant="outline">
-                    Buscar hogares
-                    <ArrowRight aria-hidden="true" />
+                    {isWorkspace ? 'Sumar' : 'Empezar búsqueda'}
+                    {isWorkspace ? null : <ArrowRight aria-hidden="true" />}
                   </Button>
                 )}
               </div>
             </div>
-            <div className="form-meta">
-              <p id="query-help">
-                Enter para enviar · Shift + Enter para una nueva línea
+            {error ? (
+              <p id="query-error" className="query-error" role="alert">
+                {error}
               </p>
-              {error ? (
-                <p id="query-error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-            </div>
-          </form>}
+            ) : null}
+          </form></search>}
+
+          {/* Before the first results there is no results column to hold it. */}
+          {isWorkspace && clarification && !hasSearched ? qualificationPanel : null}
 
           {!isWorkspace ? (
-            <div className="examples" aria-label="Consultas de ejemplo">
-              <span>Podés empezar por</span>
-              {exampleQueries.map((example) => (
-                <button
-                  key={example.label}
-                  type="button"
-                  data-glow
-                  onClick={() => applyExample(example.query)}
-                >
-                  {example.label}
-                  <MoveUpRight aria-hidden="true" />
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="examples" aria-label="Consultas de ejemplo">
+                <span>Probá con</span>
+                {exampleQueries.map((example) => (
+                  <button
+                    key={example.label}
+                    type="button"
+                    onClick={() => applyExample(example.query)}
+                  >
+                    {example.label}
+                  </button>
+                ))}
+              </div>
+              {qualificationPanel}
+            </>
           ) : null}
         </section>
-
-        {!isWorkspace ? <LandingPortrait /> : null}
 
         {isWorkspace && (hasSearched || !clarification && isWorking) ? (
           <section
@@ -697,7 +693,23 @@ export function SearchExperience() {
               relaxations={relaxations}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
-            />
+            >
+              <div className="situation-bar">
+                <p className="qualification-chips">
+                  <span className="situation-label">Tu situación</span>
+                  <span data-declared={Boolean(declared)}>
+                    {declared || 'Sin garantía declarada'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQualificationOpen(true)}
+                  >
+                    {declared ? 'Editar' : 'Completar'}
+                  </button>
+                </p>
+                {qualificationOpen ? qualificationPanel : null}
+              </div>
+            </PropertyList>
             <a className="conversation-return" href="#property-query">
               Seguir la conversación con Hausy
               <ArrowRight aria-hidden="true" />
@@ -705,7 +717,7 @@ export function SearchExperience() {
           </section>
         ) : null}
       </div>
-      {!isWorkspace ? <LandingDiscovery onChoose={applyExample} /> : null}
+      {!isWorkspace ? <LandingDiscovery onStart={returnToComposer} /> : null}
     </main>
   );
 }

@@ -2,70 +2,255 @@
   "$schema": "https://tr.designtokens.org/format/",
   "color": {
     "light": {
-      "background": { "$type": "color", "$value": "#f5f9e6" },
-      "foreground": { "$type": "color", "$value": "#193724" },
-      "card": { "$type": "color", "$value": "#fdfefa" },
-      "primary": { "$type": "color", "$value": "#2a5a3a" },
-      "secondary": { "$type": "color", "$value": "#d3e0b8" },
-      "muted": { "$type": "color", "$value": "#e7edcf" },
-      "mutedText": { "$type": "color", "$value": "#46634f" },
-      "accent": { "$type": "color", "$value": "#6fbe91" },
-      "border": { "$type": "color", "$value": "#b8c99c" },
-      "input": { "$type": "color", "$value": "#9eb487" },
-      "ring": { "$type": "color", "$value": "#3a7e4f" },
-      "error": { "$type": "color", "$value": "#a73b3b" },
-      "signalConditional": { "$type": "color", "$value": "#8a5a18" },
-      "signalConditionalSurface": { "$type": "color", "$value": "#f0e0bd" },
-      "signalEvidence": { "$type": "color", "$value": "#1f5f63" },
-      "signalEvidenceSurface": { "$type": "color", "$value": "#d3e7e6" },
-      "signalUnknown": { "$type": "color", "$value": "#5f6660" },
-      "signalUnknownSurface": { "$type": "color", "$value": "#e4e6e0" }
+      "background": {
+        "$type": "color",
+        "$value": "#faf7f2"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#1f2a2e"
+      },
+      "card": {
+        "$type": "color",
+        "$value": "#ffffff"
+      },
+      "primary": {
+        "$type": "color",
+        "$value": "#1f5c4d"
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "#f2ede4"
+      },
+      "muted": {
+        "$type": "color",
+        "$value": "#f2ede4"
+      },
+      "mutedText": {
+        "$type": "color",
+        "$value": "#566164"
+      },
+      "accent": {
+        "$type": "color",
+        "$value": "#e3ede8"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#e6e0d5"
+      },
+      "input": {
+        "$type": "color",
+        "$value": "#958c7d"
+      },
+      "ring": {
+        "$type": "color",
+        "$value": "#1f5c4d"
+      },
+      "error": {
+        "$type": "color",
+        "$value": "#b23b22"
+      },
+      "signalConditional": {
+        "$type": "color",
+        "$value": "#7a5410"
+      },
+      "signalConditionalSurface": {
+        "$type": "color",
+        "$value": "#f6eacb"
+      },
+      "signalEvidence": {
+        "$type": "color",
+        "$value": "#1f5c4d"
+      },
+      "signalEvidenceSurface": {
+        "$type": "color",
+        "$value": "#e3ede8"
+      },
+      "signalMissing": {
+        "$type": "color",
+        "$value": "#a8432a"
+      },
+      "signalMissingSurface": {
+        "$type": "color",
+        "$value": "#fbe6dc"
+      },
+      "signalUnknown": {
+        "$type": "color",
+        "$value": "#5b6166"
+      },
+      "signalUnknownSurface": {
+        "$type": "color",
+        "$value": "#eceae6"
+      },
+      "brandMark": {
+        "$type": "color",
+        "$value": "#d9683b"
+      },
+      "ink": {
+        "$type": "color",
+        "$value": "#1f2a2e"
+      }
     },
     "dark": {
-      "background": { "$type": "color", "$value": "#102218" },
-      "foreground": { "$type": "color", "$value": "#eef4df" },
-      "card": { "$type": "color", "$value": "#1c3b28" },
-      "primary": { "$type": "color", "$value": "#6fbe91" },
-      "secondary": { "$type": "color", "$value": "#284a34" },
-      "muted": { "$type": "color", "$value": "#203d2b" },
-      "mutedText": { "$type": "color", "$value": "#b8c9ad" },
-      "border": { "$type": "color", "$value": "#3d5d46" },
-      "input": { "$type": "color", "$value": "#56745d" },
-      "ring": { "$type": "color", "$value": "#6fbe91" },
-      "error": { "$type": "color", "$value": "#e27d72" },
-      "signalConditional": { "$type": "color", "$value": "#e0b464" },
-      "signalConditionalSurface": { "$type": "color", "$value": "#523f1e" },
-      "signalEvidence": { "$type": "color", "$value": "#6cc2bd" },
-      "signalEvidenceSurface": { "$type": "color", "$value": "#1d4749" },
-      "signalUnknown": { "$type": "color", "$value": "#aeb6ae" },
-      "signalUnknownSurface": { "$type": "color", "$value": "#3a423c" }
+      "background": {
+        "$type": "color",
+        "$value": "#151c1e"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#f1ece3"
+      },
+      "card": {
+        "$type": "color",
+        "$value": "#1e272a"
+      },
+      "primary": {
+        "$type": "color",
+        "$value": "#8ccbb5"
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "#263235"
+      },
+      "muted": {
+        "$type": "color",
+        "$value": "#222c2f"
+      },
+      "mutedText": {
+        "$type": "color",
+        "$value": "#a9b4b6"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#333f42"
+      },
+      "input": {
+        "$type": "color",
+        "$value": "#687679"
+      },
+      "ring": {
+        "$type": "color",
+        "$value": "#8ccbb5"
+      },
+      "error": {
+        "$type": "color",
+        "$value": "#f08a70"
+      },
+      "signalConditional": {
+        "$type": "color",
+        "$value": "#e7be6e"
+      },
+      "signalConditionalSurface": {
+        "$type": "color",
+        "$value": "#3b301a"
+      },
+      "signalEvidence": {
+        "$type": "color",
+        "$value": "#8ccbb5"
+      },
+      "signalEvidenceSurface": {
+        "$type": "color",
+        "$value": "#1e3a33"
+      },
+      "signalMissing": {
+        "$type": "color",
+        "$value": "#f0a486"
+      },
+      "signalMissingSurface": {
+        "$type": "color",
+        "$value": "#42281f"
+      },
+      "signalUnknown": {
+        "$type": "color",
+        "$value": "#b0b8ba"
+      },
+      "signalUnknownSurface": {
+        "$type": "color",
+        "$value": "#2c3538"
+      },
+      "brandMark": {
+        "$type": "color",
+        "$value": "#e57d52"
+      },
+      "ink": {
+        "$type": "color",
+        "$value": "#0e1416"
+      }
     }
   },
   "font": {
-    "sans": { "$type": "fontFamily", "$value": "DM Sans" },
-    "mono": { "$type": "fontFamily", "$value": "Geist Mono" }
+    "sans": {
+      "$type": "fontFamily",
+      "$value": "Instrument Sans"
+    },
+    "serif": {
+      "$type": "fontFamily",
+      "$value": "Newsreader"
+    },
+    "mono": {
+      "$type": "fontFamily",
+      "$value": "IBM Plex Mono"
+    }
   },
   "spacing": {
-    "unit": { "$type": "dimension", "$value": "4px" },
-    "element": { "$type": "dimension", "$value": "16px" },
-    "card": { "$type": "dimension", "$value": "24px" },
-    "section": { "$type": "dimension", "$value": "80px" }
+    "unit": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "element": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "card": {
+      "$type": "dimension",
+      "$value": "24px"
+    },
+    "section": {
+      "$type": "dimension",
+      "$value": "80px"
+    }
   },
   "radius": {
-    "control": { "$type": "dimension", "$value": "14px" },
-    "card": { "$type": "dimension", "$value": "20px" },
-    "pill": { "$type": "dimension", "$value": "9999px" }
+    "control": {
+      "$type": "dimension",
+      "$value": "14px"
+    },
+    "card": {
+      "$type": "dimension",
+      "$value": "20px"
+    },
+    "pill": {
+      "$type": "dimension",
+      "$value": "9999px"
+    }
   },
   "motion": {
-    "fast": { "$type": "duration", "$value": "180ms" },
-    "enter": { "$type": "duration", "$value": "640ms" },
-    "morph": { "$type": "duration", "$value": "560ms" },
+    "fast": {
+      "$type": "duration",
+      "$value": "180ms"
+    },
+    "enter": {
+      "$type": "duration",
+      "$value": "640ms"
+    },
+    "morph": {
+      "$type": "duration",
+      "$value": "560ms"
+    },
     "focusEase": {
       "$type": "cubicBezier",
-      "$value": [0.16, 1, 0.3, 1]
+      "$value": [
+        0.16,
+        1,
+        0.3,
+        1
+      ]
     }
   },
   "layout": {
-    "pageMaxWidth": { "$type": "dimension", "$value": "1560px" }
+    "pageMaxWidth": {
+      "$type": "dimension",
+      "$value": "1200px"
+    }
   }
 }

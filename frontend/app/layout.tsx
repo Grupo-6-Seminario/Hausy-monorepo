@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Geist_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, Instrument_Sans, Newsreader } from 'next/font/google';
 
 import { themeBootScript } from '@/lib/theme';
 
@@ -7,14 +7,23 @@ import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-const hausySans = DM_Sans({
+const hausySans = Instrument_Sans({
   variable: '--font-hausy-sans',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+// Headlines, addresses and counts: the voice of a printed listing.
+const hausySerif = Newsreader({
+  variable: '--font-hausy-serif',
   subsets: ['latin'],
+  style: ['normal', 'italic'],
+  axes: ['opsz'],
+});
+
+const hausyMono = IBM_Plex_Mono({
+  variable: '--font-hausy-mono',
+  subsets: ['latin'],
+  weight: ['400', '500'],
 });
 
 export const metadata: Metadata = {
@@ -59,7 +68,9 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className={`${hausySans.variable} ${geistMono.variable}`}>
+      <body
+        className={`${hausySans.variable} ${hausySerif.variable} ${hausyMono.variable}`}
+      >
         {children}
       </body>
     </html>

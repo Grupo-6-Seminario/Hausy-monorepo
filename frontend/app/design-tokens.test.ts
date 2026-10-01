@@ -72,27 +72,31 @@ const THEMES: Theme[] = ['light', 'dark'];
 
 const SIGNAL_TOKENS: Record<Theme, Record<string, string>> = {
   light: {
-    '--signal-conditional': '#8a5a18',
-    '--signal-conditional-surface': '#f0e0bd',
-    '--signal-evidence': '#1f5f63',
-    '--signal-evidence-surface': '#d3e7e6',
-    '--signal-unknown': '#5f6660',
-    '--signal-unknown-surface': '#e4e6e0',
+    '--signal-conditional': '#7a5410',
+    '--signal-conditional-surface': '#f6eacb',
+    '--signal-evidence': '#1f5c4d',
+    '--signal-evidence-surface': '#e3ede8',
+    '--signal-missing': '#a8432a',
+    '--signal-missing-surface': '#fbe6dc',
+    '--signal-unknown': '#5b6166',
+    '--signal-unknown-surface': '#eceae6',
   },
   dark: {
-    '--signal-conditional': '#e0b464',
-    '--signal-conditional-surface': '#523f1e',
-    '--signal-evidence': '#6cc2bd',
-    '--signal-evidence-surface': '#1d4749',
-    '--signal-unknown': '#aeb6ae',
-    '--signal-unknown-surface': '#3a423c',
+    '--signal-conditional': '#e7be6e',
+    '--signal-conditional-surface': '#3b301a',
+    '--signal-evidence': '#8ccbb5',
+    '--signal-evidence-surface': '#1e3a33',
+    '--signal-missing': '#f0a486',
+    '--signal-missing-surface': '#42281f',
+    '--signal-unknown': '#b0b8ba',
+    '--signal-unknown-surface': '#2c3538',
   },
 };
 
 /** Raised card/popover surfaces, widened away from `--background`. */
 const CARD_SURFACE: Record<Theme, string> = {
-  light: '#fdfefa',
-  dark: '#1c3b28',
+  light: '#ffffff',
+  dark: '#1e272a',
 };
 
 /** `design-tokens.json` key -> the CSS custom property it mirrors. */
@@ -113,8 +117,12 @@ const JSON_TO_CSS: Record<string, string> = {
   signalConditionalSurface: '--signal-conditional-surface',
   signalEvidence: '--signal-evidence',
   signalEvidenceSurface: '--signal-evidence-surface',
+  signalMissing: '--signal-missing',
+  signalMissingSurface: '--signal-missing-surface',
   signalUnknown: '--signal-unknown',
   signalUnknownSurface: '--signal-unknown-surface',
+  brandMark: '--brand-mark',
+  ink: '--ink',
 };
 
 describe('semantic signal tokens', () => {

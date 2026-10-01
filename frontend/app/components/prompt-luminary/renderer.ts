@@ -43,9 +43,10 @@ function uniforms(
     pointer: [pointer.x * size[0], pointer.y * size[1], hover, 0],
     box: metrics.box,
     shape: [metrics.radius, pixelRatio, 0, 0],
-    deep_green: [0.2275, 0.4941, 0.3098, 1],
-    cozy_green: [0.4353, 0.7451, 0.5686, 1],
-    soft_green: [0.8275, 0.8784, 0.7216, 1],
+    // --primary (#1f5c4d), a lighter step of it (#5fa48e), --accent (#e3ede8).
+    deep_green: [0.1216, 0.3608, 0.302, 1],
+    cozy_green: [0.3725, 0.6431, 0.5569, 1],
+    soft_green: [0.8902, 0.9294, 0.9098, 1],
   };
 }
 
