@@ -1,7 +1,8 @@
 # Matching contract v1 — experimental proposal
 
-Status: parked (2026-09-23). Not wired into the app; specs/002 moved Jev to intake and
-eligibility extraction instead. Initial isolated implementation and smoke runner available. The full target contract below includes future work.
+Status: partly wired. `buyer.WithMatching` uses the evaluator to assess prose-only
+qualities on listing descriptions when `AI_GATEWAY_API_KEY` is set. Explanation
+packets and pooled selection remain future work.
 Date: 2026-09-23. The ranking policy below is an experiment, not a validated
 product rule. This work evaluates delegated matching, not the value of A2A.
 
@@ -10,13 +11,11 @@ product rule. This work evaluates delegated matching, not the value of A2A.
 Implemented: `internal/matching.Evaluator` with provider-neutral criteria,
 evidence, assessments and deterministic ranking; an exact-attribute baseline;
 `internal/matching/jev` with bounded Gateway HTTP transport and answer/evidence
-validation; `buyer.BuildShortlist` retaining each branch and selected evidence;
-and `go run ./experiments/jev -provider=baseline|jev` for the frozen smoke cases.
-The user approved tests at matching, Gateway HTTP, and buyer orchestration seams.
+validation; and `go run ./experiments/jev -provider=baseline|jev` for the frozen
+smoke cases. The user approved tests at matching and Gateway HTTP seams.
 
-The current evaluator processes one comparable branch at a time. The shortlist
-builder handles each-branch presentation, not pooled mode. It receives already
-retrieved candidates and does not call SQL or parse chat. Any provider failure
+The current evaluator processes one comparable branch at a time. It receives
+already retrieved candidates and does not call SQL or parse chat. Any provider failure
 aborts the whole evaluation; partial results are target semantics. An overall
 answer that disagrees with its per-evidence answers is kept as `needs_review`
 (with `evidence_assessment`) and adds no ranking support. Provider errors report

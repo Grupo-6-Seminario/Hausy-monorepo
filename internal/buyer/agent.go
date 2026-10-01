@@ -61,6 +61,10 @@ type Agent interface {
 	// HandleMessage runs one turn. q is what the searcher declared in the
 	// qualification form or their account; it may be nil. events may be zero.
 	HandleMessage(ctx context.Context, sessionID string, message string, q eligibility.Qualification, events Events) (*TurnResponse, error)
+	// HandleClarification answers the session's pending question and resumes the turn.
+	HandleClarification(ctx context.Context, sessionID string, answer ClarificationAnswer, q eligibility.Qualification, events Events) (*TurnResponse, error)
+	// PendingClarification is the session's open question, or nil.
+	PendingClarification(sessionID string) *clarification.Question
 }
 
 // Events lets a caller watch a turn while it runs, so the searcher sees the
