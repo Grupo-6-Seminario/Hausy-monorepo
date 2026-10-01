@@ -317,6 +317,8 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1;
+  /* The ease-in-out curve of Anthropic's logomark animation. */
+  --brand-ease: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 .brand-mark {
@@ -324,6 +326,23 @@
   height: 7px;
   border-radius: 2px;
   background: var(--brand-mark);
+  transition: transform 700ms var(--brand-ease);
+}
+
+/* Past the page heading the wordmark condenses to "h" and the mark: the tail
+   fades before the mark slides over it, and returns only after the mark has left. */
+.brand-tail {
+  transition: opacity 350ms var(--brand-ease) 350ms;
+}
+
+.brand[data-condensed] .brand-tail {
+  opacity: 0;
+  transition-duration: 280ms;
+  transition-delay: 0ms;
+}
+
+.brand[data-condensed] .brand-mark {
+  transform: translateX(calc(-1 * var(--brand-tail)));
 }
 
 .prototype-note {
@@ -2913,6 +2932,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* The full wordmark returns at once instead of waiting for the mark. */
+  .brand-tail {
+    transition-delay: 0ms;
   }
 
   /* A still, centred light instead of one that chases the pointer. */

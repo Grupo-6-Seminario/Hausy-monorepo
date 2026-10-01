@@ -91,6 +91,24 @@ describe('SearchExperience', () => {
     expect(after).not.toBe(before);
   });
 
+  it('returns home from the logo and forgets the search', async () => {
+    const page = await loadPage();
+    const before = await page.send('Monoambiente cerca del subte A');
+    await act(async () =>
+      fireEvent.click(document.querySelector('a[aria-label="Hausy, inicio"]')!),
+    );
+    expect(page.text()).toContain('¿Qué estás buscando?');
+    expect(page.text()).not.toContain('Monoambiente cerca del subte A');
+    page.close();
+
+    const reloaded = await loadPage();
+    expect(reloaded.text()).toContain('¿Qué estás buscando?');
+    const after = await reloaded.send('Dos ambientes en Palermo');
+    reloaded.close();
+
+    expect(after).not.toBe(before);
+  });
+
   it('asks a typed clarification before showing results', async () => {
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ clarification: {
 			id: 'q1', request: 'Busco dos habitaciones en Palermo', source: 'dos habitaciones',

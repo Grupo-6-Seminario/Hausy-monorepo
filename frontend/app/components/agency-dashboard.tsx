@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { AgencyProperty, AgencyPropertyInput } from '@/lib/agency';
 import type { AuthUser } from '@/lib/auth';
 
+import { BrandLink } from './brand-link';
 import { usePointerGlow } from './pointer-glow';
 import { ThemeToggle } from './theme-toggle';
 
@@ -269,10 +270,7 @@ export function AgencyDashboard() {
   return (
     <main ref={shellRef} className="site-shell agency-shell">
       <header className="site-header">
-        {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-        <a className="brand" href="/" aria-label="Hausy, inicio">
-          hausy<span className="brand-mark" aria-hidden="true" />
-        </a>
+        <BrandLink href="/" />
         <div className="header-actions">
           {user ? (
             <span className="agency-account" data-glow>
