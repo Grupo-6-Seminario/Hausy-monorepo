@@ -54,16 +54,21 @@ function installStorage(initial: Record<string, string> = {}) {
   });
 }
 
+// The composer's own submit: the closing call to action shares its name.
+// jsdom gives <search> no landmark role, so the form is reached via its field.
+function composerSubmit() {
+  const form = screen
+    .getByRole('textbox', { name: /qué estás buscando/i })
+    .closest('form') as HTMLFormElement;
+  return within(form).getByRole('button', { name: /empezar búsqueda/i });
+}
+
 describe('SearchExperience', () => {
   it('uses the Hausy company name throughout the primary experience', () => {
     render(<SearchExperience />);
     const previousCompanyName = ['An', 'gus'].join('');
 
     expect(screen.getByRole('link', { name: 'Hausy, inicio' })).toBeVisible();
-    expect(screen.getByRole('img', { name: 'Hausy' })).toHaveAttribute(
-      'src',
-      '/hausy_logo.png',
-    );
     expect(document.body).not.toHaveTextContent(previousCompanyName);
   });
 
@@ -93,11 +98,11 @@ describe('SearchExperience', () => {
     render(<SearchExperience />);
 
     const textbox = screen.getByRole('textbox', {
-      name: /describí cómo querés vivir/i,
+      name: /qué estás buscando/i,
     });
     expect(textbox).toBeVisible();
     expect(
-      screen.getByRole('button', { name: /buscar hogares/i }),
+      composerSubmit(),
     ).toBeVisible();
     expect(document.querySelector('[data-prompt-luminary]')).toBeInstanceOf(
       HTMLCanvasElement,
@@ -153,7 +158,7 @@ describe('SearchExperience', () => {
     const user = userEvent.setup();
     render(<SearchExperience />);
 
-    await user.click(screen.getByRole('button', { name: /buscar hogares/i }));
+    await user.click(composerSubmit());
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Contanos al menos una necesidad o preferencia.',
@@ -200,7 +205,7 @@ describe('SearchExperience', () => {
       );
       expect(
         screen.getByRole('heading', {
-          name: 'Un lugar para tu forma de vivir.',
+          name: 'Primero, a qué podés acceder. Después, cuál te gusta.',
         }),
       ).toBeVisible();
       expect(fetchMock).not.toHaveBeenCalled();
@@ -208,7 +213,7 @@ describe('SearchExperience', () => {
       await act(async () => captureOldView());
 
       expect(
-        screen.getByRole('heading', { name: 'Sigamos con tu búsqueda.' }),
+        screen.getByRole('heading', { name: 'Tu búsqueda' }),
       ).toBeVisible();
       expect(screen.getByText('Dos ambientes')).toBeVisible();
       await waitFor(() =>
@@ -268,12 +273,45 @@ describe('SearchExperience', () => {
 
     expect(
       await screen.findByText(
-        /Usando: garantía propietaria · \$2\.000\.000 a \$3\.000\.000/i,
+        /^garantía propietaria · \$2\.000\.000 a \$3\.000\.000$/i,
       ),
     ).toBeVisible();
-    expect(screen.getByLabelText('Garantía propietaria')).not.toBeVisible();
+    expect(screen.queryByLabelText('Garantía propietaria')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Editar' }));
-    expect(screen.getByLabelText('Garantía propietaria')).toBeVisible();
+    // The panel opens beside the results with what was already declared.
+    expect(screen.getByLabelText('Garantía propietaria')).toBeChecked();
+    expect(screen.getByLabelText('Ingresos mensuales')).toHaveValue(
+      '2000000-3000000',
+    );
+  });
+
+  it('names the kind of each condition it is using', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          reply: 'Respuesta del agente.',
+          listings: [sampleListing],
+          requirements: [
+            { type: 'outdoor_space', value: 'balcon' },
+            { type: 'excluye_outdoor_space', value: 'balcon' },
+          ],
+        }),
+      ),
+    );
+    render(<SearchExperience />);
+
+    await user.type(screen.getByRole('textbox'), 'Con balcón{Enter}');
+
+    const criteria = await screen.findByRole('list', {
+      name: 'Criterios que estoy usando',
+    });
+    expect(
+      within(criteria)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['outdoor space balcon', 'excluye outdoor space balcon']);
   });
 
   it('starts a new line on Shift+Enter without sending', async () => {
@@ -309,7 +347,7 @@ describe('SearchExperience', () => {
       'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.';
 
     await user.type(screen.getByRole('textbox'), query);
-    await user.click(screen.getByRole('button', { name: /buscar hogares/i }));
+    await user.click(composerSubmit());
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/agent',
@@ -399,7 +437,7 @@ describe('SearchExperience', () => {
     render(<SearchExperience />);
 
     const composer = screen.getByRole('textbox', {
-      name: /describí cómo querés vivir/i,
+      name: /qué estás buscando/i,
     });
     await user.type(composer, 'Quiero vivir en Palermo con mucha luz{Enter}');
 

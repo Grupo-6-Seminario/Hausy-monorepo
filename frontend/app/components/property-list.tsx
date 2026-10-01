@@ -1,4 +1,5 @@
 import { Home } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import {
   Empty,
@@ -32,6 +33,8 @@ interface PropertyListProps {
   recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
+  // Shown under the heading in every state: what the search is using.
+  children?: ReactNode;
 }
 
 export function PropertyList({
@@ -40,6 +43,7 @@ export function PropertyList({
   recommendedRanks = [],
   isLoading = false,
   className,
+  children,
 }: PropertyListProps) {
   if (isLoading) {
     return (
@@ -55,6 +59,7 @@ export function PropertyList({
           </div>
           <span>Evaluando afinidad</span>
         </div>
+        {children}
         {/* Ghost cards keep the real card's outline, so the shortlist lands in place. */}
         <div className="property-skeletons" aria-hidden="true">
           {[1, 2, 3].map((index) => (
@@ -97,6 +102,7 @@ export function PropertyList({
             <h2>Sin coincidencias exactas</h2>
           </div>
         </div>
+        {children}
         <Empty className="property-empty">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -139,6 +145,13 @@ export function PropertyList({
             : 'Ordenadas por afinidad'}
         </span>
       </div>
+      <p className="provenance-legend">
+        Origen del dato:
+        <span data-provenance="stated">Publicado</span>
+        <span data-provenance="inferred">Inferido</span>
+        <span data-provenance="missing">Falta</span>
+      </p>
+      {children}
       <p className="selection-guide">
         {recommendedRanks.length > 0
           ? 'Las fichas citadas en la lectura de Hausy están señaladas. En todas distinguimos lo publicado de lo interpretado.'

@@ -70,7 +70,7 @@ test('welcome, shortlist and return to conversation remain usable', async ({
   );
   await openSearch(page);
   await expect(
-    page.getByRole('button', { name: 'Buscar hogares' }),
+    page.getByRole('search').getByRole('button'),
   ).toBeInViewport();
   await expectNoOverflow(page);
   await page.screenshot({
@@ -79,12 +79,15 @@ test('welcome, shortlist and return to conversation remain usable', async ({
     fullPage: true,
   });
   await page.getByRole('textbox').fill('Dos ambientes con luz y silencio en Palermo');
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
   await expect(
     page.getByRole('heading', { name: 'Humboldt 1900', exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Publicado', { exact: true })).toBeVisible();
-  await expect(page.getByText('Inferido por Hausy')).toBeVisible();
+  const matched = page.getByRole('region', {
+    name: 'Coincide con lo que pediste',
+  });
+  await expect(matched.getByText('Publicado', { exact: true })).toBeVisible();
+  await expect(matched.getByText('Inferido', { exact: true })).toBeVisible();
   await expectNoOverflow(page);
   await page.screenshot({
     path: info.outputPath('results.png'),
@@ -122,8 +125,8 @@ test('clarification survives reload and resumes the same search', async ({ page 
     }
   });
   await openSearch(page);
-  await page.getByRole('textbox', { name: 'Describí cómo querés vivir' }).fill(question.request);
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('textbox', { name: '¿Qué estás buscando?' }).fill(question.request);
+  await page.getByRole('search').getByRole('button').click();
   await expect(page.getByRole('heading', { name: question.prompt })).toBeVisible();
   await expect(page.locator('form.query-form')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('clarification.png'), animations: 'disabled', fullPage: true });
@@ -155,7 +158,7 @@ test('Contactar records one intent and still opens the publication', async ({
 
   await openSearch(page);
   await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
 
   const contact = page.getByRole('link', { name: /Contactar/ });
   await expect(contact).toBeVisible();
@@ -205,7 +208,7 @@ test('a new turn is readable from its beginning in a long history', async ({
   await openSearch(page);
   for (let i = 1; i <= 3; i++) {
     await page.getByRole('textbox').fill('Priorizar luz natural');
-    await page.getByRole('button', { name: 'Buscar hogares' }).click();
+    await page.getByRole('search').getByRole('button').click();
     await expect(
       page.getByRole('heading', { name: `Turno ${i}`, exact: true }),
     ).toBeAttached();
@@ -244,7 +247,7 @@ test('a failed request restores the query without requiring WebGPU', async ({
   await openSearch(page);
   await expect(page.locator('canvas')).toHaveAttribute('data-fallback', 'true');
   await page.getByRole('textbox').fill('Busco cerca del subte');
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
   await expect(page.getByRole('alert')).toContainText('No pudimos conectarnos');
   await expect(page.getByRole('textbox')).toHaveValue('Busco cerca del subte');
   await expectNoOverflow(page);
@@ -284,13 +287,12 @@ test('sending glides the composer and the message into the workspace', async ({
   await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
 
   const layers = morphLayers(page);
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
 
   expect(await layers).toEqual(
     expect.arrayContaining([
       '::view-transition-group(composer)',
       '::view-transition-group(sent-message)',
-      '::view-transition-old(landing-visual)',
       '::view-transition-new(results)',
     ]),
   );
@@ -312,7 +314,7 @@ test('reduced motion sends without animating the view', async ({ page }) => {
   await page.getByRole('textbox').fill('Dos ambientes con luz en Palermo');
 
   const layers = morphLayers(page);
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
 
   expect(await layers).toEqual([]);
   await expect(
@@ -326,7 +328,7 @@ test('reduced motion stays usable after resize', async ({ page }) => {
   for (const width of [320, 768, 1180]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(
-      page.getByRole('button', { name: 'Buscar hogares' }),
+      page.getByRole('search').getByRole('button'),
     ).toBeInViewport();
     await expectNoOverflow(page);
   }
@@ -401,10 +403,10 @@ test('eligibility sections, the zero-results line and the declared qualification
   await page.getByLabel('Garantía propietaria').check();
   await page.getByRole('button', { name: 'Usar estos datos' }).click();
   await page.getByRole('textbox').fill('Alquiler en Palermo');
-  await page.getByRole('button', { name: 'Buscar hogares' }).click();
+  await page.getByRole('search').getByRole('button').click();
 
   await expect(
-    page.getByRole('heading', { name: 'Podés aplicar' }),
+    page.getByRole('heading', { name: 'Calificás' }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Depende de la inmobiliaria' }),
@@ -415,7 +417,9 @@ test('eligibility sections, the zero-results line and the declared qualification
   await expect(
     page.getByText('Si conseguís seguro de caución, vuelven 14 propiedades.'),
   ).toBeVisible();
-  await expect(page.getByText(/Usando: garantía propietaria/)).toBeVisible();
+  await expect(
+    page.getByText('garantía propietaria', { exact: true }),
+  ).toBeVisible();
   expect(bodies.at(-1)?.qualification).toEqual({ guarantee: ['propietaria'] });
   await expectNoOverflow(page);
   await page.screenshot({

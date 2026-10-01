@@ -271,8 +271,7 @@ export function AgencyDashboard() {
       <header className="site-header">
         {/* oxlint-disable-next-line next/no-html-link-for-pages */}
         <a className="brand" href="/" aria-label="Hausy, inicio">
-          <img src="/hausy_logo.png" alt="Hausy" width="40" height="40" />
-          <span>Hausy</span>
+          hausy<span className="brand-mark" aria-hidden="true" />
         </a>
         <div className="header-actions">
           {user ? (

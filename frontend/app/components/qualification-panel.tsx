@@ -25,6 +25,8 @@ const quoted = [
 
 interface QualificationPanelProps {
   onChange: (qualification: Qualification) => void;
+  // What was already declared, for a panel that mounts again in another place.
+  initial?: Qualification;
   // Controlled by the page when given; the panel manages itself otherwise.
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -50,6 +52,7 @@ export function describeQualification(q: Qualification): string {
 // Signed-in searchers get their saved answers back and keep their changes.
 export function QualificationPanel({
   onChange,
+  initial = {},
   open: controlledOpen,
   onOpenChange,
 }: QualificationPanelProps) {
@@ -58,9 +61,11 @@ export function QualificationPanel({
   const setOpen = (next: boolean) =>
     onOpenChange ? onOpenChange(next) : setOwnOpen(next);
   const [signedIn, setSignedIn] = useState(false);
-  const [guarantee, setGuarantee] = useState<string[]>([]);
-  const [income, setIncome] = useState('');
-  const [caucionQuoted, setCaucionQuoted] = useState('');
+  const [guarantee, setGuarantee] = useState<string[]>(initial.guarantee ?? []);
+  const [income, setIncome] = useState(initial.income_band?.[0] ?? '');
+  const [caucionQuoted, setCaucionQuoted] = useState(
+    initial.caucion_quoted?.[0] ?? '',
+  );
 
   // A signed-in searcher gets their saved answers back; anonymous visitors
   // keep the panel for this session only and send no request.
@@ -160,7 +165,7 @@ export function QualificationPanel({
         ))}
       </fieldset>
       <div className="qualification-actions">
-        <Button type="button" variant="outline" onClick={() => void submit()}>
+        <Button type="button" onClick={() => void submit()}>
           Usar estos datos
         </Button>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

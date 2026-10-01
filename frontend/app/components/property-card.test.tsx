@@ -51,13 +51,16 @@ sampleListing.matched = sampleListing.attributes;
 describe('PropertyCard', () => {
   // "Sin datos de requisitos" was shown even when the ad publishes its
   // requirements and only the searcher's own data is missing.
+  // Only absent data is tagged "Falta"; an unverifiable rule is not missing.
   it.each([
-    [[], 'No publica requisitos'],
-    [[{ reason: 'missing', rule: { fact: 'guarantee', values: ['caucion'], evidence: 'Sistema FINAER' } }], 'Publica requisitos · completá tus datos'],
-    [[{ reason: 'unverifiable', rule: { fact: 'income_band', values: ['3'], evidence: 'Ingresos 3 veces el alquiler' } }], 'Requisito no verificable'],
-  ])('names why eligibility is unknown (%#)', (conditions, label) => {
+    [[], 'No publica requisitos', true],
+    [[{ reason: 'missing', rule: { fact: 'guarantee', values: ['caucion'], evidence: 'Sistema FINAER' } }], 'Publica requisitos · completá tus datos', true],
+    [[{ reason: 'unverifiable', rule: { fact: 'income_band', values: ['3'], evidence: 'Ingresos 3 veces el alquiler' } }], 'Requisito no verificable', false],
+  ])('names why eligibility is unknown (%#)', (conditions, label, missing) => {
     render(<PropertyCard listing={{ ...sampleListing, eligibility: { state: 'unknown', conditions } }} />);
-    expect(screen.getByText(label)).toBeVisible();
+    const confirm = screen.getByRole('region', { name: 'Qué confirmar' });
+    expect(within(confirm).getByText(label)).toBeVisible();
+    expect(within(confirm).queryByText('Falta') !== null).toBe(missing);
   });
 
   it('renders property price, expenses, and neighborhood', () => {
@@ -119,14 +122,16 @@ describe('PropertyCard', () => {
     expect(statedItem.className).not.toBe(inferredItem.className);
   });
 
-  it('labels the inferred attribute with the unknown signal, the stated one without it', () => {
+  it('tags each matched attribute with where it comes from', () => {
     render(<PropertyCard listing={sampleListing} />);
 
-    expect(screen.getByText('Inferido por Hausy')).toHaveClass(
-      'evidence-provenance',
+    expect(screen.getByText('Inferido')).toHaveAttribute(
+      'data-provenance',
+      'inferred',
     );
-    expect(screen.getAllByText('Publicado')[0]).not.toHaveClass(
-      'evidence-provenance',
+    expect(screen.getAllByText('Publicado')[0]).toHaveAttribute(
+      'data-provenance',
+      'stated',
     );
   });
 
@@ -146,17 +151,13 @@ describe('PropertyCard', () => {
       return css.slice(at, css.indexOf('}', at));
     };
 
-    const published = rule('.property-evidence > ul > li.is-published');
-    const inferred = rule('.property-evidence > ul > li.is-inferred');
+    const tag = rule('.provenance-tag {');
+    const inferred = rule("[data-provenance='inferred'] {");
 
     // Solid vs dashed carries the distinction without relying on hue, so it
     // survives greyscale and a colorblind viewer.
-    expect(published).toMatch(
-      /border-left:\s*2px solid var\(--signal-evidence\)/,
-    );
-    expect(inferred).toMatch(
-      /border-left:\s*2px dashed var\(--signal-unknown\)/,
-    );
+    expect(tag).toMatch(/border:\s*1px solid/);
+    expect(inferred).toMatch(/border:\s*1px dashed/);
   });
 
   it('provides a link to the original listing source', () => {
@@ -345,14 +346,14 @@ describe('PropertyCard contact intent', () => {
       return css.slice(at, css.indexOf('}', at));
     };
 
-    const contact = rule('.property-card-footer .listing-contact');
+    const contact = rule('.property-card-actions .listing-contact {');
     expect(contact).toMatch(/background:\s*var\(--primary\)/);
     expect(contact).toMatch(/color:\s*var\(--primary-foreground\)/);
     // No literal colors sneak in beside the tokens.
     expect(contact).not.toMatch(/#[0-9a-f]{3,8}\b/i);
 
     // Shape comes from the shared footer-action rule: one soft pill system.
-    expect(rule('.property-card-footer a')).toMatch(
+    expect(rule('.property-card-actions a {')).toMatch(
       /border-radius:\s*var\(--radius-pill\)/,
     );
   });

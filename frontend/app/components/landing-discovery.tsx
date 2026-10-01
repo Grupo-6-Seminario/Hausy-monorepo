@@ -1,186 +1,248 @@
 'use client';
 
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  MessageCircle,
-  ScanSearch,
-  SlidersHorizontal,
-} from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import type { EligibilityState } from '@/lib/types';
+
+import { eligibilityLabel, eligibilityMark } from './property-card';
 import './landing-discovery.css';
 
-const inspirations = [
-  {
-    title: 'Un balcón para bajar un cambio',
-    image: 'balcony',
-    alt: 'Comedor luminoso abierto a un balcón con plantas',
-    detail: 'Aire libre, sin salir de casa.',
-    query:
-      'Busco un departamento en CABA con balcón y luz natural. Quiero comparar precios, expensas y requisitos de ingreso.',
-  },
-  {
-    title: 'Tu rincón para trabajar',
-    image: 'home-office',
-    alt: 'Escritorio junto a una ventana con vista a los árboles',
-    detail: 'Luz natural y espacio para concentrarte.',
-    query:
-      'Trabajo desde casa y busco un departamento en CABA con espacio para un escritorio, luz natural y poco ruido.',
-  },
-  {
-    title: 'Espacio para hacerte lugar',
-    image: 'living-room',
-    alt: 'Living con sillón verde, piso de madera y puertas al balcón',
-    detail: 'Un living para compartir todos los días.',
-    query:
-      'Busco un departamento de dos ambientes en CABA con un living cómodo. Quiero conocer el costo total y las garantías aceptadas.',
-  },
+type TileKind = 'guarantee' | 'income' | 'confirm' | 'viable' | 'shortlist';
+
+// One fixed scatter of 120 listings, so the picture is the same on every
+// visit: three reach the shortlist, the rest drop out step by step.
+const tiles: TileKind[] = Array.from({ length: 120 }, (_, index) => {
+  if ([17, 58, 93].includes(index)) return 'shortlist';
+  const slot = (index * 37 + 11) % 120;
+  if (slot < 27) return 'guarantee';
+  if (slot < 33) return 'income';
+  if (slot < 55) return 'confirm';
+  return 'viable';
+});
+
+const funnel = [
+  { label: '212 avisos en tu zona y presupuesto', count: '212' },
+  { label: 'No aceptan tu garantía', count: '−47' },
+  { label: 'A confirmar o fuera de tu ingreso', count: '−49' },
+  { label: 'Tu terna', count: '3' },
 ];
 
-export function LandingPortrait() {
-  return (
-    <figure className="landing-portrait">
-      <link
-        rel="preload"
-        as="image"
-        href="/images/landing/living-room.webp"
-        fetchPriority="high"
-      />
-      <img
-        src="/images/landing/living-room.webp"
-        alt="Un living luminoso con balcón y árboles al otro lado"
-        width="880"
-        height="1100"
-        fetchPriority="high"
-      />
-      <figcaption>
-        Imaginá tu próximo lugar. <span>Imagen ilustrativa.</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-export function LandingDiscovery({
-  onChoose,
-}: {
-  onChoose: (query: string) => void;
-}) {
+/**
+ * Walks the funnel one step every 1.9 s while it is on screen. It rests on the
+ * last step, which is also what reduced motion and the server render show.
+ */
+function Funnel() {
   const root = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useState(funnel.length - 1);
+
   useEffect(() => {
+    const element = root.current;
     if (
-      !root.current ||
+      !element ||
       !('IntersectionObserver' in window) ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     )
       return;
+    let timer: number | undefined;
+    // The funnel itself has no box on wide screens (display: contents), so
+    // visibility is measured on the band that holds it.
+    const band = element.closest('section') ?? element;
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.setAttribute('data-revealed', 'true');
-            observer.unobserve(entry.target);
-          }
-        });
+      ([entry]) => {
+        window.clearInterval(timer);
+        if (!entry.isIntersecting) return;
+        setStep(0);
+        timer = window.setInterval(
+          () => setStep((current) => (current + 1) % funnel.length),
+          1900,
+        );
       },
-      { threshold: 0.12 },
+      { threshold: 0.3 },
     );
-    const sections = root.current.querySelectorAll('[data-landing-reveal]');
-    sections.forEach((section) => {
-      section.setAttribute('data-revealed', 'false');
-      observer.observe(section);
-    });
-    return () => observer.disconnect();
+    observer.observe(band);
+    return () => {
+      observer.disconnect();
+      window.clearInterval(timer);
+    };
   }, []);
 
   return (
-    <div ref={root} className="landing-discovery">
+    <div ref={root} className="landing-funnel" data-step={step}>
+      <ol className="funnel-ledger">
+        {funnel.map((row, index) => (
+          <li key={row.label} data-reached={index <= step}>
+            <span>
+              <span className="funnel-swatch" data-row={index} aria-hidden="true" />
+              {row.label}
+            </span>
+            <span className="funnel-count">{row.count}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="funnel-tiles" aria-hidden="true">
+        {tiles.map((kind, index) => (
+          <span key={index} data-kind={kind} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function LandingDiscovery({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="landing-discovery">
       <section
-        className="landing-featured"
-        aria-labelledby="featured-title"
-        data-landing-reveal
+        id="como-funciona"
+        className="landing-section landing-steps"
+        aria-labelledby="steps-title"
       >
-        <div className="landing-section-heading">
-          <span className="landing-section-icon" aria-hidden="true">
-            <ArrowDownRight />
-          </span>
-          <div>
-            <h2 id="featured-title">Avisos destacados</h2>
+        <p className="landing-kicker">Cómo funciona</p>
+        <h2 id="steps-title">Tres pasos, en este orden.</h2>
+        <ol>
+          <li>
+            <div className="step-scene step-scene-talk" aria-hidden="true">
+              <p className="scene-bubble">2 amb en Palermo, con mucha luz</p>
+              <p className="scene-reply">
+                Entendí: 2 ambientes en Palermo. Me falta tu presupuesto.
+              </p>
+            </div>
+            <h3>
+              <span>01</span> Contás qué buscás
+            </h3>
             <p>
-              Ideas para empezar a buscar. Imágenes ilustrativas, no son
-              propiedades disponibles.
+              Barrio, ambientes, presupuesto y lo que te importa. Si falta algo
+              que cambia el resultado, te lo preguntamos.
+            </p>
+          </li>
+          <li>
+            <div className="step-scene step-scene-declare" aria-hidden="true">
+              <div className="scene-chips">
+                <span data-on="true">✓ Seguro de caución</span>
+                <span>+ Garantía propietaria</span>
+              </div>
+              <div className="scene-bands">
+                <span>$1M–2M</span>
+                <span data-on="true">$2M–3M</span>
+                <span>+$3M</span>
+              </div>
+            </div>
+            <h3>
+              <span>02</span> Declarás tu situación
+            </h3>
+            <p>
+              Garantía e ingreso por rangos. Es opcional y lo podés cambiar
+              cuando quieras.
+            </p>
+          </li>
+          <li>
+            <div className="step-scene step-scene-compare" aria-hidden="true">
+              {(
+                [
+                  ['Gorriti 4800', 'eligible'],
+                  ['Guardia Vieja 3900', 'eligible'],
+                  ['Palestina 600', 'unknown'],
+                ] satisfies [string, EligibilityState][]
+              ).map(([address, state]) => (
+                <p key={address} className="scene-row">
+                  {address}
+                  <span className="eligibility-badge" data-state={state}>
+                    <span className="eligibility-mark">
+                      {eligibilityMark[state]}
+                    </span>
+                    {eligibilityLabel[state]}
+                  </span>
+                </p>
+              ))}
+            </div>
+            <h3>
+              <span>03</span> Comparás solo lo viable
+            </h3>
+            <p>
+              Te mostramos qué cumple cada opción, de dónde sale cada dato y
+              qué conviene confirmar antes de visitar.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section className="landing-band" aria-labelledby="funnel-title">
+        <div className="landing-section landing-band-inner">
+          <div>
+            <p className="landing-kicker">De 212 avisos a tu terna</p>
+            <h2 id="funnel-title">
+              Sacamos lo que no te van a aceptar antes de que lo veas.
+            </h2>
+          </div>
+          <Funnel />
+        </div>
+      </section>
+
+      <section className="landing-principles" aria-labelledby="principles-title">
+        <div id="principios" className="landing-section">
+          <p className="landing-kicker">Principios</p>
+          <h2 id="principles-title">Lo que no sabemos, te lo decimos.</h2>
+          <ul>
+            <li>
+              <span className="principle-mark" data-shape="circle" aria-hidden="true" />
+              <h3>Tus datos se comparten solo si vos querés</h3>
+              <p>
+                Ninguna inmobiliaria ve tu situación hasta que decidís consultar
+                por una propiedad.
+              </p>
+            </li>
+            <li>
+              <span className="principle-mark" data-shape="band" aria-hidden="true" />
+              <h3>Rangos, no montos</h3>
+              <p>
+                Para saber si calificás alcanza con una banda de ingreso. No te
+                pedimos recibos.
+              </p>
+            </li>
+            <li>
+              <span className="principle-mark" data-shape="sources" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <h3>Cada dato dice de dónde sale</h3>
+              <p>
+                Publicado en el aviso, inferido por nosotros o directamente
+                faltante. No completamos lo que no está.
+              </p>
+            </li>
+            <li>
+              <span className="principle-mark" data-shape="diamond" aria-hidden="true" />
+              <h3>No decidimos por vos</h3>
+              <p>Ordenamos y explicamos. La elección es tuya.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="landing-section landing-cta" aria-labelledby="cta-title">
+        <h2 id="cta-title">
+          Empezá contando qué buscás. <em>Tarda un minuto.</em>
+        </h2>
+        <button type="button" onClick={onStart}>
+          Empezar búsqueda <span aria-hidden="true">↑</span>
+        </button>
+      </section>
+
+      <footer className="landing-footer">
+        <div className="landing-section">
+          <div className="landing-footer-top">
+            <p className="landing-wordmark" aria-hidden="true">
+              hausy<span />
+            </p>
+            <p>
+              Elegibilidad primero, comparación después. Alquileres en la Ciudad
+              de Buenos Aires.
             </p>
           </div>
+          <p className="landing-credit">
+            Prototipo · Seminario de Integración Profesional, Grupo 2
+          </p>
         </div>
-        <div className="landing-feed">
-          {inspirations.map((item) => (
-            <article className="landing-home" key={item.image}>
-              <div className="landing-home-photo">
-                <img
-                  src={`/images/landing/${item.image}.webp`}
-                  alt={item.alt}
-                  width="1000"
-                  height="667"
-                  loading="lazy"
-                />
-              </div>
-              <div className="landing-home-copy">
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
-                <button
-                  type="button"
-                  data-glow
-                  aria-label={`Buscar algo así: ${item.title}`}
-                  onClick={() => onChoose(item.query)}
-                >
-                  Buscar algo así <ArrowUpRight aria-hidden="true" />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section
-        className="landing-guide"
-        aria-labelledby="guide-title"
-        data-landing-reveal
-      >
-        <div className="landing-guide-intro">
-          <h2 id="guide-title">Más que una linda foto.</h2>
-          <p>Una búsqueda también se trata de lo que necesitás para mudarte.</p>
-        </div>
-        <dl>
-          <div>
-            <dt>
-              <MessageCircle aria-hidden="true" /> Contanos lo importante
-            </dt>
-            <dd>
-              Zona, presupuesto, garantía y eso a lo que no querés renunciar.
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <ScanSearch aria-hidden="true" /> Compará con contexto
-            </dt>
-            <dd>
-              Distinguí los datos publicados de lo que todavía falta confirmar.
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <SlidersHorizontal aria-hidden="true" /> Ajustá a tu ritmo
-            </dt>
-            <dd>
-              Sumá prioridades y seguí la conversación sin empezar de nuevo.
-            </dd>
-          </div>
-        </dl>
-      </section>
-      <footer className="landing-footer">
-        <span>Hausy</span>
-        <p>Tu próximo hogar empieza con una buena pregunta.</p>
-        <a href="#top">
-          Volver al inicio <ArrowUpRight aria-hidden="true" />
-        </a>
       </footer>
     </div>
   );

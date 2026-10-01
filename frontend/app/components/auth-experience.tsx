@@ -140,8 +140,7 @@ export function AuthExperience() {
         {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
         {/* oxlint-disable-next-line next/no-html-link-for-pages */}
         <a className="brand" href="/" aria-label="Hausy, inicio">
-          <img src="/hausy_logo.png" alt="Hausy" width="40" height="40" />
-          <span>Hausy</span>
+          hausy<span className="brand-mark" aria-hidden="true" />
         </a>
         <p className="prototype-note">Prototipo de acceso</p>
         <div className="header-actions">

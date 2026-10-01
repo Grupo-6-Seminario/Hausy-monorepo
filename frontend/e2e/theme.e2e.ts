@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 // Which icon shows and which palette paints are both decided in CSS, so they
 // only mean anything in a real browser. jsdom cannot see either.
 
-const LIGHT_BACKGROUND = 'rgb(245, 249, 230)';
-const DARK_BACKGROUND = 'rgb(16, 34, 24)';
+const LIGHT_BACKGROUND = 'rgb(250, 247, 242)';
+const DARK_BACKGROUND = 'rgb(21, 28, 30)';
 
 function background(page: Page) {
   return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
