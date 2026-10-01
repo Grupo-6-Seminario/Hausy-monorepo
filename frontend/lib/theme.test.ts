@@ -7,9 +7,11 @@ import {
   themeBootScript,
 } from './theme';
 
-// jsdom ships no Storage here, which is also what a browser with site data
-// blocked looks like from the inside. Tests that need one install it; the rest
-// exercise the page with none, the way a private window would.
+// Every test starts with no Storage, which is also what a browser with site
+// data blocked looks like from the inside. Tests that need one install it; the
+// rest exercise the page with none, the way a private window would. jsdom does
+// provide a real one at an http origin, and it would carry a theme written by
+// one test into the next.
 function installStorage(): Storage {
   const entries = new Map<string, string>();
   const storage = {
@@ -42,6 +44,7 @@ function systemPrefersDark(dark: boolean) {
 
 beforeEach(() => {
   delete document.documentElement.dataset.theme;
+  vi.stubGlobal('localStorage', undefined);
 });
 
 afterEach(() => {
