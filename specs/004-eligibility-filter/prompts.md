@@ -15,9 +15,8 @@ prompts rely on that flow.
 
 ## Execution order
 
-If phase 1 has not run yet, run phase 2 first, so qualification validation is built on the typed
-`Catalog` and does not need redoing. Suggested order: 2, 1, 3, 4. Phase 4 adds the edge cases that did
-not come out of TDD in the earlier phases.
+Order: 2, 1, 3, 4. Phase 2 is done (`9341292`), so phase 1 builds qualification validation on its
+typed `Catalog`. Phase 4 adds the edge cases that did not come out of TDD in the earlier phases.
 
 ## Phase 1: scope
 
@@ -29,22 +28,23 @@ the code itself notes they should be served by the backend once they change
 
 - The high and medium priority facts in the spec: guarantee, documented income, pets, income band and
   caución quoted.
+- `propietaria` stays one guarantee value (spec 1.5, decision 1, revised): no split.
+- Pets as an eligibility rule (spec 1.5, decision 2).
 - A new endpoint, `GET /api/eligibility/facts`, that returns the facts and their choices.
 - Qualification validation on `PUT /api/me/qualification` and `POST /api/messages`, with stable error
   codes.
 - The frontend form reads its choices from the endpoint.
-- Pets rules derived from `listing_attributes` (`pets_allowed = no` with `provenance = stated`), with
-  no new model calls.
+- Pets rules derived from `listing_attributes` (`pets_allowed = no` with `provenance = stated`, and
+  evidence that names an animal), with no new model calls.
 
 **Out of scope:**
 
 - Employment type and job tenure (low priority).
-- Occupancy cap and move-in cost, until decided.
-- Regenerating `data/listings.eligibility.jsonl` with Jev: it costs paid calls and the repo requires
-  permission first.
-
-**Depends on the spec's pending decisions.** If the propietaria split is undecided, keep the
-`propietaria` value as it is today and add new values without touching existing ones.
+- Occupancy cap and move-in cost: deferred (spec 1.5, decisions 3 and 4).
+- Regenerating or editing `data/listings.eligibility.jsonl`: it is committed model output, and
+  regenerating it costs paid Jev calls.
+- Error codes outside the table below (auth and agency errors, an empty message): they keep
+  `{"error"}` only.
 
 ## Phase 1: endpoint contract
 
@@ -80,10 +80,9 @@ facts, ordered by priority. Response `200` with `Cache-Control: max-age=300`:
       "priority": "high",
       "multiple": true,
       "choices": [
-        {"value": "none", "label": "No tengo"},
+        {"value": "none", "label": "Ninguna"},
         {"value": "dog", "label": "Perro"},
-        {"value": "cat", "label": "Gato"},
-        {"value": "other", "label": "Otra"}
+        {"value": "cat", "label": "Gato"}
       ]
     }
   ]
@@ -95,9 +94,9 @@ stay in Spanish because the searcher reads them. "Prefiero no decir" is not a ch
 sending the fact.
 
 Data changes behind the endpoint: migration `0007_eligibility_facts_v2.sql` adds `label`, `priority`,
-`multiple` and `position` columns to `eligibility_facts`, seeds `income_documented` and `pets`, and
-adds `recibos_garante` to the `guarantee` choices. Choices change from a list of strings to
-`{value, label}` objects.
+`multiple` and `position` columns to `eligibility_facts`, seeds `income_documented` and `pets`,
+and adds `recibos_garante` to the `guarantee` choices.
+Choices change from a list of strings to `{value, label}` objects.
 
 ### Qualification validation
 
@@ -154,8 +153,13 @@ Each step ends with green tests before the next one.
    qualification and returns the first typed error. One test per code in the table.
 3. **Endpoint and codes.** `GET /api/eligibility/facts`, validation on both qualification endpoints,
    and `code` on every error response in `internal/httpapi`. One HTTP test per error table row.
-4. **Pets rules.** `load` derives a `pets one_of [none]` rule for each listing whose text states
-   `pets_allowed = no`. Test a listing with and without the phrase.
+4. **Rules at load.** `load` derives a `pets` rule for each listing whose text states
+   `pets_allowed = no` and whose evidence names an animal. The rule admits `none` plus the animal the
+   refusal leaves out ("gatos no" admits `dog`, "no se permite perro" admits `cat`), and is
+   discretionary when the owner keeps the call ("preferentemente", a size limit). Migration 0008
+   leaves the pets choices as none, dog and cat. Tests: a stated refusal, an inferred one, a
+   listing that welcomes pets, a refusal whose evidence is about something else; running `load` twice
+   leaves the same rules.
 5. **Frontend.** `qualification-panel.tsx` fetches choices from the endpoint through the
    `frontend/app/api` proxy. If the endpoint fails, the form hides and search continues without a
    qualification. Vitest tests in `qualification-panel.test.tsx`.
@@ -174,8 +178,10 @@ Each step ends with green tests before the next one.
 ```text
 Phase 1 of the Hausy eligibility filter. Read AGENTS.md, docs/agents/backend.md, docs/agents/data.md,
 docs/agents/testing.md, CONTEXT.md, docs/adr/0001-eligibility-rules-as-data.md and
-specs/004-eligibility-filter/spec.md (sections 1.3 to 1.5) before starting. The contract and error
-codes are in specs/004-eligibility-filter/prompts.md under "Phase 1".
+specs/004-eligibility-filter/spec.md (sections 1.3 to 1.5) before starting. The contract and the
+error codes are in specs/004-eligibility-filter/prompts.md under
+"Phase 1". Decision 2 in spec 1.5 is approved, decision 1 was revised (propietaria stays one value), and 3
+and 4 are deferred.
 
 Goal: make the backend the single source of eligibility facts and validate the declared
 qualification with stable error codes.
@@ -183,16 +189,16 @@ qualification with stable error codes.
 Build:
 1. Migration 0007: eligibility_facts gains label, priority (high|medium|low), multiple and position;
    choices become [{value,label}]. Seed income_documented (yes|no, single choice) and pets
-   (none|dog|cat|other, multiple). Add recibos_garante to guarantee. Do not touch the propietaria
-   value or existing rules.
+   (none|dog|cat, multiple; none stands alone). Add recibos_garante to guarantee.
 2. In internal/eligibility, a pure function that validates a Qualification against the catalog and
    returns the first typed error: unknown_fact, inadmissible_fact, invalid_value, too_many_values.
 3. GET /api/eligibility/facts, public, admissible facts only, ordered by position,
    Cache-Control max-age=300. Validate the qualification on PUT /api/me/qualification and on the
    qualification field of POST /api/messages. Add "code" (and "field" when it applies) to every
-   error response in internal/httpapi without changing existing messages. Validation errors are 400.
+   error response in the table without changing existing messages. Validation errors are 400.
 4. In cmd/listings load, derive the rule pets one_of [none] (hard, source parsed) for listings with
-   listing_attributes pets_allowed = no and provenance = stated. No model calls.
+   listing_attributes pets_allowed = no, provenance = stated and evidence naming an animal. Do not
+   edit data/listings.eligibility.jsonl. No model calls.
 5. qualification-panel.tsx reads its choices from the endpoint through the frontend/app/api proxy;
    on failure it hides the form and search continues without a qualification.
 
@@ -201,8 +207,7 @@ data/listings.eligibility.jsonl. Ask before any paid call to Jev or Bedrock.
 
 Done when go test ./..., the Postgres tests against HAUSY_TEST_DATABASE_URI and cd frontend && npm test
 pass, and on the local server: the form shows the endpoint's choices, a search with a dog does not
-mark pet-refusing listings eligible, and sending age returns 400 inadmissible_fact without storing
-anything.
+mark pet-refusing listings eligible, and sending age returns 400 inadmissible_fact without storing anything.
 
 Present the behavior, acceptance criteria and verification plan first, and wait for my approval.
 Do not commit or push.

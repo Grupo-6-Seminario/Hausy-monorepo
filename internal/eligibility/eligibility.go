@@ -8,6 +8,8 @@ package eligibility
 
 import (
 	"fmt"
+	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -63,8 +65,61 @@ type Catalog map[string]Fact
 // not admissible.
 type Fact struct {
 	Admissible bool
+	// Label is the form's question, in Spanish because the searcher reads it.
+	Label    string
+	Priority string // high | medium | low
+	// Multiple facts take several values; the rest take one.
+	Multiple bool
+	// Position orders the form.
+	Position int
 	// Choices are the values the qualification form offers.
-	Choices []string
+	Choices []Choice
+}
+
+// Choice is one value a fact accepts and the label the form shows for it.
+type Choice struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// QualificationError is why a declared qualification was refused. Code is
+// stable for clients: unknown_fact, inadmissible_fact, invalid_value or
+// too_many_values.
+type QualificationError struct {
+	Code string
+	Fact string
+}
+
+func (e *QualificationError) Error() string {
+	return "eligibility: " + e.Code + " on qualification fact " + strconv.Quote(e.Fact)
+}
+
+// ValidateQualification checks a declared qualification against the catalog
+// and returns the first problem, in fact-name order so the same input always
+// gets the same answer. An empty qualification is valid.
+func ValidateQualification(c Catalog, q Qualification) error {
+	facts := slices.Sorted(maps.Keys(q))
+	for _, name := range facts {
+		fact, ok := c[name]
+		switch {
+		case !ok:
+			return &QualificationError{Code: "unknown_fact", Fact: name}
+		case !fact.Admissible:
+			return &QualificationError{Code: "inadmissible_fact", Fact: name}
+		case !fact.Multiple && len(q[name]) > 1:
+			return &QualificationError{Code: "too_many_values", Fact: name}
+		// "none" says the searcher has none of the others, so it stands alone:
+		// "no pets" next to "dog" would clear a refuse-pets rule for a dog owner.
+		case len(q[name]) > 1 && slices.Contains(q[name], "none"):
+			return &QualificationError{Code: "invalid_value", Fact: name}
+		}
+		for _, value := range q[name] {
+			if !slices.ContainsFunc(fact.Choices, func(c Choice) bool { return c.Value == value }) {
+				return &QualificationError{Code: "invalid_value", Fact: name}
+			}
+		}
+	}
+	return nil
 }
 
 // Admissible reports whether rules and qualifications may reference fact.
@@ -79,6 +134,45 @@ type Rule struct {
 	Visibility string   `json:"visibility,omitempty"` // public (default) | private
 	Source     string   `json:"source,omitempty"`     // parsed | declared | observed
 	Evidence   string   `json:"evidence,omitempty"`   // the listing's own words
+}
+
+var (
+	namesAnimal = regexp.MustCompile(`(?i)mascota|perr[oa]|gat[oa]|animal`)
+	namesDog    = regexp.MustCompile(`(?i)perr[oa]`)
+	namesCat    = regexp.MustCompile(`(?i)gat[oa]`)
+	// The owner keeps the call: a preference, or a limit on size.
+	ownerDecides = regexp.MustCompile(`(?i)preferentemente|grande`)
+)
+
+// PublishedRules are the eligibility rules a listing's own published
+// attributes state, so loading derives them without a model. A pets refusal
+// admits a searcher without pets and, when it names only dogs or only cats,
+// the other animal too ("gatos no" admits a dog). A preference or a size
+// limit leaves the owner to decide, so that rule is discretionary. An inferred
+// attribute is the parser's reading, not the listing's, and derives nothing;
+// so does a refusal whose evidence never names an animal, since the committed
+// parse holds two that quote accessibility notes instead.
+func PublishedRules(attributes []listing.Attribute) []Rule {
+	var rules []Rule
+	for _, a := range attributes {
+		if a.Type != "pets_allowed" || a.Value != "no" || a.Provenance != listing.Stated || !namesAnimal.MatchString(a.Evidence) {
+			continue
+		}
+		admitted := []string{"none"}
+		dog, cat := namesDog.MatchString(a.Evidence), namesCat.MatchString(a.Evidence)
+		switch {
+		case dog && !cat:
+			admitted = append(admitted, "cat")
+		case cat && !dog:
+			admitted = append(admitted, "dog")
+		}
+		hardness := Hard
+		if ownerDecides.MatchString(a.Evidence) {
+			hardness = Discretionary
+		}
+		rules = append(rules, Rule{Fact: "pets", Operator: OneOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence})
+	}
+	return rules
 }
 
 // Validate rejects a rule the evaluator cannot read: an operator missing from
@@ -233,8 +327,10 @@ type Relaxation struct {
 	Count int    `json:"count"`
 }
 
-// Relaxations tries, for every ineligible candidate, each instrument its
-// one_of rules accept that the searcher has not declared.
+// Relaxations tries, for every ineligible candidate, each guarantee instrument
+// its rules accept that the searcher has not declared. Only guarantees: they
+// are what a searcher can go and get, while a pets rule would only suggest
+// giving the pet up.
 func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Relaxation {
 	counts := map[[2]string]int{}
 	for _, c := range candidates {
@@ -243,7 +339,7 @@ func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Rel
 		}
 		tried := map[[2]string]bool{}
 		for _, r := range c.Rules {
-			if r.Operator != OneOf || !catalog.Admissible(r.Fact) {
+			if r.Fact != "guarantee" || r.Operator != OneOf || !catalog.Admissible(r.Fact) {
 				continue
 			}
 			for _, value := range r.Values {

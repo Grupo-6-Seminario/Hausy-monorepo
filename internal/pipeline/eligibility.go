@@ -57,13 +57,16 @@ func ExtractEligibility(ctx context.Context, input io.Reader, output io.Writer, 
 	return report, scanner.Err()
 }
 
-// EligibilitySink persists a listing's rules.
+// EligibilitySink persists a listing's rules and reads the loaded listing
+// whose published attributes add rules of their own.
 type EligibilitySink interface {
+	ByURL(ctx context.Context, url string) (listing.Listing, error)
 	SaveEligibility(ctx context.Context, url string, rules []eligibility.Rule) error
 }
 
-// LoadEligibility reads data/listings.eligibility.jsonl into the store. Like
-// Load it is deterministic and repeatable.
+// LoadEligibility reads data/listings.eligibility.jsonl into the store, adding
+// the rules each listing's published attributes state. Like Load it is
+// deterministic and repeatable.
 func LoadEligibility(ctx context.Context, input io.Reader, sink EligibilitySink) (Report, error) {
 	var report Report
 	scanner := scannerFor(input)
@@ -79,7 +82,13 @@ func LoadEligibility(ctx context.Context, input io.Reader, sink EligibilitySink)
 		if record.Rules == nil {
 			record.Rules = []eligibility.Rule{}
 		}
-		if err := sink.SaveEligibility(ctx, record.URL, record.Rules); err != nil {
+		item, err := sink.ByURL(ctx, record.URL)
+		if err != nil {
+			report.fail(fmt.Errorf("%s: %w", record.URL, err))
+			continue
+		}
+		rules := append(record.Rules, eligibility.PublishedRules(item.Attributes)...)
+		if err := sink.SaveEligibility(ctx, record.URL, rules); err != nil {
 			report.fail(err)
 			continue
 		}

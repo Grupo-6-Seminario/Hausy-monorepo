@@ -1,11 +1,11 @@
 # Eligibility filter: back office spec
 
-**Date**: 2026-10-02 | **Owner**: Martin | **Status**: phase 1 decisions pending
+**Date**: 2026-10-02 | **Owner**: Martin | **Status**: phase 2 done; phase 1 approved, ready to build
 **Prompts for Claude Code**: [prompts.md](./prompts.md)
 
 This spec defines how the Hausy eligibility filter is built, in four phases. Phase 1 defines the
-searcher facts and waits on four decisions. Phase 2 picks the evaluator pattern, phase 3 assigns the
-work to layers and phase 4 lists the test cases.
+searcher facts; its decisions are recorded in 1.5. Phase 2 picks the evaluator pattern, phase 3
+assigns the work to layers and phase 4 lists the test cases.
 
 In 517 CABA rental listings from three portals, a guarantee is the most requested requirement
 (32% of listings), followed by documented income (12%) and a no-pets rule (10%). Employment type
@@ -91,9 +91,9 @@ verifies it. The last column names the document that would verify it once a veri
 
 | Priority | Fact | Name | Searcher declares | Listing rule | Status | Verified later by |
 | --- | --- | --- | --- | --- | --- | --- |
-| High | Guarantee | `guarantee` | propietaria CABA, propietaria elsewhere, caución, a guarantor's pay slips, none | `one_of`, hard or discretionary | Exists; new values missing | Property title report, insurer policy or guarantor pay slips |
+| High | Guarantee | `guarantee` | `propietaria`, `caucion`, `recibos_garante` | `one_of`, hard or discretionary | Exists; add pay slips | Property title report, insurer policy or guarantor pay slips |
 | High | Documented income | `income_documented` | yes / no | `one_of [yes]` | New | Pay slips or invoices |
-| High | Pets | `pets` | none, dog, cat, other | `one_of [none]` when the listing refuses pets | New (today a search attribute) | Not verified |
+| High | Pets | `pets` | none, dog, cat | `one_of [none]` when the listing refuses pets; `[none, dog]` or `[none, cat]` when it refuses only cats or only dogs; discretionary when the owner keeps the call | New (today a search attribute) | Not verified |
 | Medium | Income | `income_band` | monthly ARS band | `income_multiple` (e.g. 3 × rent, or "rent may not exceed 30% of income") | Exists; a USD rent yields unknown | Pay slips or invoices |
 | Medium | Caución quoted | `caucion_quoted` | yes / no | no rule uses it yet | Exists | Insurer quote |
 | Low | Employment type | `employment_type` | employee, monotributo, responsable inscripto, retired, no own income | `one_of` | New; may move to a later phase | Pay slips, ARCA registration or pension slip |
@@ -141,15 +141,24 @@ when:
       (20/20).
 - [ ] What the card shows (deposit, insurance, term) never changes an eligibility state.
 
-Pending decisions:
+Decisions, approved by Martin on 2026-10-02:
 
-1. **Propietaria guarantee:** split into CABA and elsewhere? Recommended yes: many listings ask for
-   "garantía CABA" and today a provincial one counts the same.
-2. **Pets:** move from search attribute to eligibility? Recommended yes. The cost: without a declared
-   pets fact, 10% of listings become unknown.
-3. **Occupancy cap:** accept as a rule? Recommended no until the legal review.
-4. **Move-in cost (deposit + advance):** evaluate against the cash the searcher declares?
-   Recommended to show it and not evaluate it in this phase.
+1. **Propietaria guarantee: one value, not split.** Revised by Martin on 2026-10-02. The split into
+   `propietaria_caba` and `propietaria_otra` was approved, then dropped before implementation:
+   Hausy is CABA-only, so a propietaria guarantee works as a yes/no the searcher has or not. The
+   catalog, the rules and the planners keep the single value `propietaria`, and a searcher who says
+   "garantía propietaria" in the chat declares it without being asked where.
+2. **Pets: an eligibility rule, not only a search attribute.** Approved. The cost is accepted:
+   without a declared pets fact, the 10% of listings that refuse pets become unknown.
+
+Deferred, out of scope until revisited:
+
+3. **Occupancy cap.** Not a rule for now. It is a property fact, but it can be used to exclude
+   families with children, so it waits for the legal review in 1.4. Listings that state a cap keep
+   it in their description only.
+4. **Move-in cost (deposit + month in advance).** Not evaluated for now. The card shows it, and it
+   never changes eligibility. Evaluating it later needs a new searcher fact (cash available at
+   move-in) and a currency rule, since some listings quote the deposit in dollars.
 
 ## Phase 2: internal architecture
 

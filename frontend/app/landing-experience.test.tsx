@@ -17,7 +17,7 @@ it('lets visitors edit an example search before submitting it', async () => {
     'Busco 2 ambientes en Palermo con mucha luz natural. Puedo estirar un poco el presupuesto si vale la pena.',
   );
   expect(composer).toHaveFocus();
-  expect(fetchSpy).not.toHaveBeenCalled();
+  expect(fetchSpy).not.toHaveBeenCalledWith('/api/agent', expect.anything());
   fetchSpy.mockRestore();
 });
 
