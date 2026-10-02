@@ -21,7 +21,16 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
 
+// noQuestions is an agent that never asks a clarification.
+type noQuestions struct{}
+
+func (noQuestions) HandleClarification(context.Context, string, buyer.ClarificationAnswer, eligibility.Qualification, buyer.Events) (*buyer.TurnResponse, error) {
+	return nil, buyer.ErrStaleClarification
+}
+func (noQuestions) PendingClarification(string) *clarification.Question { return nil }
+
 type recordingAgent struct {
+	noQuestions
 	sessionID string
 	message   string
 }
@@ -125,7 +134,10 @@ func TestHandlerLogsRequestWithCorrelationWithoutMessageContent(t *testing.T) {
 }
 
 // streamingAgent reports its ranking, streams two deltas, then fails if err is set.
-type streamingAgent struct{ err error }
+type streamingAgent struct {
+	noQuestions
+	err error
+}
 
 func (a streamingAgent) HandleMessage(_ context.Context, _, _ string, _ eligibility.Qualification, events buyer.Events) (*buyer.TurnResponse, error) {
 	ranked := []buyer.Requirement{{Type: "neighborhood", Value: "palermo"}}

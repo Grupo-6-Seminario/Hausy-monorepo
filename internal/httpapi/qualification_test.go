@@ -13,7 +13,10 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi"
 )
 
-type qualifiedAgent struct{ got eligibility.Qualification }
+type qualifiedAgent struct {
+	noQuestions
+	got eligibility.Qualification
+}
 
 func (a *qualifiedAgent) HandleMessage(_ context.Context, _, _ string, q eligibility.Qualification, _ buyer.Events) (*buyer.TurnResponse, error) {
 	a.got = q

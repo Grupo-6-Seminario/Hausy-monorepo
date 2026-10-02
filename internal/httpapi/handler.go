@@ -11,7 +11,6 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
-	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 )
 
@@ -22,11 +21,6 @@ type messageRequest struct {
 	// account when signed in. Optional: searching never requires it.
 	Qualification eligibility.Qualification  `json:"qualification,omitempty"`
 	Answer        *buyer.ClarificationAnswer `json:"answer,omitempty"`
-}
-
-type clarifyingAgent interface {
-	HandleClarification(context.Context, string, buyer.ClarificationAnswer, eligibility.Qualification, buyer.Events) (*buyer.TurnResponse, error)
-	PendingClarification(string) *clarification.Question
 }
 
 // Qualifications stores what signed-in searchers declared; postgres.Store fits.
@@ -49,12 +43,7 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 	registerQualification(mux, provider, qualifications)
 	registerAgency(mux, provider, catalog)
 	mux.HandleFunc("GET /api/messages", func(w http.ResponseWriter, r *http.Request) {
-		ca, ok := agent.(clarifyingAgent)
-		if !ok {
-			writeJSON(w, http.StatusOK, map[string]any{"clarification": nil})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"clarification": ca.PendingClarification(r.URL.Query().Get("session_id"))})
+		writeJSON(w, http.StatusOK, map[string]any{"clarification": agent.PendingClarification(r.URL.Query().Get("session_id"))})
 	})
 	mux.HandleFunc("POST /api/messages", func(w http.ResponseWriter, r *http.Request) {
 		var input messageRequest
@@ -67,13 +56,6 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 			writeJSON(w, http.StatusBadRequest, errorResponse{Error: "El mensaje no puede estar vacío."})
 			return
 		}
-		if input.Answer != nil {
-			if _, ok := agent.(clarifyingAgent); !ok {
-				writeJSON(w, http.StatusBadRequest, errorResponse{Error: "No hay una pregunta activa."})
-				return
-			}
-		}
-
 		if strings.Contains(r.Header.Get("Accept"), "application/x-ndjson") {
 			streamTurn(w, r, agent, input)
 			return
@@ -91,7 +73,7 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 
 func runTurn(ctx context.Context, agent buyer.Agent, input messageRequest, events buyer.Events) (*buyer.TurnResponse, error) {
 	if input.Answer != nil {
-		return agent.(clarifyingAgent).HandleClarification(ctx, input.SessionID, *input.Answer, input.Qualification, events)
+		return agent.HandleClarification(ctx, input.SessionID, *input.Answer, input.Qualification, events)
 	}
 	return agent.HandleMessage(ctx, input.SessionID, input.Message, input.Qualification, events)
 }
