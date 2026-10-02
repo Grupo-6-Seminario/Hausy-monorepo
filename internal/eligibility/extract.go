@@ -106,14 +106,14 @@ func Extract(ctx context.Context, evaluate jev.Evaluator, description string) ([
 		}
 	}
 	if len(accepted) > 0 {
-		hard := answers["hardness"].Choice
-		if hard != "discretionary" {
-			hard = "hard"
+		hard := Hard
+		if answers["hardness"].Choice == string(Discretionary) {
+			hard = Discretionary
 		}
-		rules = append(rules, Rule{Fact: "guarantee", Operator: "one_of", Values: accepted, Hardness: hard, Visibility: "public", Source: "parsed", Evidence: guaranteeEvidence})
+		rules = append(rules, Rule{Fact: "guarantee", Operator: OneOf, Values: accepted, Hardness: hard, Visibility: "public", Source: "parsed", Evidence: guaranteeEvidence})
 	}
 	if multiple != "" && answers["income_multiple"].Probability > 0.5 {
-		rules = append(rules, Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{multiple}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: incomeEvidence})
+		rules = append(rules, Rule{Fact: "income_band", Operator: IncomeMultiple, Values: []string{multiple}, Hardness: Hard, Visibility: "public", Source: "parsed", Evidence: incomeEvidence})
 	}
 	return rules, nil
 }

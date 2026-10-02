@@ -3,9 +3,13 @@ package postgres_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
@@ -74,12 +78,58 @@ func TestCandidatesReturnEveryHardFilterMatchWithItsRules(t *testing.T) {
 
 func TestAdmissibleFactsAreDataAndExcludeProtectedCharacteristics(t *testing.T) {
 	store := openTestStore(t)
-	facts, err := store.AdmissibleFacts(context.Background())
+	facts, err := store.Facts(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !facts["guarantee"] || !facts["income_band"] || facts["age"] || facts["nationality"] {
+	if !facts.Admissible("guarantee") || !facts.Admissible("income_band") || facts.Admissible("age") || facts.Admissible("nationality") {
 		t.Fatalf("got %v", facts)
+	}
+	if !slices.Equal(facts["guarantee"].Choices, []string{"propietaria", "caucion"}) {
+		t.Fatalf("the form's guarantee choices come from the table, got %v", facts["guarantee"].Choices)
+	}
+}
+
+// A rule nobody can evaluate is corrupt data. Saving it is refused, so a bad
+// eligibility file cannot break later searches; a row that still arrives by
+// other means fails loudly on read instead of reaching the evaluator.
+func TestARuleWithAnUnknownOperatorIsRefusedOnWriteAndOnRead(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	url := "https://ex.test/between"
+	if err := store.Save(ctx, listing.Listing{Source: "zonaprop", URL: url, Neighborhood: "palermo", Description: "Departamento.", Operation: "alquiler",
+		Price: listing.Money{Amount: float64Ptr(800000), Currency: "ARS"}, ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveReview(ctx, url, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	valid := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"}
+	if err := store.SaveEligibility(ctx, url, []eligibility.Rule{valid}); err != nil {
+		t.Fatal(err)
+	}
+	between := eligibility.Rule{Fact: "guarantee", Operator: "between", Values: []string{"propietaria"}, Hardness: "hard"}
+
+	if err := store.SaveEligibility(ctx, url, []eligibility.Rule{valid, between}); err == nil || !strings.Contains(err.Error(), `"between"`) {
+		t.Fatalf("want the save refused naming the unknown operator, got %v", err)
+	}
+	got, err := store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo"}})
+	if err != nil || len(got) != 1 || len(got[0].Rules) != 1 || got[0].Rules[0].Operator != "one_of" {
+		t.Fatalf("a refused save must leave the previous rules: %+v, %v", got, err)
+	}
+
+	conn, err := pgx.Connect(ctx, os.Getenv("HAUSY_TEST_DATABASE_URI"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(ctx)
+	if _, err := conn.Exec(ctx, `INSERT INTO listing_eligibility_rules (listing_id, fact, operator, "values", hardness)
+		SELECT id, 'guarantee', 'between', '["propietaria"]', 'hard' FROM listings WHERE url = $1`, url); err != nil {
+		t.Fatal(err)
+	}
+	got, err = store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo"}})
+	if err == nil || !strings.Contains(err.Error(), `"between"`) {
+		t.Fatalf("want an error naming the unknown operator, got %+v, %v", got, err)
 	}
 }
 

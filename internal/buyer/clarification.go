@@ -467,11 +467,11 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 			}
 		}
 	}
-	admissible, err := a.pipeline.inventory.AdmissibleFacts(ctx)
+	catalog, err := a.pipeline.inventory.Facts(ctx)
 	if err != nil {
 		return false, false, err
 	}
-	baseline, _, _, _, err := preview.rank(ctx, base, mergeQualification(declared, base.Qualification), admissible)
+	baseline, _, _, _, err := preview.rank(ctx, base, mergeQualification(declared, base.Qualification), catalog)
 	if err != nil {
 		return false, false, err
 	}
@@ -496,7 +496,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 		if !valid {
 			continue
 		}
-		shown, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), admissible)
+		shown, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), catalog)
 		if err != nil {
 			return false, false, err
 		}
@@ -508,7 +508,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 	if q.Multi && len(allEffects) > 1 {
 		variant, err := clarification.Apply(base, allEffects)
 		if err == nil {
-			shown, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), admissible)
+			shown, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), catalog)
 			if err != nil {
 				return false, false, err
 			}

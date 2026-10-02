@@ -12,8 +12,14 @@ import (
 )
 
 // SaveEligibility replaces a listing's eligibility rules, so loading the same
-// file twice leaves the same database.
+// file twice leaves the same database. A rule the evaluator cannot read is
+// refused before anything changes, so the previous rules stay.
 func (s *Store) SaveEligibility(ctx context.Context, url string, rules []eligibility.Rule) error {
+	for _, r := range rules {
+		if err := r.Validate(); err != nil {
+			return fmt.Errorf("postgres: eligibility for %s: %w", url, err)
+		}
+	}
 	return s.inTx(ctx, func(tx pgx.Tx) error {
 		var id int64
 		if err := tx.QueryRow(ctx, `SELECT id FROM listings WHERE url = $1`, url).Scan(&id); err != nil {
@@ -129,26 +135,33 @@ func (s *Store) rulesFor(ctx context.Context, ids []int64) (map[int64][]eligibil
 		if err := json.Unmarshal(values, &r.Values); err != nil {
 			return nil, err
 		}
+		if err := r.Validate(); err != nil {
+			return nil, fmt.Errorf("postgres: listing %d: %w", id, err)
+		}
 		out[id] = append(out[id], r)
 	}
 	return out, rows.Err()
 }
 
-// AdmissibleFacts reads which facts rules and qualifications may reference.
-func (s *Store) AdmissibleFacts(ctx context.Context) (map[string]bool, error) {
-	rows, err := s.pool.Query(ctx, `SELECT name, admissible FROM eligibility_facts`)
+// Facts reads the catalog of facts rules and qualifications may reference.
+func (s *Store) Facts(ctx context.Context) (eligibility.Catalog, error) {
+	rows, err := s.pool.Query(ctx, `SELECT name, admissible, choices FROM eligibility_facts`)
 	if err != nil {
 		return nil, fmt.Errorf("postgres: eligibility facts: %w", err)
 	}
 	defer rows.Close()
-	out := map[string]bool{}
+	out := eligibility.Catalog{}
 	for rows.Next() {
 		var name string
-		var admissible bool
-		if err := rows.Scan(&name, &admissible); err != nil {
+		var fact eligibility.Fact
+		var choices []byte
+		if err := rows.Scan(&name, &fact.Admissible, &choices); err != nil {
 			return nil, err
 		}
-		out[name] = admissible
+		if err := json.Unmarshal(choices, &fact.Choices); err != nil {
+			return nil, fmt.Errorf("postgres: choices of fact %q: %w", name, err)
+		}
+		out[name] = fact
 	}
 	return out, rows.Err()
 }
@@ -156,12 +169,12 @@ func (s *Store) AdmissibleFacts(ctx context.Context) (map[string]bool, error) {
 // SaveQualification replaces what a user declared. Inadmissible facts are
 // refused, not silently dropped.
 func (s *Store) SaveQualification(ctx context.Context, userID string, q eligibility.Qualification) error {
-	admissible, err := s.AdmissibleFacts(ctx)
+	catalog, err := s.Facts(ctx)
 	if err != nil {
 		return err
 	}
 	for fact := range q {
-		if !admissible[fact] {
+		if !catalog.Admissible(fact) {
 			return fmt.Errorf("postgres: %q is not an admissible qualification fact", fact)
 		}
 	}
