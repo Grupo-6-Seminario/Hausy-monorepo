@@ -203,8 +203,8 @@ func TestRequiredLightStillShowsStoredProseAsUnconfirmedAlternative(t *testing.T
 	}
 }
 
-func (stock) AdmissibleFacts(context.Context) (map[string]bool, error) {
-	return map[string]bool{"guarantee": true, "income_band": true}, nil
+func (stock) Facts(context.Context) (eligibility.Catalog, error) {
+	return eligibility.Catalog{"guarantee": {Admissible: true}, "income_band": {Admissible: true}}, nil
 }
 
 type fakeWriter struct{ packets []buyer.Packet }

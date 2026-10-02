@@ -26,7 +26,7 @@ type Planner interface {
 // Inventory is the read side the pipeline needs; postgres.Store fits.
 type Inventory interface {
 	Candidates(ctx context.Context, query search.Query) ([]eligibility.Candidate, error)
-	AdmissibleFacts(ctx context.Context) (map[string]bool, error)
+	Facts(ctx context.Context) (eligibility.Catalog, error)
 }
 
 // Writer explains a finished ranking. It cannot search or reorder. reply,
@@ -186,13 +186,13 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		results = sess.results
 		a.mu.RUnlock()
 	} else {
-		admissible, err := p.inventory.AdmissibleFacts(ctx)
+		catalog, err := p.inventory.Facts(ctx)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
 				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
 			return nil, err
 		}
-		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, admissible)
+		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, catalog)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
 				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
@@ -255,7 +255,7 @@ type scored struct {
 // rank retrieves every branch, assesses each listing and orders the merged
 // list: eligibility section first, then the user's sort (default: how many
 // preferred requirements the listing meets), then URL for a stable order.
-func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, admissible map[string]bool) ([]Result, []eligibility.Relaxation, []BranchReport, int, error) {
+func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, catalog eligibility.Catalog) ([]Result, []eligibility.Relaxation, []BranchReport, int, error) {
 	logger := logging.FromContext(ctx)
 	var all []eligibility.Candidate
 	var rows []scored
@@ -290,7 +290,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 			}
 			seen[c.Listing.URL] = true
 			all = append(all, c)
-			verdict := eligibility.Assess(q, c.Listing.Price, c.Rules, admissible)
+			verdict := eligibility.Assess(q, c.Listing.Price, c.Rules, catalog)
 			if verdict.State == eligibility.Ineligible {
 				hidden++
 				continue
@@ -323,7 +323,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 		results[i] = r.result
 		results[i].Rank = i + 1
 	}
-	return results, eligibility.Relaxations(q, all, admissible), reports, hidden, nil
+	return results, eligibility.Relaxations(q, all, catalog), reports, hidden, nil
 }
 
 // Only qualities with an evidence rubric belong here. The other attributes

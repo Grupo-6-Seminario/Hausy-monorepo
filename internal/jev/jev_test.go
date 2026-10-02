@@ -92,7 +92,8 @@ func TestMissingAnswersAreAnError(t *testing.T) {
 
 func TestTransportErrorsKeepTheirCauseAndCancellationWins(t *testing.T) {
 	_, err := client("http://127.0.0.1:1").Evaluate(context.Background(), "s", oneQuestion)
-	if err == nil || !strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "secret") {
+	// "connection refused" on Linux and macOS, "actively refused it" on Windows.
+	if err == nil || !strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "secret") {
 		t.Fatalf("transport cause lost or leaked: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())

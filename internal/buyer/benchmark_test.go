@@ -31,8 +31,8 @@ func (s neighborhoodStock) Candidates(_ context.Context, q search.Query) ([]elig
 	return out, nil
 }
 
-func (neighborhoodStock) AdmissibleFacts(context.Context) (map[string]bool, error) {
-	return map[string]bool{"guarantee": true, "income_band": true, "caucion_quoted": true}, nil
+func (neighborhoodStock) Facts(context.Context) (eligibility.Catalog, error) {
+	return eligibility.Catalog{"guarantee": {Admissible: true}, "income_band": {Admissible: true}, "caucion_quoted": {Admissible: true}}, nil
 }
 
 type cannedWriter struct{}

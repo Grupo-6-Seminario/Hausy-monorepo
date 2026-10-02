@@ -54,7 +54,7 @@ func (amenityClarifier) Propose(context.Context, []string, intake.Plan, string, 
 
 type amenityInventory struct{}
 
-func (amenityInventory) AdmissibleFacts(context.Context) (map[string]bool, error) { return nil, nil }
+func (amenityInventory) Facts(context.Context) (eligibility.Catalog, error) { return nil, nil }
 func (amenityInventory) Candidates(_ context.Context, q search.Query) ([]eligibility.Candidate, error) {
 	pool := listing.Attribute{Type: "amenity", Value: "pileta", Provenance: listing.Stated}
 	gym := listing.Attribute{Type: "amenity", Value: "gimnasio", Provenance: listing.Stated}
@@ -95,7 +95,7 @@ func (equivalentChoices) Propose(context.Context, []string, intake.Plan, string,
 
 type roomInventory struct{}
 
-func (roomInventory) AdmissibleFacts(context.Context) (map[string]bool, error) { return nil, nil }
+func (roomInventory) Facts(context.Context) (eligibility.Catalog, error) { return nil, nil }
 
 func (roomInventory) Candidates(_ context.Context, q search.Query) ([]eligibility.Candidate, error) {
 	all := []eligibility.Candidate{
@@ -349,7 +349,7 @@ func TestJudgedGenericAmenitiesAskFromTheVocabulary(t *testing.T) {
 
 type priceInventory struct{}
 
-func (priceInventory) AdmissibleFacts(context.Context) (map[string]bool, error) { return nil, nil }
+func (priceInventory) Facts(context.Context) (eligibility.Catalog, error) { return nil, nil }
 func (priceInventory) Candidates(_ context.Context, q search.Query) ([]eligibility.Candidate, error) {
 	usd := candidate("usd-850", "palermo", 850, nil)
 	usd.Listing.Price.Currency = "USD"
@@ -392,7 +392,7 @@ func TestJudgedCurrencyAmbiguityOffersBothReadingsOfTheSameAmount(t *testing.T) 
 // per query as the store does.
 type hoodInventory struct{}
 
-func (hoodInventory) AdmissibleFacts(context.Context) (map[string]bool, error) { return nil, nil }
+func (hoodInventory) Facts(context.Context) (eligibility.Catalog, error) { return nil, nil }
 func (hoodInventory) Candidates(_ context.Context, q search.Query) ([]eligibility.Candidate, error) {
 	if len(q.Neighborhoods) > 0 && !slices.Contains(q.Neighborhoods, "palermo") {
 		return nil, nil
