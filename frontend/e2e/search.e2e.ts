@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { factsFixture } from '../lib/eligibility-facts.fixture';
+
 // Deliberately fixed UI fixtures; these tests do not claim backend/model quality.
 const attributes = [
   {
@@ -397,6 +399,10 @@ test('eligibility sections, the zero-results line and the declared qualification
       },
     });
   });
+
+  await page.route('**/api/eligibility/facts', (route) =>
+    route.fulfill({ json: { facts: factsFixture } }),
+  );
 
   await openSearch(page);
   // The micro-interview opens with the page.
