@@ -145,7 +145,7 @@ func (s *Store) rulesFor(ctx context.Context, ids []int64) (map[int64][]eligibil
 
 // Facts reads the catalog of facts rules and qualifications may reference.
 func (s *Store) Facts(ctx context.Context) (eligibility.Catalog, error) {
-	rows, err := s.pool.Query(ctx, `SELECT name, admissible, choices FROM eligibility_facts`)
+	rows, err := s.pool.Query(ctx, `SELECT name, admissible, label, priority, multiple, position, choices FROM eligibility_facts`)
 	if err != nil {
 		return nil, fmt.Errorf("postgres: eligibility facts: %w", err)
 	}
@@ -155,7 +155,7 @@ func (s *Store) Facts(ctx context.Context) (eligibility.Catalog, error) {
 		var name string
 		var fact eligibility.Fact
 		var choices []byte
-		if err := rows.Scan(&name, &fact.Admissible, &choices); err != nil {
+		if err := rows.Scan(&name, &fact.Admissible, &fact.Label, &fact.Priority, &fact.Multiple, &fact.Position, &choices); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(choices, &fact.Choices); err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -85,8 +86,46 @@ func TestAdmissibleFactsAreDataAndExcludeProtectedCharacteristics(t *testing.T) 
 	if !facts.Admissible("guarantee") || !facts.Admissible("income_band") || facts.Admissible("age") || facts.Admissible("nationality") {
 		t.Fatalf("got %v", facts)
 	}
-	if !slices.Equal(facts["guarantee"].Choices, []string{"propietaria", "caucion"}) {
-		t.Fatalf("the form's guarantee choices come from the table, got %v", facts["guarantee"].Choices)
+}
+
+// The form reads the catalog from the table (specs/004, phase 1 contract), so
+// the table holds every fact's label, priority, cardinality, order and choices.
+func TestFactsCarryTheFormCatalog(t *testing.T) {
+	store := openTestStore(t)
+	facts, err := store.Facts(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	yesNo := []eligibility.Choice{{Value: "yes", Label: "Sí"}, {Value: "no", Label: "No"}}
+	want := map[string]eligibility.Fact{
+		"guarantee": {Admissible: true, Label: "Garantía", Priority: "high", Multiple: true, Position: 1, Choices: []eligibility.Choice{
+			{Value: "propietaria", Label: "Garantía propietaria"},
+			{Value: "caucion", Label: "Seguro de caución"},
+			{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"},
+			{Value: "none", Label: "No tengo"},
+		}},
+		"income_documented": {Admissible: true, Label: "¿Podés comprobar tus ingresos?", Priority: "high", Position: 2, Choices: yesNo},
+		"pets": {Admissible: true, Label: "Mascotas", Priority: "high", Multiple: true, Position: 3, Choices: []eligibility.Choice{
+			{Value: "none", Label: "Ninguna"}, {Value: "dog", Label: "Perro"}, {Value: "cat", Label: "Gato"},
+			{Value: "other", Label: "Otra"},
+		}},
+		"income_band": {Admissible: true, Label: "Ingresos mensuales", Priority: "medium", Position: 4, Choices: []eligibility.Choice{
+			{Value: "0-1000000", Label: "Hasta $1.000.000"},
+			{Value: "1000000-2000000", Label: "$1.000.000 a $2.000.000"},
+			{Value: "2000000-3000000", Label: "$2.000.000 a $3.000.000"},
+			{Value: "3000000-", Label: "Más de $3.000.000"},
+		}},
+		"caucion_quoted": {Admissible: true, Label: "¿Ya cotizaste un seguro de caución?", Priority: "medium", Position: 5, Choices: yesNo},
+	}
+	for name, fact := range want {
+		if got := facts[name]; !reflect.DeepEqual(got, fact) {
+			t.Errorf("%s:\n got %+v\nwant %+v", name, got, fact)
+		}
+	}
+	for _, protected := range []string{"age", "nationality", "gender"} {
+		if facts.Admissible(protected) {
+			t.Errorf("%s must stay inadmissible", protected)
+		}
 	}
 }
 

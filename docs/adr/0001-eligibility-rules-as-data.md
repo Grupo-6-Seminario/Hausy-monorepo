@@ -16,6 +16,7 @@ rules share one evaluator without a schema rewrite before the 2026-11-01 freeze.
   nationality, gender, …) are not admissible. Private agency rules need a legal review before they ship
   (Ley 23.592); the team will revisit this.
 - A missing qualification fact yields `unknown`, never `eligible`. A discretionary rule, or an income band
-  straddling the threshold, yields `conditionally_eligible`.
+  straddling the threshold, yields `conditionally_eligible`, except for a searcher who declared none of
+  the fact and clears the rule: the owner's call is not about them (specs/004, decision 2).
 - Re-running extraction is deliberate and non-reproducible, like `cmd/listings parse`. Fixing evaluation
   bugs never requires re-extraction.

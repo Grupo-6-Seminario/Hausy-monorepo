@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Listing } from '@/lib/types';
 import { SearchExperience } from './components/search-experience';
+import { withFacts } from '@/lib/eligibility-facts.fixture';
 
 const sampleListing: Listing = {
   id: 101,
@@ -117,7 +118,7 @@ describe('SearchExperience', () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      withFacts(vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
             reply: [
@@ -133,7 +134,7 @@ describe('SearchExperience', () => {
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
-      ),
+      )),
     );
     render(<SearchExperience />);
 
@@ -173,7 +174,7 @@ describe('SearchExperience', () => {
       .mockResolvedValue(
         Response.json({ reply: 'Respuesta del agente.', listings: [] }),
       );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     // The browser captures the old view before it lets the page change.
     let captureOldView = () => {};
     const startViewTransition = vi.fn((update: () => void) => {
@@ -237,10 +238,10 @@ describe('SearchExperience', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(Response.json({ guarantee: ['caucion'] }));
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
-    expect(screen.getByLabelText('Garantía propietaria')).toBeVisible();
+    expect(await screen.findByLabelText('Garantía propietaria')).toBeVisible();
     await waitFor(() =>
       expect(screen.getByLabelText('Seguro de caución')).toBeChecked(),
     );
@@ -260,10 +261,10 @@ describe('SearchExperience', () => {
         ],
       }),
     );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
-    await user.click(screen.getByLabelText('Garantía propietaria'));
+    await user.click(await screen.findByLabelText('Garantía propietaria'));
     await user.selectOptions(
       screen.getByLabelText('Ingresos mensuales'),
       '2000000-3000000',
@@ -289,7 +290,7 @@ describe('SearchExperience', () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      withFacts(vi.fn().mockResolvedValue(
         Response.json({
           reply: 'Respuesta del agente.',
           listings: [sampleListing],
@@ -298,7 +299,7 @@ describe('SearchExperience', () => {
             { type: 'excluye_outdoor_space', value: 'balcon' },
           ],
         }),
-      ),
+      )),
     );
     render(<SearchExperience />);
 
@@ -317,7 +318,7 @@ describe('SearchExperience', () => {
   it('starts a new line on Shift+Enter without sending', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
     await user.type(
@@ -341,7 +342,7 @@ describe('SearchExperience', () => {
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
     );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
     const query =
       'Busco dos dormitorios en Palermo, hasta USD 1.000. Priorizo luz natural y poco ruido por encima del balcón.';
@@ -397,7 +398,7 @@ describe('SearchExperience', () => {
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
       );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
     const input = screen.getByRole('textbox');
@@ -423,7 +424,7 @@ describe('SearchExperience', () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      withFacts(vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
             reply: 'Encontré una opción que prioriza luz y silencio.',
@@ -432,7 +433,7 @@ describe('SearchExperience', () => {
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
-      ),
+      )),
     );
     render(<SearchExperience />);
 
@@ -472,7 +473,7 @@ describe('SearchExperience', () => {
         ),
       )
       .mockReturnValueOnce(followUpResponse);
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
     const composer = screen.getByRole('textbox');
@@ -511,7 +512,7 @@ describe('SearchExperience', () => {
         );
       });
     });
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', withFacts(fetchMock));
     render(<SearchExperience />);
 
     const composer = screen.getByRole('textbox');
@@ -527,7 +528,7 @@ describe('SearchExperience', () => {
   it('exposes the same search journey as a structured browser tool returning listings', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      withFacts(vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
             reply: 'Respuesta del agente.',
@@ -539,7 +540,7 @@ describe('SearchExperience', () => {
             headers: { 'Content-Type': 'application/json' },
           },
         ),
-      ),
+      )),
     );
     const registerTool = vi.fn();
     Object.defineProperty(document, 'modelContext', {

@@ -80,7 +80,7 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, into any) bool {
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(into); err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "La solicitud no es válida."})
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "La solicitud no es válida.", Code: "invalid_json"})
 		return false
 	}
 	return true
@@ -104,7 +104,7 @@ func writeAuthError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "El email o la contraseña no son correctos."})
 	case errors.Is(err, auth.ErrUnauthenticated):
-		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "Tenés que iniciar sesión."})
+		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "Tenés que iniciar sesión.", Code: "unauthenticated"})
 	default:
 		logging.FromContext(ctx).LogAttrs(ctx, slog.LevelError, "auth_error",
 			slog.String("error_class", logging.ErrorClass(err)))

@@ -91,10 +91,20 @@ func TestExtractSpotsInstrumentsWrittenOtherWays(t *testing.T) {
 		{"GARANTIA: GARANTE CON PROPIEDAD EN CABA", "propietaria"},
 		// Missed in the committed snapshot: never spotted, so never asked.
 		{"REQUISITOS : SEGURO DE FIANZA, MES POR ADELANTADO, 1300 DLS DE DEPOSITO", "caucion"},
+		{"- Garantía: Propietaria, recibo de sueldo o seguro de caución", "recibos_garante"},
+		{"Recibo de Sueldo del Inquilino/s y Garante/s. Últimos 3 (tres) meses.", "recibos_garante"},
 	} {
 		f := &fakeJev{answers: map[string]jev.Answer{"instrument_" + tc.instrument: choice("accepted"), "hardness": choice("hard")}}
 		if _, err := eligibility.Extract(context.Background(), f.evaluate, tc.line); err != nil || !slices.Contains(f.asked, "instrument_"+tc.instrument) {
 			t.Errorf("%s not spotted: %q (asked %v)", tc.instrument, tc.line, f.asked)
 		}
+	}
+}
+
+// The tenant's own pay slips prove income; they are not a guarantee.
+func TestExtractDoesNotTakeTheTenantsPaySlipsForAGuarantee(t *testing.T) {
+	f := &fakeJev{}
+	if _, err := eligibility.Extract(context.Background(), f.evaluate, "REQUISITOS:\nRECIBO DE SUELDO\n1 MES DE ADELANTO"); err != nil || f.calls != 0 {
+		t.Fatalf("want no call, got %d calls asking %v (%v)", f.calls, f.asked, err)
 	}
 }
