@@ -8,6 +8,8 @@ package eligibility
 
 import (
 	"fmt"
+	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -29,6 +31,7 @@ type Operator string
 
 const (
 	OneOf          Operator = "one_of"
+	SubsetOf       Operator = "subset_of"
 	IncomeMultiple Operator = "income_multiple"
 )
 
@@ -63,8 +66,61 @@ type Catalog map[string]Fact
 // not admissible.
 type Fact struct {
 	Admissible bool
+	// Label is the form's question, in Spanish because the searcher reads it.
+	Label    string
+	Priority string // high | medium | low
+	// Multiple facts take several values; the rest take one.
+	Multiple bool
+	// Position orders the form.
+	Position int
 	// Choices are the values the qualification form offers.
-	Choices []string
+	Choices []Choice
+}
+
+// Choice is one value a fact accepts and the label the form shows for it.
+type Choice struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// QualificationError is why a declared qualification was refused. Code is
+// stable for clients: unknown_fact, inadmissible_fact, invalid_value or
+// too_many_values.
+type QualificationError struct {
+	Code string
+	Fact string
+}
+
+func (e *QualificationError) Error() string {
+	return "eligibility: " + e.Code + " on qualification fact " + strconv.Quote(e.Fact)
+}
+
+// ValidateQualification checks a declared qualification against the catalog
+// and returns the first problem, in fact-name order so the same input always
+// gets the same answer. An empty qualification is valid.
+func ValidateQualification(c Catalog, q Qualification) error {
+	facts := slices.Sorted(maps.Keys(q))
+	for _, name := range facts {
+		fact, ok := c[name]
+		switch {
+		case !ok:
+			return &QualificationError{Code: "unknown_fact", Fact: name}
+		case !fact.Admissible:
+			return &QualificationError{Code: "inadmissible_fact", Fact: name}
+		case !fact.Multiple && len(q[name]) > 1:
+			return &QualificationError{Code: "too_many_values", Fact: name}
+		// "none" says the searcher has none of the others, so it stands alone:
+		// "no pets" next to "dog" would clear a refuse-pets rule for a dog owner.
+		case len(q[name]) > 1 && slices.Contains(q[name], "none"):
+			return &QualificationError{Code: "invalid_value", Fact: name}
+		}
+		for _, value := range q[name] {
+			if !slices.ContainsFunc(fact.Choices, func(c Choice) bool { return c.Value == value }) {
+				return &QualificationError{Code: "invalid_value", Fact: name}
+			}
+		}
+	}
+	return nil
 }
 
 // Admissible reports whether rules and qualifications may reference fact.
@@ -79,6 +135,67 @@ type Rule struct {
 	Visibility string   `json:"visibility,omitempty"` // public (default) | private
 	Source     string   `json:"source,omitempty"`     // parsed | declared | observed
 	Evidence   string   `json:"evidence,omitempty"`   // the listing's own words
+}
+
+// animal is a pets word, whole: "obligatorio" holds "gato" and is not one.
+const animal = `\b(?:mascotas?|perr[oa]s?|gat[oa]s?|animal(?:es)?)\b`
+
+var (
+	namesAnimal = regexp.MustCompile(`(?i)` + animal)
+	namesDog    = regexp.MustCompile(`(?i)\bperr[oa]s?\b`)
+	namesCat    = regexp.MustCompile(`(?i)\bgat[oa]s?\b`)
+	// Only the animals named up to the next clause: "sólo gatos", "únicamente
+	// perros y gatos"; in "sólo gatos, no perros" the dogs are outside it.
+	onlyAnimals = regexp.MustCompile(`(?i)(?:s[oó]lo|solamente|[uú]nicamente)\b[^.,;]{0,30}`)
+	// The owner keeps the call: a preference, or a limit on the animal's size.
+	ownerDecides = regexp.MustCompile(`(?i)\bpreferentemente\b|` + animal + `\s+(?:\S+\s+)?(?:grandes?|pequeñ[oa]s?|chic[oa]s?)\b`)
+)
+
+// PublishedRules are the pets rules a listing's own published attributes
+// state, so loading derives them without a model. The rule lists the pets
+// choices the listing admits, and every declared pet must be among them
+// (subset_of): a refusal admits every choice but the animals it names, or
+// only "none" when it names no species; "sólo gatos" admits only cats. A
+// preference or a size limit, refusing or welcoming, leaves the owner to
+// decide, so that rule is discretionary and admits only "none" outright. An
+// inferred attribute is the parser's reading, not the listing's, and derives
+// nothing; so does evidence that never names an animal, since the committed
+// parse holds two refusals that quote accessibility notes instead.
+func PublishedRules(attributes []listing.Attribute, catalog Catalog) []Rule {
+	var rules []Rule
+	for _, a := range attributes {
+		if a.Type != "pets_allowed" || a.Provenance != listing.Stated || !namesAnimal.MatchString(a.Evidence) {
+			continue
+		}
+		dog, cat := namesDog.MatchString(a.Evidence), namesCat.MatchString(a.Evidence)
+		hardness := Hard
+		if ownerDecides.MatchString(a.Evidence) {
+			hardness = Discretionary
+		}
+		only := onlyAnimals.FindString(a.Evidence)
+		onlyDog, onlyCat := namesDog.MatchString(only), namesCat.MatchString(only)
+		var admits func(choice string) bool
+		switch {
+		case onlyDog || onlyCat:
+			admits = func(c string) bool { return c == "none" || c == "dog" && onlyDog || c == "cat" && onlyCat }
+		case hardness == Discretionary:
+			admits = func(c string) bool { return c == "none" }
+		case a.Value != "no":
+			continue
+		case dog || cat:
+			admits = func(c string) bool { return !(c == "dog" && dog || c == "cat" && cat) }
+		default:
+			admits = func(c string) bool { return c == "none" }
+		}
+		var admitted []string
+		for _, choice := range catalog["pets"].Choices {
+			if admits(choice.Value) {
+				admitted = append(admitted, choice.Value)
+			}
+		}
+		rules = append(rules, Rule{Fact: "pets", Operator: SubsetOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence})
+	}
+	return rules
 }
 
 // Validate rejects a rule the evaluator cannot read: an operator missing from
@@ -153,6 +270,8 @@ func comparison(op Operator) func(declared []string, rent listing.Money, r Rule)
 	switch op {
 	case OneOf:
 		return oneOf
+	case SubsetOf:
+		return subsetOf
 	case IncomeMultiple:
 		return incomeMultiple
 	}
@@ -173,8 +292,10 @@ func outcome(q Qualification, rent listing.Money, r Rule) Reason {
 	reason := compare(declared, rent, r)
 	// The owner decides a discretionary rule case by case, so neither
 	// clearing nor failing it is final. A comparison nobody can make stays
-	// unverifiable: discretion cannot vouch for it.
-	if r.Hardness == Discretionary && reason != Unverifiable {
+	// unverifiable: discretion cannot vouch for it. A searcher who declared
+	// having none of the fact ("no tengo mascotas") is outside what the owner
+	// decides about, so clearing the rule is final for them.
+	if r.Hardness == Discretionary && reason != Unverifiable && !(reason == Met && slices.Equal(declared, []string{"none"})) {
 		return DiscretionaryCall
 	}
 	return reason
@@ -185,6 +306,17 @@ func oneOf(declared []string, _ listing.Money, r Rule) Reason {
 		return Met
 	}
 	return NotMet
+}
+
+// subsetOf needs every declared value admitted: a dog owner who also has a
+// cat fails "gatos no".
+func subsetOf(declared []string, _ listing.Money, r Rule) Reason {
+	for _, v := range declared {
+		if !slices.Contains(r.Values, v) {
+			return NotMet
+		}
+	}
+	return Met
 }
 
 // incomeMultiple compares a declared band "min-max" (monthly ARS; "min-" is
@@ -233,8 +365,10 @@ type Relaxation struct {
 	Count int    `json:"count"`
 }
 
-// Relaxations tries, for every ineligible candidate, each instrument its
-// one_of rules accept that the searcher has not declared.
+// Relaxations tries, for every ineligible candidate, each guarantee instrument
+// its rules accept that the searcher has not declared. Only guarantees: they
+// are what a searcher can go and get, while a pets rule would only suggest
+// giving the pet up.
 func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Relaxation {
 	counts := map[[2]string]int{}
 	for _, c := range candidates {
@@ -243,7 +377,7 @@ func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Rel
 		}
 		tried := map[[2]string]bool{}
 		for _, r := range c.Rules {
-			if r.Operator != OneOf || !catalog.Admissible(r.Fact) {
+			if r.Fact != "guarantee" || r.Operator != OneOf || !catalog.Admissible(r.Fact) {
 				continue
 			}
 			for _, value := range r.Values {

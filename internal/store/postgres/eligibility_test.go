@@ -2,8 +2,12 @@ package postgres_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -85,8 +89,46 @@ func TestAdmissibleFactsAreDataAndExcludeProtectedCharacteristics(t *testing.T) 
 	if !facts.Admissible("guarantee") || !facts.Admissible("income_band") || facts.Admissible("age") || facts.Admissible("nationality") {
 		t.Fatalf("got %v", facts)
 	}
-	if !slices.Equal(facts["guarantee"].Choices, []string{"propietaria", "caucion"}) {
-		t.Fatalf("the form's guarantee choices come from the table, got %v", facts["guarantee"].Choices)
+}
+
+// The form reads the catalog from the table (specs/004, phase 1 contract), so
+// the table holds every fact's label, priority, cardinality, order and choices.
+func TestFactsCarryTheFormCatalog(t *testing.T) {
+	store := openTestStore(t)
+	facts, err := store.Facts(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	yesNo := []eligibility.Choice{{Value: "yes", Label: "Sí"}, {Value: "no", Label: "No"}}
+	want := map[string]eligibility.Fact{
+		"guarantee": {Admissible: true, Label: "Garantía", Priority: "high", Multiple: true, Position: 1, Choices: []eligibility.Choice{
+			{Value: "propietaria", Label: "Garantía propietaria"},
+			{Value: "caucion", Label: "Seguro de caución"},
+			{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"},
+			{Value: "none", Label: "No tengo"},
+		}},
+		"income_documented": {Admissible: true, Label: "¿Podés comprobar tus ingresos?", Priority: "high", Position: 2, Choices: yesNo},
+		"pets": {Admissible: true, Label: "Mascotas", Priority: "high", Multiple: true, Position: 3, Choices: []eligibility.Choice{
+			{Value: "none", Label: "Ninguna"}, {Value: "dog", Label: "Perro"}, {Value: "cat", Label: "Gato"},
+			{Value: "other", Label: "Otra"},
+		}},
+		"income_band": {Admissible: true, Label: "Ingresos mensuales", Priority: "medium", Position: 4, Choices: []eligibility.Choice{
+			{Value: "0-1000000", Label: "Hasta $1.000.000"},
+			{Value: "1000000-2000000", Label: "$1.000.000 a $2.000.000"},
+			{Value: "2000000-3000000", Label: "$2.000.000 a $3.000.000"},
+			{Value: "3000000-", Label: "Más de $3.000.000"},
+		}},
+		"caucion_quoted": {Admissible: true, Label: "¿Ya cotizaste un seguro de caución?", Priority: "medium", Position: 5, Choices: yesNo},
+	}
+	for name, fact := range want {
+		if got := facts[name]; !reflect.DeepEqual(got, fact) {
+			t.Errorf("%s:\n got %+v\nwant %+v", name, got, fact)
+		}
+	}
+	for _, protected := range []string{"age", "nationality", "gender"} {
+		if facts.Admissible(protected) {
+			t.Errorf("%s must stay inadmissible", protected)
+		}
 	}
 }
 
@@ -153,5 +195,49 @@ func TestQualificationRoundTripsPerUser(t *testing.T) {
 	}
 	if err := store.SaveQualification(ctx, user.ID, eligibility.Qualification{"age": {"19"}}); err == nil {
 		t.Fatal("an inadmissible fact must be refused")
+	}
+}
+
+// Candidates is read in one query instead of one per listing. Each candidate
+// must be the listing ByURL reads, and its rules the ones Candidates returned
+// before the change: the digests were taken from the per-listing
+// implementation over the committed inventory.
+func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	loadCommitted(t, store)
+	maxPrice := 900000.0
+	for _, tc := range []struct {
+		name   string
+		read   func() ([]eligibility.Candidate, error)
+		count  int
+		digest string
+	}{
+		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "c131194746704b6d1bbdaf43acc732de0f7d0560dcd1efdf817609b77c2355b9"},
+		{"palermo and congreso up to 900k", func() ([]eligibility.Candidate, error) {
+			return store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice})
+		}, 92, "1eb78918ca32486b95fcb79e16631aaaee29d5f011e3e4c1bf8159cbaef7a816"},
+		{"capped preview", func() ([]eligibility.Candidate, error) { return store.PreviewCandidates(ctx, search.Query{}, 50) }, 50, "5c8afef430f26de3ef8c3ad510a8fbe7d9fe2a724819ee5a3e82aaebe43d8aa5"},
+	} {
+		got, err := tc.read()
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		rules := sha256.New()
+		for _, c := range got {
+			want, err := store.ByURL(ctx, c.Listing.URL)
+			if err != nil || !reflect.DeepEqual(c.Listing, want) {
+				t.Fatalf("%s: %s differs from ByURL (%v):\n got %+v\nwant %+v", tc.name, c.Listing.URL, err, c.Listing, want)
+			}
+			line, _ := json.Marshal(struct {
+				URL   string
+				Rules []eligibility.Rule
+			}{c.Listing.URL, c.Rules})
+			rules.Write(append(line, '\n'))
+		}
+		digest := hex.EncodeToString(rules.Sum(nil))
+		if len(got) != tc.count || digest != tc.digest {
+			t.Errorf("%s: got %d candidates, rules digest %s; want %d, %s", tc.name, len(got), digest, tc.count, tc.digest)
+		}
 	}
 }

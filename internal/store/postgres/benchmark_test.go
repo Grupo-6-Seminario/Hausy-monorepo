@@ -8,13 +8,12 @@ import (
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
-// BenchmarkCandidates is the hard-filter query of a buyer turn over the
-// committed inventory, loaded the way `listings load` loads it. Like every
-// Postgres test it needs HAUSY_TEST_DATABASE_URI and skips without it.
-func BenchmarkCandidates(b *testing.B) {
-	store := openTestStore(b)
+// loadCommitted loads the committed inventory the way `listings load` does.
+func loadCommitted(tb testing.TB, store *postgres.Store) {
+	tb.Helper()
 	ctx := context.Background()
 	for _, step := range []struct {
 		file string
@@ -26,14 +25,23 @@ func BenchmarkCandidates(b *testing.B) {
 	} {
 		file, err := os.Open(filepath.Join("..", "..", "..", "data", step.file))
 		if err != nil {
-			b.Fatal(err)
+			tb.Fatal(err)
 		}
 		report, err := step.load(file)
 		file.Close()
 		if err != nil || report.Loaded == 0 {
-			b.Fatalf("load %s: %v %+v", step.file, err, report)
+			tb.Fatalf("load %s: %v %+v", step.file, err, report)
 		}
 	}
+}
+
+// BenchmarkCandidates is the hard-filter query of a buyer turn over the
+// committed inventory, loaded the way `listings load` loads it. Like every
+// Postgres test it needs HAUSY_TEST_DATABASE_URI and skips without it.
+func BenchmarkCandidates(b *testing.B) {
+	store := openTestStore(b)
+	ctx := context.Background()
+	loadCommitted(b, store)
 	maxPrice := 900000.0
 	query := search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice}
 	candidates, err := store.Candidates(ctx, query)

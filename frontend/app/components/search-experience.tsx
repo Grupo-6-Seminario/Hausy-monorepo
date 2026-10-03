@@ -19,6 +19,7 @@ import type {
   Relaxation,
   Requirement,
 } from '@/lib/types';
+import { useEligibilityFacts } from '@/lib/eligibility-facts';
 import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
@@ -76,6 +77,7 @@ function referencedRanks(reply: string): number[] {
 }
 
 export function SearchExperience() {
+  const factsState = useEligibilityFacts();
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [state, setState] = useState<SearchState>('idle');
@@ -424,7 +426,10 @@ export function SearchExperience() {
       }}
     />
   );
-  const declared = describeQualification(qualification);
+  const declared =
+    factsState.kind === 'ready'
+      ? describeQualification(qualification, factsState.facts)
+      : '';
 
   return (
     <main
@@ -698,21 +703,24 @@ export function SearchExperience() {
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             >
-              <div className="situation-bar">
-                <p className="qualification-chips">
-                  <span className="situation-label">Tu situación</span>
-                  <span data-declared={Boolean(declared)}>
-                    {declared || 'Sin garantía declarada'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQualificationOpen(true)}
-                  >
-                    {declared ? 'Editar' : 'Completar'}
-                  </button>
-                </p>
-                {qualificationOpen ? qualificationPanel : null}
-              </div>
+              {/* Without the catalog there is no form to complete or edit. */}
+              {factsState.kind === 'ready' ? (
+                <div className="situation-bar">
+                  <p className="qualification-chips">
+                    <span className="situation-label">Tu situación</span>
+                    <span data-declared={Boolean(declared)}>
+                      {declared || 'Sin garantía declarada'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQualificationOpen(true)}
+                    >
+                      {declared ? 'Editar' : 'Completar'}
+                    </button>
+                  </p>
+                  {qualificationOpen ? qualificationPanel : null}
+                </div>
+              ) : null}
             </PropertyList>
             <a className="conversation-return" href="#property-query">
               Seguir la conversación con Hausy

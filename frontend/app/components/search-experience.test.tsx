@@ -3,6 +3,8 @@ import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { withFacts } from '@/lib/eligibility-facts.fixture';
+
 import { SearchExperience } from './search-experience';
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -12,7 +14,11 @@ beforeEach(() => {
   fetchMock = vi.fn(
     async () => new Response(JSON.stringify({ reply: 'ok' }), { status: 200 }),
   );
-  vi.stubGlobal('fetch', fetchMock);
+  vi.stubGlobal(
+    'fetch',
+    // The catalog is answered apart, so fetchMock sees only the turns.
+    withFacts((input, init) => Reflect.apply(fetchMock, undefined, [input, init])),
+  );
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -121,7 +127,7 @@ describe('SearchExperience', () => {
 		expect(page.text()).toContain('Ninguna de estas');
 		expect(document.querySelector('form.query-form')).toBeNull();
 		// No results column yet, so the qualification stays reachable here.
-		expect(page.text()).toContain('¿Qué garantía tenés?');
+		expect(page.text()).toContain('Tu situación');
 		fireEvent.click(document.querySelector('input[value="dormitorios"]')!);
 		fireEvent.click([...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Continuar búsqueda')!);
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));

@@ -44,7 +44,6 @@ func (s *Store) SaveEligibility(ctx context.Context, url string, rules []eligibi
 // Candidates returns every active listing satisfying the query's hard
 // constraints, whole, with its eligibility rules. Unlike Search it has no
 // limit: ordering by eligibility needs the whole population.
-// ponytail: one ByURL per match; batch it if a branch outgrows a few hundred rows.
 func (s *Store) Candidates(ctx context.Context, query search.Query) ([]eligibility.Candidate, error) {
 	return s.candidates(ctx, query, 0)
 }
@@ -73,11 +72,28 @@ func (s *Store) HasAttributeData(ctx context.Context, query search.Query, attrib
 	return found, nil
 }
 
+// candidates reads the matching listings with their attributes and rules in
+// one query: attributes ordered as ByURL orders them, rules in insertion order,
+// each rule validated as it is read.
 func (s *Store) candidates(ctx context.Context, query search.Query, limit int) ([]eligibility.Candidate, error) {
 	b := &builder{}
 	applyBaseConditions(b, query)
 	applyPriceCondition(b, query)
-	statement := `SELECT l.id, l.url FROM listings l WHERE ` + b.whereClause() + ` ORDER BY l.id`
+	statement := `SELECT ` + listingColumns + `,
+       (SELECT json_agg(json_build_object(
+                  'type', at.type, 'value', at.value,
+                  'provenance', at.provenance, 'evidence', COALESCE(at.evidence, ''))
+                ORDER BY at.type, at.value)
+        FROM listing_attributes at WHERE at.listing_id = l.id),
+       (SELECT json_agg(json_build_object(
+                  'fact', r.fact, 'operator', r.operator, 'values', r."values",
+                  'hardness', r.hardness, 'visibility', r.visibility,
+                  'source', r.source, 'evidence', r.evidence)
+                ORDER BY r.id)
+        FROM listing_eligibility_rules r WHERE r.listing_id = l.id)
+FROM listings l
+LEFT JOIN agencies a ON a.id = l.agency_id
+WHERE ` + b.whereClause() + ` ORDER BY l.id`
 	if limit > 0 {
 		statement += ` LIMIT ` + b.param(limit)
 	}
@@ -85,67 +101,39 @@ func (s *Store) candidates(ctx context.Context, query search.Query, limit int) (
 	if err != nil {
 		return nil, fmt.Errorf("postgres: candidates: %w", err)
 	}
-	var ids []int64
-	var urls []string
-	for rows.Next() {
-		var id int64
-		var url string
-		if err := rows.Scan(&id, &url); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		ids, urls = append(ids, id), append(urls, url)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	rules, err := s.rulesFor(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]eligibility.Candidate, 0, len(urls))
-	for i, url := range urls {
-		item, err := s.ByURL(ctx, url)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, eligibility.Candidate{Listing: item, Rules: rules[ids[i]]})
-	}
-	return out, nil
-}
-
-func (s *Store) rulesFor(ctx context.Context, ids []int64) (map[int64][]eligibility.Rule, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT listing_id, fact, operator, "values", hardness, visibility, source, evidence
-		 FROM listing_eligibility_rules WHERE listing_id = ANY($1) ORDER BY id`, ids)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: eligibility rules: %w", err)
-	}
 	defer rows.Close()
-	out := map[int64][]eligibility.Rule{}
+
+	var out []eligibility.Candidate
 	for rows.Next() {
+		var c eligibility.Candidate
 		var id int64
-		var r eligibility.Rule
-		var values []byte
-		if err := rows.Scan(&id, &r.Fact, &r.Operator, &values, &r.Hardness, &r.Visibility, &r.Source, &r.Evidence); err != nil {
-			return nil, err
+		var attributes, rules []byte
+		if err := rows.Scan(append(listingTargets(&c.Listing, &id), &attributes, &rules)...); err != nil {
+			return nil, fmt.Errorf("postgres: scan candidate: %w", err)
 		}
-		if err := json.Unmarshal(values, &r.Values); err != nil {
-			return nil, err
+		if attributes != nil {
+			if err := json.Unmarshal(attributes, &c.Listing.Attributes); err != nil {
+				return nil, fmt.Errorf("postgres: attributes of listing %d: %w", id, err)
+			}
 		}
-		if err := r.Validate(); err != nil {
-			return nil, fmt.Errorf("postgres: listing %d: %w", id, err)
+		if rules != nil {
+			if err := json.Unmarshal(rules, &c.Rules); err != nil {
+				return nil, fmt.Errorf("postgres: rules of listing %d: %w", id, err)
+			}
 		}
-		out[id] = append(out[id], r)
+		for _, r := range c.Rules {
+			if err := r.Validate(); err != nil {
+				return nil, fmt.Errorf("postgres: listing %d: %w", id, err)
+			}
+		}
+		out = append(out, c)
 	}
 	return out, rows.Err()
 }
 
 // Facts reads the catalog of facts rules and qualifications may reference.
 func (s *Store) Facts(ctx context.Context) (eligibility.Catalog, error) {
-	rows, err := s.pool.Query(ctx, `SELECT name, admissible, choices FROM eligibility_facts`)
+	rows, err := s.pool.Query(ctx, `SELECT name, admissible, label, priority, multiple, position, choices FROM eligibility_facts`)
 	if err != nil {
 		return nil, fmt.Errorf("postgres: eligibility facts: %w", err)
 	}
@@ -155,7 +143,7 @@ func (s *Store) Facts(ctx context.Context) (eligibility.Catalog, error) {
 		var name string
 		var fact eligibility.Fact
 		var choices []byte
-		if err := rows.Scan(&name, &fact.Admissible, &choices); err != nil {
+		if err := rows.Scan(&name, &fact.Admissible, &fact.Label, &fact.Priority, &fact.Multiple, &fact.Position, &choices); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(choices, &fact.Choices); err != nil {

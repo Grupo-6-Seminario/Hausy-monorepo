@@ -25,6 +25,9 @@ var Instruments = []struct {
 		regexp.MustCompile(`(?i)garant(?:[ií]a|e)\b[^.\n]{0,40}?\b(?:propietari[ao]|propiedad|caba|capital)`)},
 	{"caucion", "a seguro de caución (rental guarantee insurance), also written 'seguro de fianza', e.g. Finaer, Hoggax",
 		regexp.MustCompile(`(?i)cauci[oó]n|seguro\s+de\s+(?:garant[ií]a|fianza)|finaer|hoggax`)},
+	{"recibos_garante", "a guarantor's pay slips offered as the rental guarantee ('garantía con recibo de sueldo'); not the tenant's own pay slips shown as proof of income, nor slips asked for on top of another guarantee",
+		// A pay slip only next to a guarantee: "RECIBO DE SUELDO" alone is the tenant's income.
+		regexp.MustCompile(`(?i)garant[^.\n]{0,60}?\brecibos?\b|\brecibos?\b[^.\n]{0,40}?garant`)},
 }
 
 var acceptance = map[string]string{

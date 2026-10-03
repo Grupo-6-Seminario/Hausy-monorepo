@@ -1,11 +1,11 @@
 # Eligibility filter: back office spec
 
-**Date**: 2026-10-02 | **Owner**: Martin | **Status**: phase 1 decisions pending
+**Date**: 2026-10-02 | **Owner**: Martin | **Status**: phase 2 done; phase 1 approved, ready to build
 **Prompts for Claude Code**: [prompts.md](./prompts.md)
 
 This spec defines how the Hausy eligibility filter is built, in four phases. Phase 1 defines the
-searcher facts and waits on four decisions. Phase 2 picks the evaluator pattern, phase 3 assigns the
-work to layers and phase 4 lists the test cases.
+searcher facts; its decisions are recorded in 1.5. Phase 2 picks the evaluator pattern, phase 3
+assigns the work to layers and phase 4 lists the test cases.
 
 In 517 CABA rental listings from three portals, a guarantee is the most requested requirement
 (32% of listings), followed by documented income (12%) and a no-pets rule (10%). Employment type
@@ -91,9 +91,9 @@ verifies it. The last column names the document that would verify it once a veri
 
 | Priority | Fact | Name | Searcher declares | Listing rule | Status | Verified later by |
 | --- | --- | --- | --- | --- | --- | --- |
-| High | Guarantee | `guarantee` | propietaria CABA, propietaria elsewhere, caución, a guarantor's pay slips, none | `one_of`, hard or discretionary | Exists; new values missing | Property title report, insurer policy or guarantor pay slips |
+| High | Guarantee | `guarantee` | `propietaria`, `caucion`, `recibos_garante`, `none` | `one_of`, hard or discretionary | Exists; add pay slips and none | Property title report, insurer policy or guarantor pay slips |
 | High | Documented income | `income_documented` | yes / no | `one_of [yes]` | New | Pay slips or invoices |
-| High | Pets | `pets` | none, dog, cat, other | `one_of [none]` when the listing refuses pets | New (today a search attribute) | Not verified |
+| High | Pets | `pets` | none, dog, cat, other | `subset_of`: every declared pet must be admitted. `[none]` when the listing refuses pets; every other choice when it refuses only cats or only dogs; `[none, cat]` for "sólo gatos"; discretionary `[none]` for a preference or a size limit | New (today a search attribute) | Not verified |
 | Medium | Income | `income_band` | monthly ARS band | `income_multiple` (e.g. 3 × rent, or "rent may not exceed 30% of income") | Exists; a USD rent yields unknown | Pay slips or invoices |
 | Medium | Caución quoted | `caucion_quoted` | yes / no | no rule uses it yet | Exists | Insurer quote |
 | Low | Employment type | `employment_type` | employee, monotributo, responsable inscripto, retired, no own income | `one_of` | New; may move to a later phase | Pay slips, ARCA registration or pension slip |
@@ -141,15 +141,37 @@ when:
       (20/20).
 - [ ] What the card shows (deposit, insurance, term) never changes an eligibility state.
 
-Pending decisions:
+Decisions, approved by Martin and Nicolás on 2026-10-02:
 
-1. **Propietaria guarantee:** split into CABA and elsewhere? Recommended yes: many listings ask for
-   "garantía CABA" and today a provincial one counts the same.
-2. **Pets:** move from search attribute to eligibility? Recommended yes. The cost: without a declared
-   pets fact, 10% of listings become unknown.
-3. **Occupancy cap:** accept as a rule? Recommended no until the legal review.
-4. **Move-in cost (deposit + advance):** evaluate against the cash the searcher declares?
-   Recommended to show it and not evaluate it in this phase.
+1. **Propietaria guarantee: one value, not split.** Revised by Martin on 2026-10-02. The split into
+   `propietaria_caba` and `propietaria_otra` was approved, then dropped before implementation:
+   Hausy is CABA-only, so a propietaria guarantee works as a yes/no the searcher has or not. The
+   catalog, the rules and the planners keep the single value `propietaria`, and a searcher who says
+   "garantía propietaria" in the chat declares it without being asked where.
+2. **Pets: an eligibility rule, not only a search attribute.** Approved. The cost is accepted:
+   without a declared pets fact, the 10% of listings that refuse pets become unknown. The choices
+   are none, dog, cat and other; none stands alone. A refusal that names one species refuses only
+   that one ("gatos no" admits a dog), an explicit allowlist admits only what it names ("sólo
+   gatos"), and a preference or a size limit ("preferentemente", "mascotas grandes", "apto
+   mascotas pequeñas") is discretionary: conditionally eligible for a pet owner, eligible for a
+   searcher who declared none.
+5. **Declaring none is a qualification.** Guarantee and pets both offer `none`. A searcher who
+   declares no guarantee is ineligible for a hard guarantee rule, not unknown, so the zero-results
+   line can name the guarantee to get.
+6. **`recibos_garante` is extracted.** The extractor spots a guarantor's pay slips next to a
+   guarantee and Jev judges them, re-extracting only the listings the new pattern matches. Of the
+   three it matched, two now accept `recibos_garante`. The third asks for the tenant's and the
+   guarantor's pay slips on top of a propietaria or caución guarantee; Jev read that as accepting
+   them, so that listing keeps its earlier rule.
+
+Deferred, out of scope until revisited:
+
+3. **Occupancy cap.** Not a rule for now. It is a property fact, but it can be used to exclude
+   families with children, so it waits for the legal review in 1.4. Listings that state a cap keep
+   it in their description only.
+4. **Move-in cost (deposit + month in advance).** Not evaluated for now. The card shows it, and it
+   never changes eligibility. Evaluating it later needs a new searcher fact (cash available at
+   move-in) and a currency rule, since some listings quote the deposit in dollars.
 
 ## Phase 2: internal architecture
 
@@ -258,6 +280,10 @@ Rent is ARS 800,000 unless stated. "3×" is the rule that income must triple the
 | 12 | Searcher does not declare pets | nothing | pets: none | Unknown, never eligible | New |
 | 13 | Unknown operator (bad data) | propietaria | operator `max_age` | Unknown, unverifiable | New |
 | 14 | Documented income | `income_documented: no` | hard documented income | Ineligible | New |
+| 15 | A dog and a cat, listing refuses cats | dog and cat | pets: none, dog, other | Ineligible: every declared pet must be admitted | New |
+| 16 | No pets, listing refuses large pets | none | discretionary pets: none | Eligible: the owner's call is about pets | New |
+| 17 | A dog, listing refuses large pets | dog | discretionary pets: none | Conditionally eligible, discretionary | New |
+| 18 | No guarantee declared as none | guarantee none | hard caución | Ineligible, and relaxations name caución | New |
 
 ### Unit: validation and zero results
 
