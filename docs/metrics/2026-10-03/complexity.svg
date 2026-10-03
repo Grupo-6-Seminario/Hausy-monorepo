@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="817.2" height="500" viewBox="0 0 817.2 500" role="img" aria-label="The 15 most complex functions">
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.bg{fill:#fcfcfb}.title{fill:#0b0b0b;font-size:15px;font-weight:600}.subtitle{fill:#52514e;font-size:12px}
+.label{fill:#52514e;font-size:11px}.tick{fill:#898781;font-size:11px;font-variant-numeric:tabular-nums}
+.grid{stroke:#e1e0d9;stroke-width:1}.axis{stroke:#c3c2b7;stroke-width:1}.ref{stroke:#52514e;stroke-width:1.5}
+.zone{fill:#0b0b0b;fill-opacity:.05}.mark{fill:#2a78d6}.dot{fill:#2a78d6;stroke:#fcfcfb;stroke-width:2}.leader{stroke:#898781;stroke-width:1}
+@media (prefers-color-scheme:dark){.bg{fill:#1a1a19}.title{fill:#fff}.subtitle,.label{fill:#c3c2b7}.grid{stroke:#2c2c2a}.axis{stroke:#383835}
+.ref{stroke:#c3c2b7}.zone{fill:#fff;fill-opacity:.06}.mark{fill:#3987e5}.dot{fill:#3987e5;stroke:#1a1a19}}
+</style>
+<rect class="bg" width="817.2" height="500"/>
+<text x="24" y="30" class="title" text-anchor="start">The 15 most complex functions</text>
+<text x="24" y="50" class="subtitle" text-anchor="start">Cyclomatic complexity: independent paths through the function.</text>
+<line x1="313.2" y1="90" x2="313.2" y2="456" class="grid"/>
+<text x="313.2" y="474" class="tick" text-anchor="middle">0</text>
+<line x1="401.2" y1="90" x2="401.2" y2="456" class="grid"/>
+<text x="401.2" y="474" class="tick" text-anchor="middle">10</text>
+<line x1="489.2" y1="90" x2="489.2" y2="456" class="grid"/>
+<text x="489.2" y="474" class="tick" text-anchor="middle">20</text>
+<line x1="577.2" y1="90" x2="577.2" y2="456" class="grid"/>
+<text x="577.2" y="474" class="tick" text-anchor="middle">30</text>
+<line x1="665.2" y1="90" x2="665.2" y2="456" class="grid"/>
+<text x="665.2" y="474" class="tick" text-anchor="middle">40</text>
+<line x1="753.2" y1="90" x2="753.2" y2="456" class="grid"/>
+<text x="753.2" y="474" class="tick" text-anchor="middle">50</text>
+<line x1="401.2" y1="86" x2="401.2" y2="456" class="ref"/>
+<text x="405.2" y="82" class="tick" text-anchor="start">McCabe limit 10</text>
+<g><title>internal/buyer.(*DefaultAgent).HandleClarification: 49 at internal/buyer/clarification.go:82</title><path class="mark" d="M313.2 101H740.4Q744.4 101 744.4 105V111Q744.4 115 740.4 115H313.2Z"/><text x="750.4" y="112" class="tick">49</text></g>
+<text x="303.2" y="112" class="label" text-anchor="end">buyer.(*DefaultAgent).HandleClarification</text>
+<g><title>internal/matching.(*Evaluator).Evaluate: 44 at internal/matching/matching.go:82</title><path class="mark" d="M313.2 125H696.4Q700.4 125 700.4 129V135Q700.4 139 696.4 139H313.2Z"/><text x="706.4" y="136" class="tick">44</text></g>
+<text x="303.2" y="136" class="label" text-anchor="end">matching.(*Evaluator).Evaluate</text>
+<g><title>internal/intake.(Jev).Plan: 42 at internal/intake/jev.go:78</title><path class="mark" d="M313.2 149H678.8Q682.8 149 682.8 153V159Q682.8 163 678.8 163H313.2Z"/><text x="688.8" y="160" class="tick">42</text></g>
+<text x="303.2" y="160" class="label" text-anchor="end">intake.(Jev).Plan</text>
+<g><title>internal/buyer.(*DefaultAgent).handlePipeline: 35 at internal/buyer/pipeline.go:86</title><path class="mark" d="M313.2 173H617.2Q621.2 173 621.2 177V183Q621.2 187 617.2 187H313.2Z"/><text x="627.2" y="184" class="tick">35</text></g>
+<text x="303.2" y="184" class="label" text-anchor="end">buyer.(*DefaultAgent).handlePipeline</text>
+<g><title>internal/clarification.Apply: 30 at internal/clarification/clarification.go:206</title><path class="mark" d="M313.2 197H573.2Q577.2 197 577.2 201V207Q577.2 211 573.2 211H313.2Z"/><text x="583.2" y="208" class="tick">30</text></g>
+<text x="303.2" y="208" class="label" text-anchor="end">clarification.Apply</text>
+<g><title>internal/buyer.(*DefaultAgent).questionImpact: 28 at internal/buyer/clarification.go:424</title><path class="mark" d="M313.2 221H555.6Q559.6 221 559.6 225V231Q559.6 235 555.6 235H313.2Z"/><text x="565.6" y="232" class="tick">28</text></g>
+<text x="303.2" y="232" class="label" text-anchor="end">buyer.(*DefaultAgent).questionImpact</text>
+<g><title>internal/buyer.(*DefaultAgent).prepareClarification: 27 at internal/buyer/clarification.go:245</title><path class="mark" d="M313.2 245H546.8Q550.8 245 550.8 249V255Q550.8 259 546.8 259H313.2Z"/><text x="556.8" y="256" class="tick">27</text></g>
+<text x="303.2" y="256" class="label" text-anchor="end">buyer.(*DefaultAgent).prepareClarification</text>
+<g><title>internal/matching.validateAssessments: 26 at internal/matching/matching.go:192</title><path class="mark" d="M313.2 269H538Q542 269 542 273V279Q542 283 538 283H313.2Z"/><text x="548" y="280" class="tick">26</text></g>
+<text x="303.2" y="280" class="label" text-anchor="end">matching.validateAssessments</text>
+<g><title>internal/matching/jev.assessmentsFrom: 26 at internal/matching/jev/client.go:87</title><path class="mark" d="M313.2 293H538Q542 293 542 297V303Q542 307 538 307H313.2Z"/><text x="548" y="304" class="tick">26</text></g>
+<text x="303.2" y="304" class="label" text-anchor="end">matching/jev.assessmentsFrom</text>
+<g><title>internal/search.(Query).Validate: 25 at internal/search/search.go:92</title><path class="mark" d="M313.2 317H529.2Q533.2 317 533.2 321V327Q533.2 331 529.2 331H313.2Z"/><text x="539.2" y="328" class="tick">25</text></g>
+<text x="303.2" y="328" class="label" text-anchor="end">search.(Query).Validate</text>
+<g><title>internal/buyer.(*pipeline).assessQualitative: 24 at internal/buyer/pipeline.go:395</title><path class="mark" d="M313.2 341H520.4Q524.4 341 524.4 345V351Q524.4 355 520.4 355H313.2Z"/><text x="530.4" y="352" class="tick">24</text></g>
+<text x="303.2" y="352" class="label" text-anchor="end">buyer.(*pipeline).assessQualitative</text>
+<g><title>internal/quality.auditFromProbability: 24 at internal/quality/quality.go:87</title><path class="mark" d="M313.2 365H520.4Q524.4 365 524.4 369V375Q524.4 379 520.4 379H313.2Z"/><text x="530.4" y="376" class="tick">24</text></g>
+<text x="303.2" y="376" class="label" text-anchor="end">quality.auditFromProbability</text>
+<g><title>internal/clarification.Validate: 23 at internal/clarification/clarification.go:126</title><path class="mark" d="M313.2 389H511.6Q515.6 389 515.6 393V399Q515.6 403 511.6 403H313.2Z"/><text x="521.6" y="400" class="tick">23</text></g>
+<text x="303.2" y="400" class="label" text-anchor="end">clarification.Validate</text>
+<g><title>internal/clarification.ValidateEffect: 23 at internal/clarification/clarification.go:161</title><path class="mark" d="M313.2 413H511.6Q515.6 413 515.6 417V423Q515.6 427 511.6 427H313.2Z"/><text x="521.6" y="424" class="tick">23</text></g>
+<text x="303.2" y="424" class="label" text-anchor="end">clarification.ValidateEffect</text>
+<g><title>internal/eligibility.Extract: 23 at internal/eligibility/extract.go:58</title><path class="mark" d="M313.2 437H511.6Q515.6 437 515.6 441V447Q515.6 451 511.6 451H313.2Z"/><text x="521.6" y="448" class="tick">23</text></g>
+<text x="303.2" y="448" class="label" text-anchor="end">eligibility.Extract</text>
+<line x1="313.2" y1="90" x2="313.2" y2="456" class="axis"/>
+</svg>

@@ -1,0 +1,116 @@
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy	0.071s
+?   	github.com/Grupo-6-Seminario/proyecto-angus-back/cmd/listings	[no test files]
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency	0.019s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/auth	0.019s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock	0.023s
+goos: windows
+goarch: amd64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer
+cpu: Intel(R) Core(TM) Ultra 7 355
+BenchmarkTurn-8   	    3494	    300211 ns/op	  649877 B/op	     572 allocs/op
+BenchmarkTurn-8   	    4002	    289589 ns/op	  649877 B/op	     572 allocs/op
+BenchmarkTurn-8   	    3985	    586065 ns/op	  649876 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1149	   1028529 ns/op	  649877 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1346	   1029781 ns/op	  649878 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1360	    936681 ns/op	  649878 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1128	   1007218 ns/op	  649876 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1185	   1263724 ns/op	  649879 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1216	   1061640 ns/op	  649878 B/op	     572 allocs/op
+BenchmarkTurn-8   	    1560	   1001274 ns/op	  649877 B/op	     572 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer	14.015s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification	0.034s
+goos: windows
+goarch: amd64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility
+cpu: Intel(R) Core(TM) Ultra 7 355
+BenchmarkAssess-8        	  110341	     10688 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	  112204	     10754 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	  112285	     19366 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   47600	     25684 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   45237	     26546 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   45627	     27031 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   46834	     26475 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   44976	     26718 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   44450	     26599 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkAssess-8        	   44864	     27323 ns/op	   11840 B/op	      88 allocs/op
+BenchmarkRelaxations-8   	   25916	     47974 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   24931	     46029 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   24010	     49299 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   24442	     47832 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   25365	     46770 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   26329	     46412 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   26395	     46131 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   24381	     50007 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   24525	     52671 ns/op	   17104 B/op	     175 allocs/op
+BenchmarkRelaxations-8   	   19876	     56651 ns/op	   17104 B/op	     175 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility	25.342s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/httpapi	0.033s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake	0.024s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev	0.027s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing	0.025s
+?   	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm	[no test files]
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local	0.028s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging	0.027s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching	0.026s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching/jev	0.032s
+goos: windows
+goarch: amd64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline
+cpu: Intel(R) Core(TM) Ultra 7 355
+BenchmarkParse-8   	     222	   5371120 ns/op	 3146421 B/op	   38341 allocs/op
+BenchmarkParse-8   	     207	   5855240 ns/op	 3141152 B/op	   38335 allocs/op
+BenchmarkParse-8   	     168	  10848080 ns/op	 3138835 B/op	   38333 allocs/op
+BenchmarkParse-8   	      80	  13866678 ns/op	 3137125 B/op	   38342 allocs/op
+BenchmarkParse-8   	      96	  14144853 ns/op	 3131125 B/op	   38329 allocs/op
+BenchmarkParse-8   	      88	  13973643 ns/op	 3133794 B/op	   38334 allocs/op
+BenchmarkParse-8   	      84	  14902227 ns/op	 3138987 B/op	   38335 allocs/op
+BenchmarkParse-8   	      80	  13989189 ns/op	 3143332 B/op	   38344 allocs/op
+BenchmarkParse-8   	      79	  14009038 ns/op	 3136091 B/op	   38336 allocs/op
+BenchmarkParse-8   	      80	  13890681 ns/op	 3134480 B/op	   38335 allocs/op
+BenchmarkLoad-8    	      85	  12308065 ns/op	 3216357 B/op	   17819 allocs/op
+BenchmarkLoad-8    	      84	  12483030 ns/op	 3216188 B/op	   17821 allocs/op
+BenchmarkLoad-8    	      91	  11810235 ns/op	 3218001 B/op	   17822 allocs/op
+BenchmarkLoad-8    	      94	  12026289 ns/op	 3219041 B/op	   17822 allocs/op
+BenchmarkLoad-8    	     100	  12358790 ns/op	 3219708 B/op	   17823 allocs/op
+BenchmarkLoad-8    	      98	  12463676 ns/op	 3215017 B/op	   17821 allocs/op
+BenchmarkLoad-8    	     100	  12056308 ns/op	 3217116 B/op	   17824 allocs/op
+BenchmarkLoad-8    	     100	  11256237 ns/op	 3220092 B/op	   17825 allocs/op
+BenchmarkLoad-8    	     100	  11235012 ns/op	 3217848 B/op	   17822 allocs/op
+BenchmarkLoad-8    	      97	  11282609 ns/op	 3213288 B/op	   17819 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/pipeline	24.129s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/quality	0.025s
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search	0.024s
+goos: windows
+goarch: amd64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres
+cpu: Intel(R) Core(TM) Ultra 7 355
+BenchmarkCandidates-8   	     350	   3944297 ns/op	        92.00 candidates	  670177 B/op	    6283 allocs/op
+BenchmarkCandidates-8   	     283	   4248652 ns/op	        92.00 candidates	  669753 B/op	    6279 allocs/op
+BenchmarkCandidates-8   	     253	   4591745 ns/op	        92.00 candidates	  669532 B/op	    6277 allocs/op
+BenchmarkCandidates-8   	     271	   4335497 ns/op	        92.00 candidates	  669708 B/op	    6279 allocs/op
+BenchmarkCandidates-8   	     384	   3168814 ns/op	        92.00 candidates	  669895 B/op	    6281 allocs/op
+BenchmarkCandidates-8   	     241	   4574072 ns/op	        92.00 candidates	  670062 B/op	    6282 allocs/op
+BenchmarkCandidates-8   	     378	   3175297 ns/op	        92.00 candidates	  669988 B/op	    6283 allocs/op
+BenchmarkCandidates-8   	     376	   3316323 ns/op	        92.00 candidates	  669660 B/op	    6279 allocs/op
+BenchmarkCandidates-8   	     357	   3386471 ns/op	        92.00 candidates	  670308 B/op	    6286 allocs/op
+BenchmarkCandidates-8   	     384	   3189260 ns/op	        92.00 candidates	  669802 B/op	    6279 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres	36.931s

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="830" height="684" viewBox="0 0 830 684" role="img" aria-label="Abstractness vs instability">
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.bg{fill:#fcfcfb}.title{fill:#0b0b0b;font-size:15px;font-weight:600}.subtitle{fill:#52514e;font-size:12px}
+.label{fill:#52514e;font-size:11px}.tick{fill:#898781;font-size:11px;font-variant-numeric:tabular-nums}
+.grid{stroke:#e1e0d9;stroke-width:1}.axis{stroke:#c3c2b7;stroke-width:1}.ref{stroke:#52514e;stroke-width:1.5}
+.zone{fill:#0b0b0b;fill-opacity:.05}.mark{fill:#2a78d6}.dot{fill:#2a78d6;stroke:#fcfcfb;stroke-width:2}.leader{stroke:#898781;stroke-width:1}
+@media (prefers-color-scheme:dark){.bg{fill:#1a1a19}.title{fill:#fff}.subtitle,.label{fill:#c3c2b7}.grid{stroke:#2c2c2a}.axis{stroke:#383835}
+.ref{stroke:#c3c2b7}.zone{fill:#fff;fill-opacity:.06}.mark{fill:#3987e5}.dot{fill:#3987e5;stroke:#1a1a19}}
+</style>
+<rect class="bg" width="830" height="684"/>
+<text x="24" y="30" class="title" text-anchor="start">Abstractness vs instability</text>
+<text x="24" y="50" class="subtitle" text-anchor="start">Each dot is a package. The diagonal A + I = 1 is the main sequence; D is the distance from it.</text>
+<text x="24" y="66" class="subtitle" text-anchor="start">Shaded corners are where D &gt; 0.7: the zone of pain (bottom left) and the zone of uselessness (top right).</text>
+<path class="zone" d="M80 612H236L80 456Z"/>
+<path class="zone" d="M600 92H444L600 248.00000000000003Z"/>
+<line x1="80" y1="92" x2="80" y2="612" class="grid"/>
+<line x1="80" y1="612" x2="600" y2="612" class="grid"/>
+<text x="80" y="630" class="tick" text-anchor="middle">0</text>
+<text x="70" y="616" class="tick" text-anchor="end">0</text>
+<line x1="210" y1="92" x2="210" y2="612" class="grid"/>
+<line x1="80" y1="482" x2="600" y2="482" class="grid"/>
+<text x="210" y="630" class="tick" text-anchor="middle">0.25</text>
+<text x="70" y="486" class="tick" text-anchor="end">0.25</text>
+<line x1="340" y1="92" x2="340" y2="612" class="grid"/>
+<line x1="80" y1="352" x2="600" y2="352" class="grid"/>
+<text x="340" y="630" class="tick" text-anchor="middle">0.50</text>
+<text x="70" y="356" class="tick" text-anchor="end">0.50</text>
+<line x1="470" y1="92" x2="470" y2="612" class="grid"/>
+<line x1="80" y1="222" x2="600" y2="222" class="grid"/>
+<text x="470" y="630" class="tick" text-anchor="middle">0.75</text>
+<text x="70" y="226" class="tick" text-anchor="end">0.75</text>
+<line x1="600" y1="92" x2="600" y2="612" class="grid"/>
+<line x1="80" y1="92" x2="600" y2="92" class="grid"/>
+<text x="600" y="630" class="tick" text-anchor="middle">1</text>
+<text x="70" y="96" class="tick" text-anchor="end">1</text>
+<line x1="80" y1="612" x2="600" y2="612" class="axis"/>
+<line x1="80" y1="92" x2="80" y2="612" class="axis"/>
+<text x="340" y="658" class="label" text-anchor="middle">Instability I = Ce / (Ca + Ce)</text>
+<text x="0" y="0" class="label" text-anchor="middle" transform="translate(32 352) rotate(-90)">Abstractness A = interfaces / types</text>
+<line x1="80" y1="92" x2="600" y2="612" class="ref"/>
+<text x="0" y="0" class="label" transform="translate(138 138) rotate(45)">main sequence</text>
+<line x1="600" y1="612" x2="616.3847763108503" y2="593.6152236891497" class="leader"/>
+<g><title>cmd/hausy: A 0.00, I 1.00, D 0.00
+cmd/listings: A 0.00, I 1.00, D 0.00</title><circle cx="600" cy="612" r="5" class="dot"/><text x="618.3847763108503" y="597.1152236891497" class="label">cmd/hausy, cmd/listings</text></g>
+<g><title>internal/agency: A 0.10, I 0.00, D 0.90</title><circle cx="80" cy="560" r="5" class="dot"/><text x="89" y="563.5" class="label">agency</text></g>
+<g><title>internal/auth: A 0.15, I 0.00, D 0.85</title><circle cx="80" cy="532" r="5" class="dot"/><text x="89" y="535.5" class="label">auth</text></g>
+<line x1="340" y1="612" x2="356.3847763108502" y2="593.6152236891497" class="leader"/>
+<g><title>internal/bedrock: A 0.00, I 0.50, D 0.50
+internal/quality: A 0.00, I 0.50, D 0.50</title><circle cx="340" cy="612" r="5" class="dot"/><text x="358.3847763108502" y="597.1152236891497" class="label">bedrock, quality</text></g>
+<g><title>internal/buyer: A 0.27, I 0.80, D 0.07</title><circle cx="496" cy="470.1818181818182" r="5" class="dot"/><text x="505" y="473.6818181818182" class="label">buyer</text></g>
+<line x1="470" y1="463.42857142857144" x2="486.3847763108502" y2="445.04379511772123" class="leader"/>
+<g><title>internal/clarification: A 0.29, I 0.75, D 0.04</title><circle cx="470" cy="463.42857142857144" r="5" class="dot"/><text x="488.3847763108502" y="448.54379511772123" class="label">clarification</text></g>
+<line x1="195.55555555555554" y1="612" x2="211.94033186640578" y2="593.6152236891497" class="leader"/>
+<g><title>internal/eligibility: A 0.00, I 0.22, D 0.78</title><circle cx="195.55555555555554" cy="612" r="5" class="dot"/><text x="213.94033186640578" y="597.1152236891497" class="label">eligibility</text></g>
+<g><title>internal/httpapi: A 0.08, I 0.83, D 0.08</title><circle cx="513.3333333333334" cy="568.6666666666666" r="5" class="dot"/><text x="458.1333333333334" y="572.1666666666666" class="label">httpapi</text></g>
+<g><title>internal/intake: A 0.12, I 0.67, D 0.21</title><circle cx="426.66666666666663" cy="547" r="5" class="dot"/><text x="435.66666666666663" y="550.5" class="label">intake</text></g>
+<line x1="80" y1="612" x2="96.38477631085024" y2="593.6152236891497" class="leader"/>
+<g><title>internal/jev: A 0.00, I 0.00, D 1.00
+internal/logging: A 0.00, I 0.00, D 1.00</title><circle cx="80" cy="612" r="5" class="dot"/><text x="98.38477631085024" y="597.1152236891497" class="label">jev, logging</text></g>
+<line x1="132" y1="612" x2="130" y2="568" class="leader"/>
+<g><title>internal/listing: A 0.00, I 0.10, D 0.90</title><circle cx="132" cy="612" r="5" class="dot"/><text x="132" y="571.5" class="label">listing</text></g>
+<g><title>internal/llm: A 0.25, I 0.00, D 0.75</title><circle cx="80" cy="482" r="5" class="dot"/><text x="89" y="485.5" class="label">llm</text></g>
+<line x1="253.33333333333331" y1="612" x2="251.33333333333331" y2="568" class="leader"/>
+<g><title>internal/local: A 0.00, I 0.33, D 0.67</title><circle cx="253.33333333333331" cy="612" r="5" class="dot"/><text x="253.33333333333331" y="571.5" class="label">local</text></g>
+<g><title>internal/matching: A 0.18, I 0.00, D 0.82</title><circle cx="80" cy="517.4545454545455" r="5" class="dot"/><text x="89" y="520.9545454545455" class="label">matching</text></g>
+<line x1="426.66666666666663" y1="612" x2="466.0131419812466" y2="596.9511136936705" class="leader"/>
+<g><title>internal/matching/jev: A 0.00, I 0.67, D 0.33</title><circle cx="426.66666666666663" cy="612" r="5" class="dot"/><text x="468.0131419812466" y="600.4511136936705" class="label">matching/jev</text></g>
+<g><title>internal/pipeline: A 0.67, I 0.75, D 0.42</title><circle cx="470" cy="265.33333333333337" r="5" class="dot"/><text x="479" y="268.83333333333337" class="label">pipeline</text></g>
+<line x1="184" y1="612" x2="182" y2="568" class="leader"/>
+<g><title>internal/search: A 0.00, I 0.20, D 0.80</title><circle cx="184" cy="612" r="5" class="dot"/><text x="184" y="571.5" class="label">search</text></g>
+<line x1="470" y1="612" x2="428.15937956643404" y2="568.159379566434" class="leader"/>
+<g><title>internal/store/postgres: A 0.00, I 0.75, D 0.25</title><circle cx="470" cy="612" r="5" class="dot"/><text x="333.75937956643406" y="571.659379566434" class="label">store/postgres</text></g>
+</svg>

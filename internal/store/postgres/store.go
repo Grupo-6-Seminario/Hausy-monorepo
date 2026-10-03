@@ -189,32 +189,40 @@ func upsertAgency(ctx context.Context, tx pgx.Tx, name string) (*int64, error) {
 	return &id, nil
 }
 
-const selectListing = `
-SELECT l.source, l.url, l.neighborhood, COALESCE(a.name, ''), COALESCE(l.address, ''),
+// listingColumns are a listing's own columns, read with listingTargets.
+const listingColumns = `l.source, l.url, l.neighborhood, COALESCE(a.name, ''), COALESCE(l.address, ''),
        l.description, COALESCE(l.operation, ''),
        l.price_amount, COALESCE(l.price_currency, ''),
        l.expenses_amount, COALESCE(l.expenses_currency, ''),
        l.total_area_m2, l.covered_area_m2, l.rooms, l.bedrooms, l.bathrooms,
        l.parking_spaces, l.age_years, COALESCE(l.floor, ''),
-       l.scraped_at, l.parsed_at, COALESCE(l.parser_model, ''), l.id
+       l.scraped_at, l.parsed_at, COALESCE(l.parser_model, ''), l.id`
+
+const selectListing = `
+SELECT ` + listingColumns + `
 FROM listings l
 LEFT JOIN agencies a ON a.id = l.agency_id
 WHERE l.url = $1 AND l.catalog_status = 'active'`
 
-// ByURL reads back a single listing with its attributes.
-func (s *Store) ByURL(ctx context.Context, url string) (listing.Listing, error) {
-	var item listing.Listing
-	var id int64
-
-	err := s.pool.QueryRow(ctx, selectListing, url).Scan(
+// listingTargets are the scan destinations of listingColumns, in order.
+func listingTargets(item *listing.Listing, id *int64) []any {
+	return []any{
 		&item.Source, &item.URL, &item.Neighborhood, &item.Agency, &item.Address,
 		&item.Description, &item.Operation,
 		&item.Price.Amount, &item.Price.Currency,
 		&item.Expenses.Amount, &item.Expenses.Currency,
 		&item.TotalAreaM2, &item.CoveredAreaM2, &item.Rooms, &item.Bedrooms, &item.Bathrooms,
 		&item.ParkingSpaces, &item.AgeYears, &item.Floor,
-		&item.ScrapedAt, &item.ParsedAt, &item.ParserModel, &id,
-	)
+		&item.ScrapedAt, &item.ParsedAt, &item.ParserModel, id,
+	}
+}
+
+// ByURL reads back a single listing with its attributes.
+func (s *Store) ByURL(ctx context.Context, url string) (listing.Listing, error) {
+	var item listing.Listing
+	var id int64
+
+	err := s.pool.QueryRow(ctx, selectListing, url).Scan(listingTargets(&item, &id)...)
 	if err != nil {
 		return listing.Listing{}, fmt.Errorf("postgres: read listing %s: %w", url, err)
 	}
