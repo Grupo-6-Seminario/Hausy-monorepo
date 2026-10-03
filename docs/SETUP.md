@@ -141,7 +141,7 @@ terraform -chdir=infra init
 terraform -chdir=infra plan
 ```
 
-There is no CI, so the plan is reviewed in the PR:
+CI does not run Terraform, so the plan is reviewed in the PR:
 
 1. Change `infra/` on a feature branch and run `terraform -chdir=infra plan`.
 2. Put the plan in the PR body inside a collapsible `<details>` section. Paste **only** the
@@ -181,6 +181,23 @@ Each command below should produce the stated result.
 
 That last row is the one that catches platform problems: if `git status` shows modifications
 straight after cloning, stop and report it rather than committing them.
+
+## CI
+
+GitHub Actions ([`ci.yml`](../.github/workflows/ci.yml)) runs on pull requests into `dev` and
+`main` and on pushes to both. Its three jobs run in parallel and are intended to become required
+checks:
+
+| Job | Runs |
+| --- | --- |
+| `go` | `gofmt` check, `go vet ./...`, `go test ./...` against a Postgres 14 service with `HAUSY_TEST_DATABASE_URI` set, and `python3 scripts/check-agent-instructions.py` |
+| `frontend` | `npm ci`, `npm test`, `npm run lint`, `npx tsc --noEmit --incremental false` and `npm run build` in `frontend/` |
+| `e2e` | Playwright on the `desktop`, `mobile` and `dark` projects, without retries. On failure, the HTML report and traces are uploaded as the `playwright-report` artifact for 7 days. |
+
+In CI, the Postgres-backed tests fail instead of skipping when the database is unreachable.
+CI does not run `npm run test:gpu` (it needs a real WebGPU adapter), the live Bedrock test
+(`HAUSY_BEDROCK_LIVE`, which needs AWS credentials and costs money) or Terraform. Run those
+locally when your change touches them.
 
 ## Running it
 

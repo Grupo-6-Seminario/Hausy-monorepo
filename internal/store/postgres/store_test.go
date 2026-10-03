@@ -31,6 +31,11 @@ func openTestStore(t testing.TB) *postgres.Store {
 
 	store, err := postgres.Open(ctx, uri)
 	if err != nil {
+		// CI provides a Postgres service, so an unreachable one is a broken
+		// pipeline, not a missing local database.
+		if os.Getenv("CI") != "" {
+			t.Fatalf("Postgres not reachable at %s (%v)", uri, err)
+		}
 		t.Skipf("skipping: Postgres not reachable at %s (%v)", uri, err)
 	}
 	t.Cleanup(store.Close)
@@ -107,7 +112,6 @@ func TestOpenTestStore_SkipsWhenNonDisposable(t *testing.T) {
 		subT.Fatal("expected openTestStore to skip when pointed at dev database")
 	})
 }
-
 
 func float64Ptr(v float64) *float64 { return &v }
 func intPtr(v int) *int             { return &v }
