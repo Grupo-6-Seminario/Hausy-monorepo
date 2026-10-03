@@ -258,7 +258,8 @@ func urls(resp *buyer.TurnResponse) []string {
 }
 
 func TestResultsAreOrderedByEligibilityWithIneligibleHidden(t *testing.T) {
-	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), &fakeWriter{})
+	writer := &fakeWriter{}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), writer)
 	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	got := urls(resp)
 	if len(got) != 3 || got[0] != "eligible" || got[1] != "conditional" || got[2] != "unknown" {
@@ -274,6 +275,10 @@ func TestResultsAreOrderedByEligibilityWithIneligibleHidden(t *testing.T) {
 	}
 	if len(resp.Relaxations) != 1 || resp.Relaxations[0] != (eligibility.Relaxation{Fact: "guarantee", Value: "caucion", Count: 1}) {
 		t.Fatalf("want 'si conseguís caución, vuelve 1', got %+v", resp.Relaxations)
+	}
+	// The reply learns how many were hidden, so it can say so.
+	if len(writer.packets) != 1 || writer.packets[0].Hidden != 1 {
+		t.Fatalf("want 1 hidden ineligible listing in the writer packet, got %+v", writer.packets)
 	}
 }
 
