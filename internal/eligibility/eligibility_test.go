@@ -48,9 +48,9 @@ func TestNoPublishedRulesIsUnknown(t *testing.T) {
 var ownerDecides = eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria", "caucion"}, Hardness: "discretionary", Evidence: "1 garantía Caba o seguro de caución (ver cuales permite la propietaria)"}
 
 func TestDiscretionaryRuleIsConditionalWithTheConditionNamed(t *testing.T) {
-	for _, declared := range [][]string{{"caucion"}, {"recibo_sueldo"}} {
+	for _, declared := range [][]string{{"caucion"}, {"recibos_garante"}} {
 		got := eligibility.Assess(eligibility.Qualification{"guarantee": declared}, rent(800000), []eligibility.Rule{ownerDecides}, catalog)
-		if got.State != eligibility.ConditionallyEligible || len(got.Conditions) != 1 || got.Conditions[0].Rule.Evidence != ownerDecides.Evidence {
+		if got.State != eligibility.ConditionallyEligible || len(got.Conditions) != 1 || got.Conditions[0].Reason != "discretionary" || got.Conditions[0].Rule.Evidence != ownerDecides.Evidence {
 			t.Fatalf("%v: want conditionally eligible naming the owner's condition, got %+v", declared, got)
 		}
 	}
@@ -66,6 +66,8 @@ func TestIncomeMultipleAgainstADeclaredBand(t *testing.T) {
 		reason eligibility.Reason
 	}{
 		{"3000000-", rent(800000), eligibility.Eligible, ""},
+		// Spec phase 4, case 6: 3 x 1,000,000 equals the band minimum.
+		{"3000000-", rent(1000000), eligibility.Eligible, ""},
 		{"1000000-2000000", rent(800000), eligibility.Ineligible, "not_met"},
 		{"2000000-3000000", rent(800000), eligibility.ConditionallyEligible, "near_line"},
 		{"3000000-", listing.Money{Amount: &usd, Currency: "USD"}, eligibility.Unknown, "unverifiable"},
@@ -94,6 +96,8 @@ func TestRelaxationsCountWhatAnotherInstrumentWouldBringBack(t *testing.T) {
 		{Listing: listing.Listing{URL: "c", Price: rent(800000)}, Rules: []eligibility.Rule{onlyPropietaria}},
 		// Ineligible for income: no instrument brings it back.
 		{Listing: listing.Listing{URL: "d", Price: rent(800000)}, Rules: []eligibility.Rule{onlyPropietaria, threeTimes}},
+		// Caución would clear the guarantee, but the band still falls short of 3x.
+		{Listing: listing.Listing{URL: "e", Price: rent(800000)}, Rules: []eligibility.Rule{onlyCaucion, threeTimes}},
 	}
 	q := eligibility.Qualification{"guarantee": {"propietaria"}, "income_band": {"1000000-2000000"}}
 	got := eligibility.Relaxations(q, candidates, catalog)
@@ -314,5 +318,44 @@ func TestDeclaringNoGuaranteeIsIneligibleAndRelaxable(t *testing.T) {
 	want := []eligibility.Relaxation{{Fact: "guarantee", Value: "caucion", Count: 1}}
 	if got := eligibility.Relaxations(q, candidates, catalog); !reflect.DeepEqual(got, want) {
 		t.Fatalf("want %+v, got %+v", want, got)
+	}
+}
+
+// A listing's rules are weighed together: a failed hard rule makes it
+// ineligible even when another fact is missing, a missing fact keeps it
+// unknown even when another rule is met, and every cleared rule is named.
+// Spec phase 4, cases 1, 2, 4 and 5. Rent ARS 800,000; 3x is 2,400,000.
+func TestTheVerdictWeighsEveryRuleOfAListing(t *testing.T) {
+	hardCaucion := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"}
+	threeTimes := eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard"}
+	for _, tc := range []struct {
+		name       string
+		q          eligibility.Qualification
+		rules      []eligibility.Rule
+		state      eligibility.State
+		conditions map[string]eligibility.Reason // fact -> reason
+		met        []string                      // facts cleared
+	}{
+		{"meets income, not the guarantee", eligibility.Qualification{"guarantee": {"caucion"}, "income_band": {"3000000-"}},
+			[]eligibility.Rule{threeTimes, onlyPropietaria}, eligibility.Ineligible, map[string]eligibility.Reason{"guarantee": "not_met"}, []string{"income_band"}},
+		{"meets the guarantee, income undeclared", eligibility.Qualification{"guarantee": {"propietaria"}},
+			[]eligibility.Rule{onlyPropietaria, threeTimes}, eligibility.Unknown, map[string]eligibility.Reason{"income_band": "missing"}, []string{"guarantee"}},
+		{"fails a hard rule and misses another fact", eligibility.Qualification{"guarantee": {"caucion"}},
+			[]eligibility.Rule{onlyPropietaria, threeTimes}, eligibility.Ineligible, map[string]eligibility.Reason{"guarantee": "not_met", "income_band": "missing"}, nil},
+		{"meets everything with two guarantees", eligibility.Qualification{"guarantee": {"propietaria", "caucion"}, "income_band": {"3000000-"}},
+			[]eligibility.Rule{hardCaucion, threeTimes}, eligibility.Eligible, map[string]eligibility.Reason{}, []string{"guarantee", "income_band"}},
+	} {
+		got := eligibility.Assess(tc.q, rent(800000), tc.rules, catalog)
+		conditions := map[string]eligibility.Reason{}
+		for _, c := range got.Conditions {
+			conditions[c.Rule.Fact] = c.Reason
+		}
+		var met []string
+		for _, r := range got.Met {
+			met = append(met, r.Fact)
+		}
+		if got.State != tc.state || !reflect.DeepEqual(conditions, tc.conditions) || !reflect.DeepEqual(met, tc.met) {
+			t.Errorf("%s:\n got %s %v met %v\nwant %s %v met %v", tc.name, got.State, conditions, met, tc.state, tc.conditions, tc.met)
+		}
 	}
 }
