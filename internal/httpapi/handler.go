@@ -167,7 +167,7 @@ func registerQualification(mux *http.ServeMux, provider auth.Provider, store Qua
 		}
 		q, err := store.Qualification(r.Context(), user.ID)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos leer tu perfil.", Code: "internal"})
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos leer tus datos.", Code: "internal"})
 			return
 		}
 		if q == nil {
@@ -193,14 +193,18 @@ func registerQualification(mux *http.ServeMux, provider auth.Provider, store Qua
 			return
 		}
 		if err := store.SaveQualification(r.Context(), user.ID, q); err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos guardar tu perfil.", Code: "internal"})
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos guardar tus datos.", Code: "internal"})
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 }
 
-var noDatabase = errorResponse{Error: "No hay base de datos para guardar tu perfil.", Code: "no_database"}
+var (
+	noDatabase = errorResponse{Error: "No hay base de datos para guardar tus datos.", Code: "no_database"}
+	// The catalog paths (the form's questions, a search's validation) store nothing.
+	noCatalog = errorResponse{Error: "El servicio no tiene base de datos disponible.", Code: "no_database"}
+)
 
 // factResponse is one question of the qualification form.
 type factResponse struct {
@@ -216,12 +220,12 @@ type factResponse struct {
 func registerFacts(mux *http.ServeMux, store Qualifications) {
 	mux.HandleFunc("GET /api/eligibility/facts", func(w http.ResponseWriter, r *http.Request) {
 		if store == nil {
-			writeJSON(w, http.StatusServiceUnavailable, noDatabase)
+			writeJSON(w, http.StatusServiceUnavailable, noCatalog)
 			return
 		}
 		catalog, err := store.Facts(r.Context())
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos leer tu perfil.", Code: "internal"})
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos cargar las preguntas de requisitos.", Code: "internal"})
 			return
 		}
 		names := slices.SortedFunc(maps.Keys(catalog), func(a, b string) int {
@@ -242,12 +246,12 @@ func registerFacts(mux *http.ServeMux, store Qualifications) {
 // answers the first problem, so nothing invalid is searched or stored.
 func validQualification(w http.ResponseWriter, r *http.Request, store Qualifications, q eligibility.Qualification) bool {
 	if store == nil {
-		writeJSON(w, http.StatusServiceUnavailable, noDatabase)
+		writeJSON(w, http.StatusServiceUnavailable, noCatalog)
 		return false
 	}
 	catalog, err := store.Facts(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos leer tu perfil.", Code: "internal"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos validar tus datos.", Code: "internal"})
 		return false
 	}
 	var invalid *eligibility.QualificationError
@@ -256,7 +260,7 @@ func validQualification(w http.ResponseWriter, r *http.Request, store Qualificat
 	}
 	label := catalog[invalid.Fact].Label
 	message := map[string]string{
-		"unknown_fact":      "Ese dato no existe en el perfil.",
+		"unknown_fact":      "Ese dato no está entre las preguntas.",
 		"inadmissible_fact": "Hausy no pide ese dato.",
 		"invalid_value":     "Elegí una de las opciones de " + label + ".",
 		"too_many_values":   label + " admite una sola opción.",

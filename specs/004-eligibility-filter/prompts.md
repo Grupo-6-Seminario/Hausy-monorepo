@@ -64,7 +64,8 @@ facts, ordered by priority. Response `200` with `Cache-Control: max-age=300`:
       "choices": [
         {"value": "propietaria", "label": "Garantía propietaria"},
         {"value": "caucion", "label": "Seguro de caución"},
-        {"value": "recibos_garante", "label": "Recibos de sueldo de un garante"}
+        {"value": "recibos_garante", "label": "Recibos de sueldo de un garante"},
+        {"value": "none", "label": "No tengo"}
       ]
     },
     {
@@ -82,7 +83,8 @@ facts, ordered by priority. Response `200` with `Cache-Control: max-age=300`:
       "choices": [
         {"value": "none", "label": "Ninguna"},
         {"value": "dog", "label": "Perro"},
-        {"value": "cat", "label": "Gato"}
+        {"value": "cat", "label": "Gato"},
+        {"value": "other", "label": "Otra"}
       ]
     }
   ]
@@ -95,7 +97,7 @@ sending the fact.
 
 Data changes behind the endpoint: migration `0007_eligibility_facts_v2.sql` adds `label`, `priority`,
 `multiple` and `position` columns to `eligibility_facts`, seeds `income_documented` and `pets`,
-and adds `recibos_garante` to the `guarantee` choices.
+and adds `recibos_garante` and `none` to the `guarantee` choices.
 Choices change from a list of strings to `{value, label}` objects.
 
 ### Qualification validation
@@ -128,19 +130,24 @@ reading the text. Phase 1 adds a stable `code` and, when it applies, the offendi
 | HTTP | `code` | When | Message shown to the searcher |
 | --- | --- | --- | --- |
 | 400 | `invalid_json` | The body is not JSON, has unknown fields or exceeds 64 KiB | La solicitud no es válida. |
-| 400 | `unknown_fact` | A qualification fact is not in the catalog | Ese dato no existe en el perfil. |
+| 400 | `unknown_fact` | A qualification fact is not in the catalog | Ese dato no está entre las preguntas. |
 | 400 | `inadmissible_fact` | The fact exists but is not admissible (age, nationality, gender) | Hausy no pide ese dato. |
 | 400 | `invalid_value` | A value is not among the fact's choices | Elegí una de las opciones de {label}. |
 | 400 | `too_many_values` | A single-choice fact has several values | {label} admite una sola opción. |
 | 401 | `unauthenticated` | The session is missing or expired | Tenés que iniciar sesión. |
 | 409 | `pending_clarification` | A search question is pending | Respondé o editá la pregunta pendiente antes de seguir. |
 | 409 | `stale_clarification` | The answer is to a question that is no longer active | Esa pregunta ya no está activa. Volvé a la búsqueda. |
-| 500 | `internal` | Unexpected failure while reading or saving | No pudimos leer tu perfil. |
+| 500 | `internal` | Reading the saved qualification fails | No pudimos leer tus datos. |
+| 500 | `internal` | Saving the qualification fails | No pudimos guardar tus datos. |
+| 500 | `internal` | Reading the catalog for `GET /api/eligibility/facts` fails | No pudimos cargar las preguntas de requisitos. |
+| 500 | `internal` | Reading the catalog to validate a qualification fails | No pudimos validar tus datos. |
 | 502 | `agent_unavailable` | The model did not answer | El agente local no pudo responder. |
-| 503 | `no_database` | The server runs without a database | No hay base de datos para guardar tu perfil. |
+| 503 | `no_database` | The server runs without a database, on `/api/me/qualification` | No hay base de datos para guardar tus datos. |
+| 503 | `no_database` | The server runs without a database, on the facts endpoint or a search with a qualification | El servicio no tiene base de datos disponible. |
 
-The 409 and 502 codes and the `invalid_json`, `unauthenticated` and `no_database` messages already
-exist in `internal/httpapi`; this phase only adds the `code`. Validation errors use 400, not 422, to
+The 409 and 502 codes and the `invalid_json` and `unauthenticated` messages already exist in
+`internal/httpapi`; this phase adds the `code`. The `internal` and `no_database` messages name what
+failed on each path instead of "tu perfil". Validation errors use 400, not 422, to
 match the agency catalog.
 
 ## Phase 1: tasks and verification
@@ -152,14 +159,15 @@ Each step ends with green tests before the next one.
 2. **Validation in `internal/eligibility`.** A pure function that takes the catalog and a
    qualification and returns the first typed error. One test per code in the table.
 3. **Endpoint and codes.** `GET /api/eligibility/facts`, validation on both qualification endpoints,
-   and `code` on every error response in `internal/httpapi`. One HTTP test per error table row.
-4. **Rules at load.** `load` derives a `pets` rule for each listing whose text states
-   `pets_allowed = no` and whose evidence names an animal. The rule admits `none` plus the animal the
-   refusal leaves out ("gatos no" admits `dog`, "no se permite perro" admits `cat`), and is
-   discretionary when the owner keeps the call ("preferentemente", a size limit). Migration 0008
-   leaves the pets choices as none, dog and cat. Tests: a stated refusal, an inferred one, a
-   listing that welcomes pets, a refusal whose evidence is about something else; running `load` twice
-   leaves the same rules.
+   and `code` on every error response in the error table above. One HTTP test per error table row.
+4. **Rules at load.** `load` derives a `pets subset_of` rule for each listing whose stated
+   `pets_allowed` evidence names an animal as a whole word. The rule lists the pets choices the
+   listing admits, read from the catalog: a refusal admits every choice but the species it names,
+   or only `none` when it names none ("gatos no" admits `none, dog, other`); "sólo gatos" admits
+   `none, cat`; a preference or a size limit near an animal word ("preferentemente", "mascotas
+   grandes", "apto mascotas pequeñas") gives a discretionary `[none]`. Tests: each committed
+   phrase, an inferred refusal, a listing that welcomes pets, a refusal whose evidence is about
+   something else, "seguro obligatorio" (holds "gato"); running `load` twice leaves the same rules.
 5. **Frontend.** `qualification-panel.tsx` fetches choices from the endpoint through the
    `frontend/app/api` proxy. If the endpoint fails, the form hides and search continues without a
    qualification. Vitest tests in `qualification-panel.test.tsx`.
@@ -189,16 +197,15 @@ qualification with stable error codes.
 Build:
 1. Migration 0007: eligibility_facts gains label, priority (high|medium|low), multiple and position;
    choices become [{value,label}]. Seed income_documented (yes|no, single choice) and pets
-   (none|dog|cat, multiple; none stands alone). Add recibos_garante to guarantee.
+   (none|dog|cat|other, multiple; none stands alone). Add recibos_garante and none to guarantee.
 2. In internal/eligibility, a pure function that validates a Qualification against the catalog and
    returns the first typed error: unknown_fact, inadmissible_fact, invalid_value, too_many_values.
 3. GET /api/eligibility/facts, public, admissible facts only, ordered by position,
    Cache-Control max-age=300. Validate the qualification on PUT /api/me/qualification and on the
    qualification field of POST /api/messages. Add "code" (and "field" when it applies) to every
-   error response in the table without changing existing messages. Validation errors are 400.
-4. In cmd/listings load, derive the rule pets one_of [none] (hard, source parsed) for listings with
-   listing_attributes pets_allowed = no, provenance = stated and evidence naming an animal. Do not
-   edit data/listings.eligibility.jsonl. No model calls.
+   error response in the table, with the table's messages. Validation errors are 400.
+4. In cmd/listings load, derive a pets subset_of rule (source parsed) for listings with a stated
+   pets_allowed whose evidence names an animal, as task 4 above describes. No model calls.
 5. qualification-panel.tsx reads its choices from the endpoint through the frontend/app/api proxy;
    on failure it hides the form and search continues without a qualification.
 

@@ -44,6 +44,13 @@ func (brokenQualifications) Facts(context.Context) (eligibility.Catalog, error) 
 	return formCatalog, nil
 }
 
+// unreadableCatalog cannot read the catalog, so nothing can be validated.
+type unreadableCatalog struct{ memoryQualifications }
+
+func (unreadableCatalog) Facts(context.Context) (eligibility.Catalog, error) {
+	return nil, errors.New("private database error")
+}
+
 type failingAgent struct {
 	noQuestions
 	err error
@@ -83,7 +90,7 @@ func TestErrorResponsesCarryAStableCode(t *testing.T) {
 		{"not JSON", newHandler(&recordingAgent{}, memoryQualifications{}), http.MethodPost, "/api/messages", false, `{"message":`,
 			http.StatusBadRequest, errorBody{"La solicitud no es válida.", "invalid_json", ""}},
 		{"unknown fact on save", newHandler(&recordingAgent{}, memoryQualifications{}), http.MethodPut, "/api/me/qualification", true, `{"zodiac":["leo"]}`,
-			http.StatusBadRequest, errorBody{"Ese dato no existe en el perfil.", "unknown_fact", "qualification.zodiac"}},
+			http.StatusBadRequest, errorBody{"Ese dato no está entre las preguntas.", "unknown_fact", "qualification.zodiac"}},
 		{"inadmissible fact on save", newHandler(&recordingAgent{}, memoryQualifications{}), http.MethodPut, "/api/me/qualification", true, `{"age":["30"]}`,
 			http.StatusBadRequest, errorBody{"Hausy no pide ese dato.", "inadmissible_fact", "qualification.age"}},
 		{"value outside the choices in a search", newHandler(&recordingAgent{}, memoryQualifications{}), http.MethodPost, "/api/messages", false,
@@ -98,11 +105,23 @@ func TestErrorResponsesCarryAStableCode(t *testing.T) {
 		{"stale answer", newHandler(&recordingAgent{}, nil), http.MethodPost, "/api/messages", false, `{"session_id":"s","answer":{"question_id":"q","selected":["a"]}}`,
 			http.StatusConflict, errorBody{"Esa pregunta ya no está activa. Volvé a la búsqueda.", "stale_clarification", ""}},
 		{"database failure", newHandler(&recordingAgent{}, brokenQualifications{}), http.MethodGet, "/api/me/qualification", true, ``,
-			http.StatusInternalServerError, errorBody{"No pudimos leer tu perfil.", "internal", ""}},
+			http.StatusInternalServerError, errorBody{"No pudimos leer tus datos.", "internal", ""}},
+		{"save failure", newHandler(&recordingAgent{}, brokenQualifications{}), http.MethodPut, "/api/me/qualification", true, `{"guarantee":["caucion"]}`,
+			http.StatusInternalServerError, errorBody{"No pudimos guardar tus datos.", "internal", ""}},
+		{"questions unreadable", newHandler(&recordingAgent{}, unreadableCatalog{}), http.MethodGet, "/api/eligibility/facts", false, ``,
+			http.StatusInternalServerError, errorBody{"No pudimos cargar las preguntas de requisitos.", "internal", ""}},
+		{"questions unreadable in a search", newHandler(&recordingAgent{}, unreadableCatalog{}), http.MethodPost, "/api/messages", false,
+			`{"session_id":"s","message":"Palermo","qualification":{"guarantee":["caucion"]}}`,
+			http.StatusInternalServerError, errorBody{"No pudimos validar tus datos.", "internal", ""}},
 		{"model down", newHandler(failingAgent{err: errors.New("dial tcp: connection refused")}, nil), http.MethodPost, "/api/messages", false, `{"session_id":"s","message":"Palermo"}`,
 			http.StatusBadGateway, errorBody{"El agente local no pudo responder.", "agent_unavailable", ""}},
 		{"no database", newHandler(&recordingAgent{}, nil), http.MethodGet, "/api/me/qualification", true, ``,
-			http.StatusServiceUnavailable, errorBody{"No hay base de datos para guardar tu perfil.", "no_database", ""}},
+			http.StatusServiceUnavailable, errorBody{"No hay base de datos para guardar tus datos.", "no_database", ""}},
+		{"no database for the questions", newHandler(&recordingAgent{}, nil), http.MethodGet, "/api/eligibility/facts", false, ``,
+			http.StatusServiceUnavailable, errorBody{"El servicio no tiene base de datos disponible.", "no_database", ""}},
+		{"no database in a search", newHandler(&recordingAgent{}, nil), http.MethodPost, "/api/messages", false,
+			`{"session_id":"s","message":"Palermo","qualification":{"guarantee":["caucion"]}}`,
+			http.StatusServiceUnavailable, errorBody{"El servicio no tiene base de datos disponible.", "no_database", ""}},
 	} {
 		token := ""
 		if tc.signIn {
@@ -159,8 +178,5 @@ func TestFactsServeTheAdmissibleCatalogInOrder(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v\nwant %+v", got, want)
-	}
-	if resp := send(t, httpapi.NewHandler(&recordingAgent{}, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), nil), http.MethodGet, "/api/eligibility/facts", "", ""); resp.Code != http.StatusServiceUnavailable {
-		t.Fatalf("without a database: got %d", resp.Code)
 	}
 }

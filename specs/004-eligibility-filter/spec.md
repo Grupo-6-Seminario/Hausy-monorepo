@@ -91,9 +91,9 @@ verifies it. The last column names the document that would verify it once a veri
 
 | Priority | Fact | Name | Searcher declares | Listing rule | Status | Verified later by |
 | --- | --- | --- | --- | --- | --- | --- |
-| High | Guarantee | `guarantee` | `propietaria`, `caucion`, `recibos_garante` | `one_of`, hard or discretionary | Exists; add pay slips | Property title report, insurer policy or guarantor pay slips |
+| High | Guarantee | `guarantee` | `propietaria`, `caucion`, `recibos_garante`, `none` | `one_of`, hard or discretionary | Exists; add pay slips and none | Property title report, insurer policy or guarantor pay slips |
 | High | Documented income | `income_documented` | yes / no | `one_of [yes]` | New | Pay slips or invoices |
-| High | Pets | `pets` | none, dog, cat | `one_of [none]` when the listing refuses pets; `[none, dog]` or `[none, cat]` when it refuses only cats or only dogs; discretionary when the owner keeps the call | New (today a search attribute) | Not verified |
+| High | Pets | `pets` | none, dog, cat, other | `subset_of`: every declared pet must be admitted. `[none]` when the listing refuses pets; every other choice when it refuses only cats or only dogs; `[none, cat]` for "sólo gatos"; discretionary `[none]` for a preference or a size limit | New (today a search attribute) | Not verified |
 | Medium | Income | `income_band` | monthly ARS band | `income_multiple` (e.g. 3 × rent, or "rent may not exceed 30% of income") | Exists; a USD rent yields unknown | Pay slips or invoices |
 | Medium | Caución quoted | `caucion_quoted` | yes / no | no rule uses it yet | Exists | Insurer quote |
 | Low | Employment type | `employment_type` | employee, monotributo, responsable inscripto, retired, no own income | `one_of` | New; may move to a later phase | Pay slips, ARCA registration or pension slip |
@@ -141,7 +141,7 @@ when:
       (20/20).
 - [ ] What the card shows (deposit, insurance, term) never changes an eligibility state.
 
-Decisions, approved by Martin on 2026-10-02:
+Decisions, approved by Martin and Nicolás on 2026-10-02:
 
 1. **Propietaria guarantee: one value, not split.** Revised by Martin on 2026-10-02. The split into
    `propietaria_caba` and `propietaria_otra` was approved, then dropped before implementation:
@@ -149,7 +149,20 @@ Decisions, approved by Martin on 2026-10-02:
    catalog, the rules and the planners keep the single value `propietaria`, and a searcher who says
    "garantía propietaria" in the chat declares it without being asked where.
 2. **Pets: an eligibility rule, not only a search attribute.** Approved. The cost is accepted:
-   without a declared pets fact, the 10% of listings that refuse pets become unknown.
+   without a declared pets fact, the 10% of listings that refuse pets become unknown. The choices
+   are none, dog, cat and other; none stands alone. A refusal that names one species refuses only
+   that one ("gatos no" admits a dog), an explicit allowlist admits only what it names ("sólo
+   gatos"), and a preference or a size limit ("preferentemente", "mascotas grandes", "apto
+   mascotas pequeñas") is discretionary: conditionally eligible for a pet owner, eligible for a
+   searcher who declared none.
+5. **Declaring none is a qualification.** Guarantee and pets both offer `none`. A searcher who
+   declares no guarantee is ineligible for a hard guarantee rule, not unknown, so the zero-results
+   line can name the guarantee to get.
+6. **`recibos_garante` is extracted.** The extractor spots a guarantor's pay slips next to a
+   guarantee and Jev judges them, re-extracting only the listings the new pattern matches. Of the
+   three it matched, two now accept `recibos_garante`. The third asks for the tenant's and the
+   guarantor's pay slips on top of a propietaria or caución guarantee; Jev read that as accepting
+   them, so that listing keeps its earlier rule.
 
 Deferred, out of scope until revisited:
 
@@ -267,6 +280,10 @@ Rent is ARS 800,000 unless stated. "3×" is the rule that income must triple the
 | 12 | Searcher does not declare pets | nothing | pets: none | Unknown, never eligible | New |
 | 13 | Unknown operator (bad data) | propietaria | operator `max_age` | Unknown, unverifiable | New |
 | 14 | Documented income | `income_documented: no` | hard documented income | Ineligible | New |
+| 15 | A dog and a cat, listing refuses cats | dog and cat | pets: none, dog, other | Ineligible: every declared pet must be admitted | New |
+| 16 | No pets, listing refuses large pets | none | discretionary pets: none | Eligible: the owner's call is about pets | New |
+| 17 | A dog, listing refuses large pets | dog | discretionary pets: none | Conditionally eligible, discretionary | New |
+| 18 | No guarantee declared as none | guarantee none | hard caución | Ineligible, and relaxations name caución | New |
 
 ### Unit: validation and zero results
 

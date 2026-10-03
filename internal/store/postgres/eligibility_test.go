@@ -102,10 +102,12 @@ func TestFactsCarryTheFormCatalog(t *testing.T) {
 			{Value: "propietaria", Label: "Garantía propietaria"},
 			{Value: "caucion", Label: "Seguro de caución"},
 			{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"},
+			{Value: "none", Label: "No tengo"},
 		}},
 		"income_documented": {Admissible: true, Label: "¿Podés comprobar tus ingresos?", Priority: "high", Position: 2, Choices: yesNo},
 		"pets": {Admissible: true, Label: "Mascotas", Priority: "high", Multiple: true, Position: 3, Choices: []eligibility.Choice{
 			{Value: "none", Label: "Ninguna"}, {Value: "dog", Label: "Perro"}, {Value: "cat", Label: "Gato"},
+			{Value: "other", Label: "Otra"},
 		}},
 		"income_band": {Admissible: true, Label: "Ingresos mensuales", Priority: "medium", Position: 4, Choices: []eligibility.Choice{
 			{Value: "0-1000000", Label: "Hasta $1.000.000"},

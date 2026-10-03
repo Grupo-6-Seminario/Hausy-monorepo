@@ -31,6 +31,7 @@ type Operator string
 
 const (
 	OneOf          Operator = "one_of"
+	SubsetOf       Operator = "subset_of"
 	IncomeMultiple Operator = "income_multiple"
 )
 
@@ -136,41 +137,63 @@ type Rule struct {
 	Evidence   string   `json:"evidence,omitempty"`   // the listing's own words
 }
 
+// animal is a pets word, whole: "obligatorio" holds "gato" and is not one.
+const animal = `\b(?:mascotas?|perr[oa]s?|gat[oa]s?|animal(?:es)?)\b`
+
 var (
-	namesAnimal = regexp.MustCompile(`(?i)mascota|perr[oa]|gat[oa]|animal`)
-	namesDog    = regexp.MustCompile(`(?i)perr[oa]`)
-	namesCat    = regexp.MustCompile(`(?i)gat[oa]`)
-	// The owner keeps the call: a preference, or a limit on size.
-	ownerDecides = regexp.MustCompile(`(?i)preferentemente|grande`)
+	namesAnimal = regexp.MustCompile(`(?i)` + animal)
+	namesDog    = regexp.MustCompile(`(?i)\bperr[oa]s?\b`)
+	namesCat    = regexp.MustCompile(`(?i)\bgat[oa]s?\b`)
+	// Only the animals named up to the next clause: "sólo gatos", "únicamente
+	// perros y gatos"; in "sólo gatos, no perros" the dogs are outside it.
+	onlyAnimals = regexp.MustCompile(`(?i)(?:s[oó]lo|solamente|[uú]nicamente)\b[^.,;]{0,30}`)
+	// The owner keeps the call: a preference, or a limit on the animal's size.
+	ownerDecides = regexp.MustCompile(`(?i)\bpreferentemente\b|` + animal + `\s+(?:\S+\s+)?(?:grandes?|pequeñ[oa]s?|chic[oa]s?)\b`)
 )
 
-// PublishedRules are the eligibility rules a listing's own published
-// attributes state, so loading derives them without a model. A pets refusal
-// admits a searcher without pets and, when it names only dogs or only cats,
-// the other animal too ("gatos no" admits a dog). A preference or a size
-// limit leaves the owner to decide, so that rule is discretionary. An inferred
-// attribute is the parser's reading, not the listing's, and derives nothing;
-// so does a refusal whose evidence never names an animal, since the committed
-// parse holds two that quote accessibility notes instead.
-func PublishedRules(attributes []listing.Attribute) []Rule {
+// PublishedRules are the pets rules a listing's own published attributes
+// state, so loading derives them without a model. The rule lists the pets
+// choices the listing admits, and every declared pet must be among them
+// (subset_of): a refusal admits every choice but the animals it names, or
+// only "none" when it names no species; "sólo gatos" admits only cats. A
+// preference or a size limit, refusing or welcoming, leaves the owner to
+// decide, so that rule is discretionary and admits only "none" outright. An
+// inferred attribute is the parser's reading, not the listing's, and derives
+// nothing; so does evidence that never names an animal, since the committed
+// parse holds two refusals that quote accessibility notes instead.
+func PublishedRules(attributes []listing.Attribute, catalog Catalog) []Rule {
 	var rules []Rule
 	for _, a := range attributes {
-		if a.Type != "pets_allowed" || a.Value != "no" || a.Provenance != listing.Stated || !namesAnimal.MatchString(a.Evidence) {
+		if a.Type != "pets_allowed" || a.Provenance != listing.Stated || !namesAnimal.MatchString(a.Evidence) {
 			continue
 		}
-		admitted := []string{"none"}
 		dog, cat := namesDog.MatchString(a.Evidence), namesCat.MatchString(a.Evidence)
-		switch {
-		case dog && !cat:
-			admitted = append(admitted, "cat")
-		case cat && !dog:
-			admitted = append(admitted, "dog")
-		}
 		hardness := Hard
 		if ownerDecides.MatchString(a.Evidence) {
 			hardness = Discretionary
 		}
-		rules = append(rules, Rule{Fact: "pets", Operator: OneOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence})
+		only := onlyAnimals.FindString(a.Evidence)
+		onlyDog, onlyCat := namesDog.MatchString(only), namesCat.MatchString(only)
+		var admits func(choice string) bool
+		switch {
+		case onlyDog || onlyCat:
+			admits = func(c string) bool { return c == "none" || c == "dog" && onlyDog || c == "cat" && onlyCat }
+		case hardness == Discretionary:
+			admits = func(c string) bool { return c == "none" }
+		case a.Value != "no":
+			continue
+		case dog || cat:
+			admits = func(c string) bool { return !(c == "dog" && dog || c == "cat" && cat) }
+		default:
+			admits = func(c string) bool { return c == "none" }
+		}
+		var admitted []string
+		for _, choice := range catalog["pets"].Choices {
+			if admits(choice.Value) {
+				admitted = append(admitted, choice.Value)
+			}
+		}
+		rules = append(rules, Rule{Fact: "pets", Operator: SubsetOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence})
 	}
 	return rules
 }
@@ -247,6 +270,8 @@ func comparison(op Operator) func(declared []string, rent listing.Money, r Rule)
 	switch op {
 	case OneOf:
 		return oneOf
+	case SubsetOf:
+		return subsetOf
 	case IncomeMultiple:
 		return incomeMultiple
 	}
@@ -267,8 +292,10 @@ func outcome(q Qualification, rent listing.Money, r Rule) Reason {
 	reason := compare(declared, rent, r)
 	// The owner decides a discretionary rule case by case, so neither
 	// clearing nor failing it is final. A comparison nobody can make stays
-	// unverifiable: discretion cannot vouch for it.
-	if r.Hardness == Discretionary && reason != Unverifiable {
+	// unverifiable: discretion cannot vouch for it. A searcher who declared
+	// having none of the fact ("no tengo mascotas") is outside what the owner
+	// decides about, so clearing the rule is final for them.
+	if r.Hardness == Discretionary && reason != Unverifiable && !(reason == Met && slices.Equal(declared, []string{"none"})) {
 		return DiscretionaryCall
 	}
 	return reason
@@ -279,6 +306,17 @@ func oneOf(declared []string, _ listing.Money, r Rule) Reason {
 		return Met
 	}
 	return NotMet
+}
+
+// subsetOf needs every declared value admitted: a dog owner who also has a
+// cat fails "gatos no".
+func subsetOf(declared []string, _ listing.Money, r Rule) Reason {
+	for _, v := range declared {
+		if !slices.Contains(r.Values, v) {
+			return NotMet
+		}
+	}
+	return Met
 }
 
 // incomeMultiple compares a declared band "min-max" (monthly ARS; "min-" is

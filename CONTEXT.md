@@ -49,7 +49,7 @@ _Avoid_: sub-search, zone
 ### Eligibility
 
 **Qualification**:
-What the searcher declares about themselves that a property may demand: guarantee instruments, income band, whether they already have a caución quote. Open-ended; the set of facts grows with the rules that use them.
+What the searcher declares about themselves that a property may demand: guarantee instruments, income band, whether they already have a caución quote, their pets. Open-ended; the set of facts grows with the rules that use them. Declaring that one has none ("no tengo garantía", "no tengo mascotas") is a qualification too, and differs from saying nothing: a property that demands a guarantee makes the first searcher ineligible and the second unknown.
 _Avoid_: profile, solvency, requirements (of the searcher)
 
 **Unresolved qualification**:

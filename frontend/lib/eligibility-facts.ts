@@ -56,9 +56,11 @@ function parseFact(value: unknown): EligibilityFact | null {
 }
 
 // parseFacts reads the endpoint's body. Anything malformed fails as a whole:
-// a half-understood catalog would ask the wrong questions.
+// a half-understood catalog would ask the wrong questions, and an empty one
+// would show a form with none.
 export function parseFacts(body: unknown): EligibilityFact[] | null {
-  if (!isRecord(body) || !Array.isArray(body.facts)) return null;
+  if (!isRecord(body) || !Array.isArray(body.facts) || body.facts.length === 0)
+    return null;
   const facts = body.facts.map(parseFact);
   return facts.some((fact) => fact === null)
     ? null

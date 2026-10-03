@@ -189,7 +189,7 @@ func TestValidateQualificationReturnsTheFirstTypedError(t *testing.T) {
 // "Si conseguís none, vuelven 1" is no advice: relaxations name a guarantee
 // the searcher could get, never a pet to give up.
 func TestRelaxationsNeverSuggestGivingUpAPet(t *testing.T) {
-	noPets := eligibility.Rule{Fact: "pets", Operator: "one_of", Values: []string{"none"}, Hardness: "hard"}
+	noPets := eligibility.Rule{Fact: "pets", Operator: "subset_of", Values: []string{"none"}, Hardness: "hard"}
 	withPets := eligibility.Catalog{"pets": {Admissible: true}, "guarantee": {Admissible: true}}
 	candidates := []eligibility.Candidate{{Listing: listing.Listing{URL: "a", Price: rent(800000)}, Rules: []eligibility.Rule{noPets}}}
 	if got := eligibility.Relaxations(eligibility.Qualification{"pets": {"dog"}}, candidates, withPets); len(got) != 0 {
@@ -197,29 +197,122 @@ func TestRelaxationsNeverSuggestGivingUpAPet(t *testing.T) {
 	}
 }
 
-// Each phrase is a refusal from the committed parse. A refusal names the
-// animals it refuses, so the rule admits the rest; an owner's preference is
-// discretionary, not final.
-func TestPublishedRulesAdmitTheAnimalsARefusalLeavesOut(t *testing.T) {
-	refusal := func(evidence string) []listing.Attribute {
-		return []listing.Attribute{{Type: "pets_allowed", Value: "no", Provenance: listing.Stated, Evidence: evidence}}
-	}
+var petsCatalog = eligibility.Catalog{"pets": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{{Value: "none"}, {Value: "dog"}, {Value: "cat"}, {Value: "other"}}}}
+
+// Most phrases come from the committed parse. A refusal names the animals it
+// refuses, so the rule admits every other choice; "sólo gatos" admits only
+// cats; a preference or a limit on size leaves the owner to decide.
+func TestPublishedRulesAdmitWhatTheListingAdmits(t *testing.T) {
 	for _, tc := range []struct {
+		allowed  string
 		evidence string
 		values   []string
 		hardness eligibility.Hardness
 	}{
-		{"No se aceptan mascotas", []string{"none"}, "hard"},
-		{"Máximo para 2 personas, sin mascotas.", []string{"none"}, "hard"},
-		{"El departamento es apto mascotas ( gatos no)", []string{"none", "dog"}, "hard"},
-		{"No se permite perro", []string{"none", "cat"}, "hard"},
-		{"Mascotas: preferentemente NO", []string{"none"}, "discretionary"},
-		{"El inmueble no es apto para mascotas grandes por expresa solicitud de sus propietarios", []string{"none"}, "discretionary"},
+		{"no", "No se aceptan mascotas", []string{"none"}, "hard"},
+		{"no", "Máximo para 2 personas, sin mascotas.", []string{"none"}, "hard"},
+		{"no", "El departamento es apto mascotas ( gatos no)", []string{"none", "dog", "other"}, "hard"},
+		{"no", "No se permite perro", []string{"none", "cat", "other"}, "hard"},
+		{"no", "Mascotas: preferentemente NO", []string{"none"}, "discretionary"},
+		{"no", "El inmueble no es apto para mascotas grandes por expresa solicitud de sus propietarios", []string{"none"}, "discretionary"},
+		// "obligatorio" holds "gato" and "ambiente grande" holds "grande": neither is about animals.
+		{"no", "No se aceptan mascotas, seguro obligatorio", []string{"none"}, "hard"},
+		{"no", "Sin mascotas, ambiente grande", []string{"none"}, "hard"},
+		{"yes", "Apto mascotas pequeñas", []string{"none"}, "discretionary"},
+		{"yes", "ACEPTA UNA MASCOTA PEQUEÑA", []string{"none"}, "discretionary"},
+		{"yes", "Sólo se aceptan gatos", []string{"none", "cat"}, "hard"},
+		{"no", "No se aceptan mascotas, únicamente gatos", []string{"none", "cat"}, "hard"},
+		// The allowlist names its animals; a refused one elsewhere is not admitted.
+		{"no", "No se aceptan perros, solo gatos", []string{"none", "cat"}, "hard"},
+		{"yes", "Sólo gatos, no perros", []string{"none", "cat"}, "hard"},
+		{"yes", "Solamente perros y gatos", []string{"none", "dog", "cat"}, "hard"},
 	} {
-		got := eligibility.PublishedRules(refusal(tc.evidence))
-		want := []eligibility.Rule{{Fact: "pets", Operator: "one_of", Values: tc.values, Hardness: tc.hardness, Visibility: "public", Source: "parsed", Evidence: tc.evidence}}
+		attributes := []listing.Attribute{{Type: "pets_allowed", Value: tc.allowed, Provenance: listing.Stated, Evidence: tc.evidence}}
+		got := eligibility.PublishedRules(attributes, petsCatalog)
+		want := []eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: tc.values, Hardness: tc.hardness, Visibility: "public", Source: "parsed", Evidence: tc.evidence}}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("%q:\n got %+v\nwant %+v", tc.evidence, got, want)
 		}
+	}
+}
+
+// A listing that welcomes pets without a limit, or a refusal that never
+// names an animal, demands nothing.
+func TestPublishedRulesIgnoreWhatDemandsNothing(t *testing.T) {
+	for _, a := range []listing.Attribute{
+		{Type: "pets_allowed", Value: "yes", Provenance: listing.Stated, Evidence: "Apto mascotas"},
+		{Type: "pets_allowed", Value: "no", Provenance: listing.Stated, Evidence: "Inmueble no accesible para personas con discapacidad física LEY 5115"},
+		{Type: "pets_allowed", Value: "no", Provenance: listing.Inferred, Evidence: "No se aceptan mascotas"},
+	} {
+		if got := eligibility.PublishedRules([]listing.Attribute{a}, petsCatalog); len(got) != 0 {
+			t.Errorf("%q: want no rule, got %+v", a.Evidence, got)
+		}
+	}
+}
+
+// Every declared animal must be admitted: one refused pet is enough to fail.
+func TestPetsRuleNeedsEveryDeclaredValueAdmitted(t *testing.T) {
+	notCats := eligibility.Rule{Fact: "pets", Operator: "subset_of", Values: []string{"none", "dog", "other"}, Hardness: "hard"}
+	noPets := eligibility.Rule{Fact: "pets", Operator: "subset_of", Values: []string{"none"}, Hardness: "hard"}
+	for _, tc := range []struct {
+		name string
+		pets []string
+		rule eligibility.Rule
+		want eligibility.State
+	}{
+		{"a dog and a cat where cats are refused", []string{"dog", "cat"}, notCats, eligibility.Ineligible},
+		{"a dog where cats are refused", []string{"dog"}, notCats, eligibility.Eligible},
+		{"no pets where pets are refused", []string{"none"}, noPets, eligibility.Eligible},
+		{"spec case 11: a dog where pets are refused", []string{"dog"}, noPets, eligibility.Ineligible},
+		{"spec case 12: pets undeclared", nil, noPets, eligibility.Unknown},
+	} {
+		q := eligibility.Qualification{}
+		if tc.pets != nil {
+			q["pets"] = tc.pets
+		}
+		if got := eligibility.Assess(q, rent(800000), []eligibility.Rule{tc.rule}, petsCatalog); got.State != tc.want {
+			t.Errorf("%s: want %s, got %+v", tc.name, tc.want, got)
+		}
+	}
+}
+
+// "Mascotas grandes no" is the owner's call for a pet owner, and no call at
+// all for a searcher without pets.
+func TestDiscretionaryPetsRuleClearsASearcherWithoutPets(t *testing.T) {
+	bigPets := eligibility.Rule{Fact: "pets", Operator: "subset_of", Values: []string{"none"}, Hardness: "discretionary"}
+	for _, tc := range []struct {
+		pets []string
+		want eligibility.State
+	}{
+		{[]string{"none"}, eligibility.Eligible},
+		{[]string{"dog"}, eligibility.ConditionallyEligible},
+	} {
+		if got := eligibility.Assess(eligibility.Qualification{"pets": tc.pets}, rent(800000), []eligibility.Rule{bigPets}, petsCatalog); got.State != tc.want {
+			t.Errorf("%v: want %s, got %+v", tc.pets, tc.want, got)
+		}
+	}
+}
+
+// Spec case 14.
+func TestUndocumentedIncomeFailsARuleThatRequiresIt(t *testing.T) {
+	documented := eligibility.Rule{Fact: "income_documented", Operator: "one_of", Values: []string{"yes"}, Hardness: "hard"}
+	got := eligibility.Assess(eligibility.Qualification{"income_documented": {"no"}}, rent(800000), []eligibility.Rule{documented}, eligibility.Catalog{"income_documented": {Admissible: true}})
+	if got.State != eligibility.Ineligible {
+		t.Fatalf("want ineligible, got %+v", got)
+	}
+}
+
+// A searcher who declares no guarantee fails a hard guarantee rule instead of
+// staying unknown, so the zero-results line can name what to get.
+func TestDeclaringNoGuaranteeIsIneligibleAndRelaxable(t *testing.T) {
+	onlyCaucion := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"}
+	q := eligibility.Qualification{"guarantee": {"none"}}
+	if got := eligibility.Assess(q, rent(800000), []eligibility.Rule{onlyCaucion}, catalog); got.State != eligibility.Ineligible {
+		t.Fatalf("want ineligible, got %+v", got)
+	}
+	candidates := []eligibility.Candidate{{Listing: listing.Listing{URL: "a", Price: rent(800000)}, Rules: []eligibility.Rule{onlyCaucion}}}
+	want := []eligibility.Relaxation{{Fact: "guarantee", Value: "caucion", Count: 1}}
+	if got := eligibility.Relaxations(q, candidates, catalog); !reflect.DeepEqual(got, want) {
+		t.Fatalf("want %+v, got %+v", want, got)
 	}
 }

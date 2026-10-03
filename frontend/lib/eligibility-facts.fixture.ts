@@ -16,6 +16,7 @@ export const factsFixture: EligibilityFact[] = [
       { value: 'propietaria', label: 'Garantía propietaria' },
       { value: 'caucion', label: 'Seguro de caución' },
       { value: 'recibos_garante', label: 'Recibos de sueldo de un garante' },
+      { value: 'none', label: 'No tengo' },
     ],
   },
   {
@@ -34,6 +35,7 @@ export const factsFixture: EligibilityFact[] = [
       { value: 'none', label: 'Ninguna' },
       { value: 'dog', label: 'Perro' },
       { value: 'cat', label: 'Gato' },
+      { value: 'other', label: 'Otra' },
     ],
   },
   {

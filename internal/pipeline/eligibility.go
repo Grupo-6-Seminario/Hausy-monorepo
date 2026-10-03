@@ -61,6 +61,7 @@ func ExtractEligibility(ctx context.Context, input io.Reader, output io.Writer, 
 // whose published attributes add rules of their own.
 type EligibilitySink interface {
 	ByURL(ctx context.Context, url string) (listing.Listing, error)
+	Facts(ctx context.Context) (eligibility.Catalog, error)
 	SaveEligibility(ctx context.Context, url string, rules []eligibility.Rule) error
 }
 
@@ -69,6 +70,11 @@ type EligibilitySink interface {
 // deterministic and repeatable.
 func LoadEligibility(ctx context.Context, input io.Reader, sink EligibilitySink) (Report, error) {
 	var report Report
+	// Published pets rules list the pets choices a listing admits.
+	catalog, err := sink.Facts(ctx)
+	if err != nil {
+		return report, err
+	}
 	scanner := scannerFor(input)
 	for lineNumber := 1; scanner.Scan(); lineNumber++ {
 		if len(scanner.Bytes()) == 0 {
@@ -87,7 +93,7 @@ func LoadEligibility(ctx context.Context, input io.Reader, sink EligibilitySink)
 			report.fail(fmt.Errorf("%s: %w", record.URL, err))
 			continue
 		}
-		rules := append(record.Rules, eligibility.PublishedRules(item.Attributes)...)
+		rules := append(record.Rules, eligibility.PublishedRules(item.Attributes, catalog)...)
 		if err := sink.SaveEligibility(ctx, record.URL, rules); err != nil {
 			report.fail(err)
 			continue

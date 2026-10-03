@@ -62,6 +62,10 @@ func (f *fakeEligibilitySink) ByURL(_ context.Context, url string) (listing.List
 	return f.listings[url], nil
 }
 
+func (f *fakeEligibilitySink) Facts(context.Context) (eligibility.Catalog, error) {
+	return eligibility.Catalog{"pets": {Admissible: true, Choices: []eligibility.Choice{{Value: "none"}, {Value: "dog"}, {Value: "cat"}, {Value: "other"}}}}, nil
+}
+
 func (f *fakeEligibilitySink) SaveEligibility(_ context.Context, url string, rules []eligibility.Rule) error {
 	if url == "missing" {
 		return errors.New("unknown listing")
@@ -103,7 +107,7 @@ func TestLoadEligibility_DerivesThePetsRuleFromAStatedRefusal(t *testing.T) {
 	want := map[string][]eligibility.Rule{
 		"no-pets": {
 			{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"},
-			{Fact: "pets", Operator: "one_of", Values: []string{"none", "cat"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: "No se permite perro"},
+			{Fact: "pets", Operator: "subset_of", Values: []string{"none", "cat", "other"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: "No se permite perro"},
 		},
 		"inferred":     {},
 		"pets-welcome": {},

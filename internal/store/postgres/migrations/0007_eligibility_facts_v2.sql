@@ -10,7 +10,8 @@ ALTER TABLE eligibility_facts
 UPDATE eligibility_facts SET label = 'Garantía', priority = 'high', multiple = true, position = 1,
     choices = '[{"value": "propietaria", "label": "Garantía propietaria"},
                 {"value": "caucion", "label": "Seguro de caución"},
-                {"value": "recibos_garante", "label": "Recibos de sueldo de un garante"}]'
+                {"value": "recibos_garante", "label": "Recibos de sueldo de un garante"},
+                {"value": "none", "label": "No tengo"}]'
     WHERE name = 'guarantee';
 
 UPDATE eligibility_facts SET label = 'Ingresos mensuales', priority = 'medium', position = 4,
@@ -28,5 +29,5 @@ INSERT INTO eligibility_facts (name, admissible, label, priority, multiple, posi
     ('income_documented', true, '¿Podés comprobar tus ingresos?', 'high', false, 2,
      '[{"value": "yes", "label": "Sí"}, {"value": "no", "label": "No"}]'),
     ('pets', true, 'Mascotas', 'high', true, 3,
-     '[{"value": "none", "label": "No tengo"}, {"value": "dog", "label": "Perro"},
+     '[{"value": "none", "label": "Ninguna"}, {"value": "dog", "label": "Perro"},
        {"value": "cat", "label": "Gato"}, {"value": "other", "label": "Otra"}]');
