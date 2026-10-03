@@ -76,7 +76,7 @@ func NewHandler(agent buyer.Agent, provider auth.Provider, catalog agency.Catalo
 		}
 		response, err := runTurn(r.Context(), agent, input, buyer.Events{})
 		if err != nil {
-			status, body := turnError(err)
+			status, body := domainError(err, nil)
 			writeJSON(w, status, body)
 			return
 		}
@@ -92,11 +92,25 @@ func runTurn(ctx context.Context, agent buyer.Agent, input messageRequest, event
 	return agent.HandleMessage(ctx, input.SessionID, input.Message, input.Qualification, events)
 }
 
-func turnError(err error) (int, errorResponse) {
-	if errors.Is(err, buyer.ErrStaleClarification) {
+// domainError maps an error from the domain or the buyer turn to its HTTP
+// status and body (specs/004, phase 1 table). catalog supplies the fact labels
+// a refused qualification names; a turn error needs none. Anything unknown is
+// the model failing to answer.
+func domainError(err error, catalog eligibility.Catalog) (int, errorResponse) {
+	var invalid *eligibility.QualificationError
+	switch {
+	case errors.As(err, &invalid):
+		label := catalog[invalid.Fact].Label
+		message := map[string]string{
+			"unknown_fact":      "Ese dato no está entre las preguntas.",
+			"inadmissible_fact": "Hausy no pide ese dato.",
+			"invalid_value":     "Elegí una de las opciones de " + label + ".",
+			"too_many_values":   label + " admite una sola opción.",
+		}[invalid.Code]
+		return http.StatusBadRequest, errorResponse{Error: message, Code: invalid.Code, Field: "qualification." + invalid.Fact}
+	case errors.Is(err, buyer.ErrStaleClarification):
 		return http.StatusConflict, errorResponse{Error: "Esa pregunta ya no está activa. Volvé a la búsqueda.", Code: "stale_clarification"}
-	}
-	if errors.Is(err, buyer.ErrPendingClarification) {
+	case errors.Is(err, buyer.ErrPendingClarification):
 		return http.StatusConflict, errorResponse{Error: "Respondé o editá la pregunta pendiente antes de seguir.", Code: "pending_clarification"}
 	}
 	return http.StatusBadGateway, errorResponse{Error: agentUnavailable, Code: "agent_unavailable"}
@@ -141,7 +155,7 @@ func streamTurn(w http.ResponseWriter, r *http.Request, agent buyer.Agent, input
 		send(turnEvent{Type: "error", Error: agentUnavailable, Code: "agent_unavailable"})
 	default:
 		setOutcome(r.Context(), "error")
-		status, body := turnError(err)
+		status, body := domainError(err, nil)
 		writeJSON(w, status, body)
 	}
 }
@@ -254,17 +268,10 @@ func validQualification(w http.ResponseWriter, r *http.Request, store Qualificat
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos validar tus datos.", Code: "internal"})
 		return false
 	}
-	var invalid *eligibility.QualificationError
-	if !errors.As(eligibility.ValidateQualification(catalog, q), &invalid) {
-		return true
+	if err := eligibility.ValidateQualification(catalog, q); err != nil {
+		status, body := domainError(err, catalog)
+		writeJSON(w, status, body)
+		return false
 	}
-	label := catalog[invalid.Fact].Label
-	message := map[string]string{
-		"unknown_fact":      "Ese dato no está entre las preguntas.",
-		"inadmissible_fact": "Hausy no pide ese dato.",
-		"invalid_value":     "Elegí una de las opciones de " + label + ".",
-		"too_many_values":   label + " admite una sola opción.",
-	}[invalid.Code]
-	writeJSON(w, http.StatusBadRequest, errorResponse{Error: message, Code: invalid.Code, Field: "qualification." + invalid.Fact})
-	return false
+	return true
 }

@@ -2,6 +2,9 @@ package postgres_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -192,5 +195,49 @@ func TestQualificationRoundTripsPerUser(t *testing.T) {
 	}
 	if err := store.SaveQualification(ctx, user.ID, eligibility.Qualification{"age": {"19"}}); err == nil {
 		t.Fatal("an inadmissible fact must be refused")
+	}
+}
+
+// Candidates is read in one query instead of one per listing. Each candidate
+// must be the listing ByURL reads, and its rules the ones Candidates returned
+// before the change: the digests were taken from the per-listing
+// implementation over the committed inventory.
+func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	loadCommitted(t, store)
+	maxPrice := 900000.0
+	for _, tc := range []struct {
+		name   string
+		read   func() ([]eligibility.Candidate, error)
+		count  int
+		digest string
+	}{
+		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "c131194746704b6d1bbdaf43acc732de0f7d0560dcd1efdf817609b77c2355b9"},
+		{"palermo and congreso up to 900k", func() ([]eligibility.Candidate, error) {
+			return store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice})
+		}, 92, "1eb78918ca32486b95fcb79e16631aaaee29d5f011e3e4c1bf8159cbaef7a816"},
+		{"capped preview", func() ([]eligibility.Candidate, error) { return store.PreviewCandidates(ctx, search.Query{}, 50) }, 50, "5c8afef430f26de3ef8c3ad510a8fbe7d9fe2a724819ee5a3e82aaebe43d8aa5"},
+	} {
+		got, err := tc.read()
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		rules := sha256.New()
+		for _, c := range got {
+			want, err := store.ByURL(ctx, c.Listing.URL)
+			if err != nil || !reflect.DeepEqual(c.Listing, want) {
+				t.Fatalf("%s: %s differs from ByURL (%v):\n got %+v\nwant %+v", tc.name, c.Listing.URL, err, c.Listing, want)
+			}
+			line, _ := json.Marshal(struct {
+				URL   string
+				Rules []eligibility.Rule
+			}{c.Listing.URL, c.Rules})
+			rules.Write(append(line, '\n'))
+		}
+		digest := hex.EncodeToString(rules.Sum(nil))
+		if len(got) != tc.count || digest != tc.digest {
+			t.Errorf("%s: got %d candidates, rules digest %s; want %d, %s", tc.name, len(got), digest, tc.count, tc.digest)
+		}
 	}
 }
