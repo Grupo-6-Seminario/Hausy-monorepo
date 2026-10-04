@@ -1,0 +1,14 @@
+{
+  "baseline_revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+  "proposed_policy": "weighted-net-fit-v1",
+  "source": "Independent literal worked cases frozen before experiment implementation. Classifier outcomes are recorded controls, not live model measurements.",
+  "heldout_ids": [
+    "missing-price-desc",
+    "area-replaces-score",
+    "eligible-before-score"
+  ],
+  "rubric_version": "direct-property-light-noise-v1",
+  "input_correction": "Before comparison implementation, hint-only listing description corrected to frente/orientation, and assessment corrected to insufficient evidence for both adapters. Literal expected ordering unchanged. Real control replaced before execution because the first chosen row had no quality review; replacement has a passed content-bound review. Priority phrase also included verbatim in original fixture search question.",
+  "completeness_labels": "Every case requires ranking_complete=true except explicitly simulated provider-failure, which requires false. Added after independent review exposed implicit completeness acceptance; frozen orders unchanged.",
+  "added_development_control": "Added targeted-listing-question with independent literal price700000ARS after packet implementation. No held-out cases inspected or labels changed."
+}

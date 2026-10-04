@@ -1,0 +1,520 @@
+package comparison_test
+
+// Verifier-owned executable controls for docs/experiments/property-matching-oracle.md.
+// Injected with go test -overlay; never committed. Prints observations and
+// fails per case when the proposed order or score differs from the oracle.
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+
+	comparison "github.com/Grupo-6-Seminario/proyecto-angus-back/experiments/property-matching"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+)
+
+var (
+	ruleE  = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria"}, Hardness: "hard", Evidence: "Garantía propietaria"}}
+	ruleC  = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria", "caucion"}, Hardness: "discretionary", Evidence: "ver cuáles permite la propietaria"}}
+	ruleX  = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard", Evidence: "Seguro de caución (excluyente)"}}
+	ruleI3 = []eligibility.Rule{{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard", Evidence: "ingresos 3x"}}
+	prop   = eligibility.Qualification{"guarantee": {"propietaria"}}
+	fLight = search.AttributeFilter{Type: "natural_light", Value: "high"}
+	fQuiet = search.AttributeFilter{Type: "noise_level", Value: "quiet"}
+	fBalc  = search.AttributeFilter{Type: "outdoor_space", Value: "balcon"}
+)
+
+// label is an oracle evidence label: + supported, - contradicted, ~ hint,
+// ! conflicting, ? unknown, x unavailable (provider failure for the listing).
+type cand struct {
+	id, hood string
+	price    *float64
+	area     *float64
+	rooms    int
+	currency string
+	rules    []eligibility.Rule
+	labels   map[string]byte // criterion key -> label
+}
+
+func f64(v float64) *float64 { return &v }
+
+func crit(key, strength string, weight int, quote, priority string) matching.FitCriterion {
+	t, v, _ := strings.Cut(key, "=")
+	return matching.FitCriterion{Criterion: matching.Criterion{ID: t, Text: map[string]string{"natural_light": "luminoso", "noise_level": "tranquilo", "outdoor_space": "balcón"}[t], AttributeType: t, AttributeValue: v}, Strength: strength, Weight: weight, SourceQuote: quote, PrioritySource: priority}
+}
+
+// build turns labeled candidates into a comparison.Case. Evidence: one stated
+// attribute per supported/contradicted label, an inferred attribute for hints,
+// description text for conflicts.
+func build(id, question, sort string, branches []search.Query, branchIDs []string, criteria [][]matching.FitCriterion, cands []cand) comparison.Case {
+	c := comparison.Case{ID: id, Split: "oracle", Question: question, Plan: intake.Plan{Intent: "new_search", PlannedBy: "oracle", Sort: sort, Branches: branches}, BranchIDs: branchIDs, Criteria: criteria, Qualification: prop, Answers: map[string]map[string]comparison.RecordedAnswer{}, Failures: map[string]string{}, Expected: map[string][]string{}}
+	for _, k := range cands {
+		url := "u/" + k.id
+		price := k.price
+		if price == nil && k.currency == "" {
+			price = f64(700000)
+		}
+		cur := k.currency
+		if cur == "" {
+			cur = "ARS"
+		}
+		rooms := k.rooms
+		if rooms == 0 {
+			rooms = 2
+		}
+		hood := k.hood
+		if hood == "" {
+			hood = "palermo"
+		}
+		l := listing.Listing{Source: "oracle", URL: url, Neighborhood: hood, Operation: "alquiler", Price: listing.Money{Amount: price, Currency: cur}, TotalAreaM2: k.area, Rooms: &rooms, Description: "Aviso de control."}
+		answers := map[string]comparison.RecordedAnswer{}
+		for key, lab := range k.labels {
+			t, v, _ := strings.Cut(key, "=")
+			a := comparison.RecordedAnswer{Assessment: "insufficient_evidence", Status: "evaluated", EvidenceRefs: []string{}}
+			switch lab {
+			case '+':
+				l.Attributes = append(l.Attributes, listing.Attribute{Type: t, Value: v, Provenance: listing.Stated, Evidence: "afirma " + key})
+				a = comparison.RecordedAnswer{Assessment: "supported", Status: "evaluated", EvidenceRefs: []string{fmt.Sprintf("attribute:%d", len(l.Attributes)-1)}}
+			case '-':
+				l.Attributes = append(l.Attributes, listing.Attribute{Type: t, Value: "opposite", Provenance: listing.Stated, Evidence: "contradice " + key})
+				a = comparison.RecordedAnswer{Assessment: "contradicted", Status: "evaluated", EvidenceRefs: []string{fmt.Sprintf("attribute:%d", len(l.Attributes)-1)}}
+			case '~':
+				l.Attributes = append(l.Attributes, listing.Attribute{Type: t, Value: v, Provenance: listing.Inferred, Evidence: "indicio " + key})
+				a = comparison.RecordedAnswer{Assessment: "supported", Status: "evaluated", EvidenceRefs: []string{fmt.Sprintf("attribute:%d", len(l.Attributes)-1)}}
+			case '!':
+				l.Description = "Muy luminoso. El living es oscuro."
+				a = comparison.RecordedAnswer{Assessment: "conflicting_evidence", Status: "evaluated", EvidenceRefs: []string{"description"}}
+			case 'x':
+				c.Failures[url] = "provider_error"
+			}
+			answers[key] = a
+		}
+		// The baseline sends every light filter; give it an answer even when the
+		// listing's branch has no light criterion.
+		if _, ok := answers["natural_light=high"]; !ok {
+			answers["natural_light=high"] = comparison.RecordedAnswer{Assessment: "insufficient_evidence", Status: "evaluated", EvidenceRefs: []string{}}
+		}
+		c.Answers[url] = answers
+		c.Candidates = append(c.Candidates, eligibility.Candidate{Listing: l, Rules: k.rules})
+	}
+	return c
+}
+
+func palermo(sort string, req, pref []search.AttributeFilter) []search.Query {
+	return []search.Query{{Neighborhoods: []string{"palermo"}, Operation: "alquiler", RequiredAttributes: req, PreferredAttributes: pref}}
+}
+
+type expect struct {
+	order  map[string][]string // branch id -> ids
+	scores map[string]float64
+	rules  map[string][]string // branch id -> consecutive deciding rules
+	err    bool
+}
+
+func check(t *testing.T, c comparison.Case, want expect) {
+	t.Run(c.ID, func(t *testing.T) {
+		rec, err := comparison.RunProposed(context.Background(), c)
+		if want.err {
+			if err == nil {
+				t.Errorf("ORACLE %s: want rejection, got accepted", c.ID)
+			} else {
+				t.Logf("ORACLE %s: rejected: %v", c.ID, err)
+			}
+			return
+		}
+		if err != nil {
+			t.Errorf("ORACLE %s: RunProposed error: %v", c.ID, err)
+			return
+		}
+		p := rec.Project()
+		for _, b := range p.Branches {
+			var ids, rules []string
+			for i, r := range b.Shown {
+				id := strings.TrimPrefix(r.Listing.URL, "u/")
+				if strings.Contains(id, "zonaprop") {
+					id = id[len(id)-13 : len(id)-5]
+				}
+				ids = append(ids, id)
+				if i+1 < len(b.Shown) {
+					rules = append(rules, r.Reason.Rule)
+				}
+				if s, ok := want.scores[id]; ok && fmt.Sprintf("%.4f", s) != fmt.Sprintf("%.4f", r.Fit.Score) {
+					t.Errorf("ORACLE %s: score %s want %.4f got %.4f (%d/%d)", c.ID, id, s, r.Fit.Score, r.Fit.Numerator, r.Fit.Denominator)
+				}
+				if r.Fit.Denominator != 0 && r.Fit.Score != float64(r.Fit.Numerator)/float64(r.Fit.Denominator) {
+					t.Errorf("ORACLE %s: score not reconstructible for %s", c.ID, id)
+				}
+				sum := 0
+				for _, k := range r.Fit.Contributions {
+					sum += k.Points
+				}
+				if sum != r.Fit.Numerator {
+					t.Errorf("ORACLE %s: contributions %d != numerator %d for %s", c.ID, sum, r.Fit.Numerator, id)
+				}
+			}
+			t.Logf("ORACLE %s branch=%s shown=%v rules=%v hidden=%d excluded=%d matches=%d complete=%v", c.ID, b.ID, ids, rules, b.HiddenIneligible, b.ExcludedContradictions, b.HardFilterMatches, b.RankingComplete)
+			if w, ok := want.order[b.ID]; ok && !slices.Equal(w, ids) && !(len(w) == 0 && len(ids) == 0) {
+				t.Errorf("ORACLE %s: branch %s order want %v got %v", c.ID, b.ID, w, ids)
+			}
+			if w, ok := want.rules[b.ID]; ok && !slices.Equal(w, rules) && !(len(w) == 0 && len(rules) == 0) {
+				t.Errorf("ORACLE %s: branch %s rules want %v got %v", c.ID, b.ID, w, rules)
+			}
+		}
+		t.Logf("ORACLE %s relaxations=%+v", c.ID, p.Relaxations)
+		t.Logf("ORACLE %s FALLBACK:\n%s", c.ID, rec.Fallback("", ""))
+		if os.Getenv("ORACLE_BASELINE") != "" {
+			cmpr, err := comparison.Run(context.Background(), c)
+			if err != nil {
+				t.Logf("ORACLE %s baseline run error: %v", c.ID, err)
+				return
+			}
+			var base []string
+			for _, r := range cmpr.Baseline.Listings {
+				base = append(base, strings.TrimPrefix(r.URL, "u/"))
+			}
+			t.Logf("ORACLE %s baseline=%v", c.ID, base)
+		}
+	})
+}
+
+func TestOracleControls(t *testing.T) {
+	L, Q, B := "natural_light=high", "noise_level=quiet", "outdoor_space=balcon"
+	pref := func(keys ...string) []matching.FitCriterion {
+		out := []matching.FitCriterion{}
+		for _, k := range keys {
+			out = append(out, crit(k, "preference", 1, "", ""))
+		}
+		return out
+	}
+	one := []string{"palermo"}
+
+	// B1 gates.
+	gates := []search.Query{{Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "ARS", MaxPrice: f64(800000), MinRooms: ptr(2), MaxRooms: ptr(2), PreferredAttributes: []search.AttributeFilter{fLight}}}
+	b1 := build("B1-gates", "Dos ambientes en Palermo hasta 800 mil, luminoso", "", gates, one, [][]matching.FitCriterion{pref(L)}, []cand{
+		{id: "g-ok", rules: ruleE, labels: map[string]byte{L: '?'}},
+		{id: "g-price", price: f64(850000), rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "g-usd", price: f64(700), currency: "USD", rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "g-rooms", rooms: 3, rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "g-unpriced", currency: "none", rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "g-hood", hood: "belgrano", price: f64(600000), rules: ruleE, labels: map[string]byte{L: '+'}},
+	})
+	b1.Candidates[4].Listing.Price = listing.Money{}
+	check(t, b1, expect{order: map[string][]string{"palermo": {"g-ok"}}, scores: map[string]float64{"g-ok": 0}})
+
+	// B2 nearby control.
+	check(t, build("B2-nearby", "Palermo, luminoso y tranquilo", "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{pref(L, Q)}, []cand{
+		{id: "n-in", rules: ruleE, labels: map[string]byte{L: '?', Q: '?'}},
+		{id: "n-near", hood: "colegiales", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+	}), expect{order: map[string][]string{"palermo": {"n-in"}}})
+
+	// B3 contributions.
+	check(t, build("B3-contributions", "Palermo, luminoso y tranquilo", "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{pref(L, Q)}, []cand{
+		{id: "p-both", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+		{id: "p-light", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+		{id: "p-hint", rules: ruleE, labels: map[string]byte{L: '~', Q: '~'}},
+		{id: "p-none", rules: ruleE, labels: map[string]byte{L: '?', Q: '?'}},
+		{id: "p-dark", rules: ruleE, labels: map[string]byte{L: '-', Q: '+'}},
+		{id: "p-noisy", rules: ruleE, labels: map[string]byte{L: '?', Q: '-'}},
+	}), expect{order: map[string][]string{"palermo": {"p-both", "p-light", "p-dark", "p-hint", "p-none", "p-noisy"}},
+		scores: map[string]float64{"p-both": 1, "p-light": .5, "p-hint": 0, "p-none": 0, "p-dark": 0, "p-noisy": -.5},
+		rules:  map[string][]string{"palermo": {"preference_score", "preference_score", "stable_tie", "stable_tie", "preference_score"}}})
+
+	// B4 explicit priority.
+	msg := "Busco en Palermo, luminoso, y sobre todo que sea tranquilo"
+	prio := []matching.FitCriterion{crit(L, "preference", 1, "", ""), crit(Q, "preference", 2, "sobre todo que sea tranquilo", "sobre todo que sea tranquilo")}
+	b4 := []cand{
+		{id: "q-quiet", rules: ruleE, labels: map[string]byte{L: '?', Q: '+'}},
+		{id: "q-light", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+		{id: "q-both", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+		{id: "q-lightnoisy", rules: ruleE, labels: map[string]byte{L: '+', Q: '-'}},
+	}
+	check(t, build("B4-priority", msg, "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{prio}, b4),
+		expect{order: map[string][]string{"palermo": {"q-both", "q-quiet", "q-light", "q-lightnoisy"}}, scores: map[string]float64{"q-both": 1, "q-quiet": 2.0 / 3, "q-light": 1.0 / 3, "q-lightnoisy": -1.0 / 3}})
+	check(t, build("B4-equal", msg, "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{pref(L, Q)}, b4),
+		expect{order: map[string][]string{"palermo": {"q-both", "q-light", "q-quiet", "q-lightnoisy"}}})
+
+	// B4b invalid priorities.
+	absent := []matching.FitCriterion{crit(L, "preference", 1, "", ""), crit(Q, "preference", 2, "es fundamental el silencio", "es fundamental el silencio")}
+	check(t, build("B4b-phrase-absent-from-message", msg, "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{absent}, b4), expect{err: true})
+	w3 := []matching.FitCriterion{crit(L, "preference", 1, "", ""), crit(Q, "preference", 3, "sobre todo que sea tranquilo", "sobre todo que sea tranquilo")}
+	check(t, build("B4b-weight3", msg, "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{w3}, b4), expect{err: true})
+	nophrase := []matching.FitCriterion{crit(L, "preference", 2, "", ""), crit(Q, "preference", 1, "", "")}
+	check(t, build("B4b-no-phrase", msg, "", palermo("", nil, []search.AttributeFilter{fLight, fQuiet}), one, [][]matching.FitCriterion{nophrase}, b4), expect{err: true})
+
+	// B5 mandatory requirement.
+	req := []matching.FitCriterion{crit(L, "requirement", 1, "tiene que ser luminoso", ""), crit(Q, "preference", 1, "", "")}
+	b5 := build("B5-mandatory", "Palermo, tiene que ser luminoso, idealmente tranquilo", "", palermo("", []search.AttributeFilter{fLight}, []search.AttributeFilter{fQuiet}), one, [][]matching.FitCriterion{req}, []cand{
+		{id: "m-sup-quiet", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+		{id: "m-sup", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+		{id: "m-unk", rules: ruleE, labels: map[string]byte{L: '?', Q: '+'}},
+		{id: "m-conflict", rules: ruleE, labels: map[string]byte{L: '!', Q: '?'}},
+		{id: "m-hint", rules: ruleE, labels: map[string]byte{L: '~', Q: '?'}},
+		{id: "m-scope", rules: ruleE, labels: map[string]byte{L: '?', Q: '?'}},
+		{id: "m-contra", rules: ruleE, labels: map[string]byte{L: '-', Q: '+'}},
+	})
+	check(t, b5, expect{order: map[string][]string{"palermo": {"m-sup-quiet", "m-sup", "m-unk", "m-conflict", "m-hint", "m-scope"}},
+		rules: map[string][]string{"palermo": {"preference_score", "required_evidence", "preference_score", "stable_tie", "stable_tie"}}})
+
+	// B6 eligibility.
+	check(t, build("B6-eligibility", "Palermo luminoso", "", palermo("", nil, []search.AttributeFilter{fLight}), one, [][]matching.FitCriterion{pref(L)}, []cand{
+		{id: "e-elig", rules: ruleE, labels: map[string]byte{L: '?'}},
+		{id: "e-cond", rules: ruleC, labels: map[string]byte{L: '+'}},
+		{id: "e-unk", labels: map[string]byte{L: '+'}},
+		{id: "e-unk2", rules: ruleI3, labels: map[string]byte{L: '?'}},
+		{id: "e-inel", rules: ruleX, labels: map[string]byte{L: '+'}},
+	}), expect{order: map[string][]string{"palermo": {"e-elig", "e-cond", "e-unk", "e-unk2"}}, rules: map[string][]string{"palermo": {"eligibility", "eligibility", "preference_score"}}})
+
+	// B7 branches (per-branch presentation accepted).
+	b7 := build("B7-branches", "Palermo luminoso y tranquilo, o Caballito con balcón, o Belgrano", "", []search.Query{
+		{Neighborhoods: []string{"palermo"}, Operation: "alquiler", PreferredAttributes: []search.AttributeFilter{fLight, fQuiet}},
+		{Neighborhoods: []string{"caballito"}, Operation: "alquiler", PreferredAttributes: []search.AttributeFilter{fBalc}},
+		{Neighborhoods: []string{"belgrano"}, Operation: "alquiler"},
+	}, []string{"A", "B", "C"}, [][]matching.FitCriterion{pref(L, Q), pref(B), {}}, []cand{
+		{id: "a1", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+		{id: "a2", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+		{id: "b1", hood: "caballito", rules: ruleE, labels: map[string]byte{B: '+'}},
+		{id: "b2", hood: "caballito", rules: ruleE, labels: map[string]byte{B: '?'}},
+	})
+	check(t, b7, expect{order: map[string][]string{"A": {"a2", "a1"}, "B": {"b1", "b2"}, "C": {}}, scores: map[string]float64{"a1": .5, "a2": 1, "b1": 1, "b2": 0}})
+
+	// B8 sorts.
+	check(t, build("B8a-area", "Palermo luminoso, más grande primero", "area_desc", palermo("area_desc", nil, []search.AttributeFilter{fLight}), one, [][]matching.FitCriterion{pref(L)}, []cand{
+		{id: "s-small", area: f64(40), rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "s-noarea-b", rules: ruleE, labels: map[string]byte{L: '?'}},
+		{id: "s-big-tie", area: f64(80), rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "s-noarea-a", rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "s-big", area: f64(80), rules: ruleE, labels: map[string]byte{L: '?'}},
+	}), expect{order: map[string][]string{"palermo": {"s-big", "s-big-tie", "s-small", "s-noarea-a", "s-noarea-b"}}})
+	check(t, build("B8b-price-desc", "Palermo, más caro primero", "price_desc", withCurrency(palermo("price_desc", nil, nil), false), one, [][]matching.FitCriterion{{}}, []cand{
+		{id: "d-unk-exp", price: f64(1000000)}, {id: "d-elig-cheap", price: f64(600000), rules: ruleE}, {id: "d-elig-exp", price: f64(900000), rules: ruleE},
+	}), expect{order: map[string][]string{"palermo": {"d-elig-exp", "d-elig-cheap", "d-unk-exp"}}, rules: map[string][]string{"palermo": {"price_desc", "eligibility"}}})
+	check(t, build("B8c-price-asc-required", "Palermo, tiene que ser luminoso, más barato primero", "price_asc", withCurrency(palermo("price_asc", []search.AttributeFilter{fLight}, nil), false), one, [][]matching.FitCriterion{{crit(L, "requirement", 1, "", "")}}, []cand{
+		{id: "x-unconf", price: f64(400000), rules: ruleE, labels: map[string]byte{L: '?'}}, {id: "x-conf", price: f64(900000), rules: ruleE, labels: map[string]byte{L: '+'}},
+	}), expect{order: map[string][]string{"palermo": {"x-conf", "x-unconf"}}, rules: map[string][]string{"palermo": {"required_evidence"}}})
+
+	// B9 no preferences; B10 lone; B11 empty.
+	check(t, build("B9-no-prefs", "Alquiler en Palermo", "", palermo("", nil, nil), one, [][]matching.FitCriterion{{}}, []cand{
+		{id: "n-b", rules: ruleE}, {id: "n-c", price: f64(600000), rules: ruleE}, {id: "n-a", price: f64(800000), rules: ruleE},
+	}), expect{order: map[string][]string{"palermo": {"n-a", "n-b", "n-c"}}, rules: map[string][]string{"palermo": {"stable_tie", "stable_tie"}}})
+	check(t, build("B10-lone", "Palermo luminoso", "", palermo("", nil, []search.AttributeFilter{fLight}), one, [][]matching.FitCriterion{pref(L)}, []cand{
+		{id: "l-1", rules: ruleE, labels: map[string]byte{L: '+'}},
+	}), expect{order: map[string][]string{"palermo": {"l-1"}}, scores: map[string]float64{"l-1": 1}})
+	check(t, build("B11a-empty", "Palermo luminoso", "", palermo("", nil, []search.AttributeFilter{fLight}), one, [][]matching.FitCriterion{pref(L)}, nil), expect{order: map[string][]string{"palermo": {}}})
+	check(t, build("B11b-all-ineligible", "Palermo luminoso", "", palermo("", nil, []search.AttributeFilter{fLight}), one, [][]matching.FitCriterion{pref(L)}, []cand{
+		{id: "i-1", rules: ruleX, labels: map[string]byte{L: '+'}}, {id: "i-2", rules: ruleX, labels: map[string]byte{L: '?'}},
+	}), expect{order: map[string][]string{"palermo": {}}})
+
+	// B12 provider failure.
+	check(t, build("B12-provider", "Palermo, tiene que ser luminoso, idealmente tranquilo", "", palermo("", []search.AttributeFilter{fLight}, []search.AttributeFilter{fQuiet}), one, [][]matching.FitCriterion{req}, []cand{
+		{id: "f-ok", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}}, {id: "f-fail", rules: ruleE, labels: map[string]byte{L: 'x', Q: 'x'}},
+	}), expect{order: map[string][]string{"palermo": {"f-ok", "f-fail"}}, scores: map[string]float64{"f-ok": 0, "f-fail": 0}, rules: map[string][]string{"palermo": {"required_evidence"}}})
+
+	// B13 source precedence: stated balcon plus inferred none.
+	b13 := build("B13-precedence", "Palermo con balcón", "", palermo("", nil, []search.AttributeFilter{fBalc}), one, [][]matching.FitCriterion{pref(B)}, []cand{
+		{id: "pr-stated", rules: ruleE, labels: map[string]byte{B: '+'}}, {id: "pr-inferred", rules: ruleE, labels: map[string]byte{B: '~'}},
+	})
+	b13.Candidates[0].Listing.Attributes = append(b13.Candidates[0].Listing.Attributes, listing.Attribute{Type: "outdoor_space", Value: "none", Provenance: listing.Inferred, Evidence: "edificio bajo"})
+	check(t, b13, expect{order: map[string][]string{"palermo": {"pr-stated", "pr-inferred"}}, scores: map[string]float64{"pr-stated": 1, "pr-inferred": 0}})
+
+	// H1 held-out combined.
+	h1q := []search.Query{{Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "ARS", IncludeUnpriced: true, RequiredAttributes: []search.AttributeFilter{fLight}, PreferredAttributes: []search.AttributeFilter{fQuiet, fBalc}}}
+	h1c := []matching.FitCriterion{crit(L, "requirement", 1, "tiene que ser luminoso", ""), crit(Q, "preference", 2, "sobre todo silencioso", "sobre todo silencioso"), crit(B, "preference", 1, "", "")}
+	h1 := build("H1-combined", "Palermo, tiene que ser luminoso, sobre todo silencioso, con balcón, más barato primero", "price_asc", h1q, one, [][]matching.FitCriterion{h1c}, []cand{
+		{id: "h1-a", price: f64(800000), rules: ruleE, labels: map[string]byte{L: '+', Q: '?', B: '+'}},
+		{id: "h1-b", price: f64(500000), rules: ruleC, labels: map[string]byte{L: '+', Q: '?', B: '?'}},
+		{id: "h1-c", currency: "none", rules: ruleE, labels: map[string]byte{L: '+', Q: '+', B: '+'}},
+		{id: "h1-d", price: f64(600000), rules: ruleE, labels: map[string]byte{L: '+', Q: '-', B: '?'}},
+		{id: "h1-e", price: f64(300000), rules: ruleE, labels: map[string]byte{L: 'x', Q: 'x', B: 'x'}},
+		{id: "h1-f", price: f64(200000), rules: ruleE, labels: map[string]byte{L: '-', Q: '+', B: '+'}},
+		{id: "h1-g", price: f64(250000), rules: ruleX, labels: map[string]byte{L: '~', Q: '?', B: '?'}},
+		{id: "h1-h", hood: "belgrano", price: f64(100000), rules: ruleE, labels: map[string]byte{L: '+', Q: '+', B: '+'}},
+	})
+	h1.Candidates[2].Listing.Price = listing.Money{}
+	check(t, h1, expect{order: map[string][]string{"palermo": {"h1-d", "h1-a", "h1-c", "h1-b", "h1-e"}}, scores: map[string]float64{"h1-a": 1.0 / 3, "h1-b": 0, "h1-c": 1, "h1-d": -2.0 / 3, "h1-e": 0},
+		rules: map[string][]string{"palermo": {"price_asc", "price_asc", "eligibility", "required_evidence"}}})
+
+	// H3 branch-specific failure.
+	check(t, build("H3-branches-failure", "Palermo luminoso o Caballito", "", []search.Query{
+		{Neighborhoods: []string{"palermo"}, Operation: "alquiler", PreferredAttributes: []search.AttributeFilter{fLight}},
+		{Neighborhoods: []string{"caballito"}, Operation: "alquiler"},
+	}, []string{"A", "B"}, [][]matching.FitCriterion{pref(L), {}}, []cand{
+		{id: "a-sup", rules: ruleE, labels: map[string]byte{L: '+'}}, {id: "a-fail", rules: ruleE, labels: map[string]byte{L: 'x'}}, {id: "b-1", hood: "caballito", rules: ruleE},
+	}), expect{order: map[string][]string{"A": {"a-sup", "a-fail"}, "B": {"b-1"}}, scores: map[string]float64{"a-sup": 1, "a-fail": 0, "b-1": 0}})
+}
+
+func ptr(v int) *int { return &v }
+
+func withCurrency(q []search.Query, unpriced bool) []search.Query {
+	q[0].Currency, q[0].IncludeUnpriced = "ARS", unpriced
+	return q
+}
+
+// TestOracleReal runs R1 and H2 on the committed snapshots through Load.
+func TestOracleReal(t *testing.T) {
+	type label struct{ light, quiet string }
+	// Light/quiet labels per listing suffix; "s" supported, "u" unknown, "h" hint.
+	labels := map[string]label{
+		"59791377": {"s", "h"}, "59889701": {"s", "h"}, "60033803": {"u", "h"}, "59918611": {"s", "u"},
+		"59775328": {"s", "h"}, "59835247": {"s", "h"}, "59679253": {"s", "h"}, "59906462": {"u", "h"}, "59470722": {"u", "h"},
+		"59926573": {"s", "h"}, "59881443": {"u", "h"}, "59602413": {"u", "h"},
+	}
+	root := filepath.Join("..", "..")
+	var all []string
+	data, _ := os.ReadFile(filepath.Join(root, "data", "listings.parsed.jsonl"))
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		var l listing.Listing
+		_ = json.Unmarshal([]byte(line), &l)
+		for id := range labels {
+			if id == "59889701" { // no quality review: withheld by the publication gate
+				continue
+			}
+			if strings.Contains(l.URL, id) {
+				all = append(all, l.URL)
+			}
+		}
+	}
+	slices.Sort(all)
+	for _, tc := range []struct {
+		id   string
+		max  float64
+		want []string
+	}{
+		{"R1", 700000, []string{"59918611", "60033803"}},
+		{"H2", 1000000, []string{"59775328", "59835247", "59679253", "59918611", "59470722", "60033803", "59906462"}},
+	} {
+		q := search.Query{Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "ARS", MaxPrice: f64(tc.max), MinRooms: ptr(2), MaxRooms: ptr(2), PreferredAttributes: []search.AttributeFilter{fLight, fQuiet}}
+		raw := comparison.Case{ID: tc.id, Split: "oracle", Question: "Dos ambientes en Palermo, luminoso y sobre todo tranquilo", Plan: intake.Plan{Intent: "new_search", PlannedBy: "oracle", Branches: []search.Query{q}}, BranchIDs: []string{"palermo"},
+			Criteria:      [][]matching.FitCriterion{{crit("natural_light=high", "preference", 1, "", ""), crit("noise_level=quiet", "preference", 2, "sobre todo tranquilo", "sobre todo tranquilo")}},
+			Qualification: prop, SnapshotURLs: all, Answers: map[string]map[string]comparison.RecordedAnswer{}}
+		body, _ := json.Marshal([]comparison.Case{raw})
+		tmp := filepath.Join(t.TempDir(), "cases.json")
+		_ = os.WriteFile(tmp, body, 0o600)
+		cases, _, err := comparison.Load(root, tmp)
+		if err != nil {
+			t.Logf("ORACLE %s Load error: %v", tc.id, err)
+			continue
+		}
+		c := cases[0]
+		for _, cand := range c.Candidates {
+			lab := labels[cand.Listing.URL[len(cand.Listing.URL)-13:len(cand.Listing.URL)-5]]
+			refFor := func(typ, val string, provenance listing.Provenance) string {
+				for i, a := range cand.Listing.Attributes {
+					if a.Type == typ && a.Value == val && a.Provenance == provenance && a.Evidence != "" {
+						return fmt.Sprintf("attribute:%d", i)
+					}
+				}
+				return "description"
+			}
+			ans := func(l, typ string) comparison.RecordedAnswer {
+				switch l {
+				case "s":
+					return comparison.RecordedAnswer{Assessment: "supported", Status: "evaluated", EvidenceRefs: []string{refFor(typ, map[string]string{"natural_light": "high", "noise_level": "quiet"}[typ], listing.Stated)}}
+				case "h":
+					for _, a := range cand.Listing.Attributes {
+						if a.Type == typ && a.Value == "quiet" && a.Provenance == listing.Inferred {
+							return comparison.RecordedAnswer{Assessment: "supported", Status: "evaluated", EvidenceRefs: []string{refFor(typ, "quiet", listing.Inferred)}}
+						}
+					}
+				}
+				return comparison.RecordedAnswer{Assessment: "insufficient_evidence", Status: "evaluated", EvidenceRefs: []string{}}
+			}
+			c.Answers[cand.Listing.URL] = map[string]comparison.RecordedAnswer{"natural_light=high": ans(lab.light, "natural_light"), "noise_level=quiet": ans(lab.quiet, "noise_level")}
+		}
+		c.Expected = map[string][]string{}
+		check(t, c, expect{order: map[string][]string{"palermo": tc.want}})
+	}
+}
+
+// TestOraclePetsNone checks derived pets rules against a searcher who declared
+// no pets. App catalog choices (migration 0007) make "none" admissible.
+func TestOraclePetsNone(t *testing.T) {
+	q := search.Query{Neighborhoods: []string{"palermo"}, Operation: "alquiler", Currency: "ARS", MaxPrice: f64(700000), MinRooms: ptr(2), MaxRooms: ptr(2)}
+	raw := comparison.Case{ID: "pets-none", Split: "oracle", Question: "Dos ambientes en Palermo, no tengo mascotas", Plan: intake.Plan{Intent: "new_search", Branches: []search.Query{q}}, BranchIDs: []string{"palermo"}, Criteria: [][]matching.FitCriterion{{}},
+		Qualification: eligibility.Qualification{"guarantee": {"propietaria"}, "pets": {"none"}},
+		SnapshotURLs:  []string{"https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-en-alquiler-en-las-60033803.html"}}
+	body, _ := json.Marshal([]comparison.Case{raw})
+	tmp := filepath.Join(t.TempDir(), "cases.json")
+	_ = os.WriteFile(tmp, body, 0o600)
+	cases, _, err := comparison.Load(filepath.Join("..", ".."), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec, err := comparison.RunProposed(context.Background(), cases[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := rec.Project().Branches[0]
+	for _, r := range append(b.Shown, b.Excluded...) {
+		t.Logf("ORACLE pets-none %s state=%s conditions=%+v", r.Listing.URL[len(r.Listing.URL)-13:], r.Eligibility.State, r.Eligibility.Conditions)
+	}
+	if len(b.Shown) != 1 || b.Shown[0].Eligibility.State != eligibility.Eligible {
+		t.Errorf("ORACLE pets-none: want 60033803 eligible (propietaria met, no pets), got shown=%d hidden=%d", len(b.Shown), b.HiddenIneligible)
+	}
+}
+
+// TestOracleTargetedQuestions checks direct answers about one listing.
+func TestOracleTargetedQuestions(t *testing.T) {
+	L, Q := "natural_light=high", "noise_level=quiet"
+	req := []matching.FitCriterion{crit(L, "requirement", 1, "", ""), crit(Q, "preference", 1, "", "")}
+	c := build("T-targeted", "Palermo, tiene que ser luminoso, idealmente tranquilo", "", palermo("", []search.AttributeFilter{fLight}, []search.AttributeFilter{fQuiet}), []string{"palermo"}, [][]matching.FitCriterion{req}, []cand{
+		{id: "t-ok", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+		{id: "t-fail", rules: ruleE, labels: map[string]byte{L: 'x', Q: 'x'}},
+		{id: "t-hint", rules: ruleC, labels: map[string]byte{L: '~', Q: '-'}},
+		{id: "t-near", hood: "colegiales", rules: ruleE, labels: map[string]byte{L: '+', Q: '+'}},
+		{id: "t-noprice", currency: "none", rules: ruleE, labels: map[string]byte{L: '+', Q: '?'}},
+	})
+	c.Candidates[4].Listing.Price = listing.Money{}
+	rec, err := comparison.RunProposed(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []struct{ target, topic, must, mustNot string }{
+		{"u/t-ok", "natural_light", "luminosa", "no confirma"},
+		{"u/t-fail", "natural_light", "disponible", "no menciona"},
+		{"u/t-fail", "noise_level", "disponible", "no menciona"},
+		{"u/t-hint", "natural_light", "indicio", "afirma"},
+		{"u/t-hint", "noise_level", "ruido", "silencioso"},
+		{"u/t-ok", "noise_level", "no confirma", "silencioso"},
+		{"u/t-hint", "eligibility", "ver cuáles permite la propietaria", "podés alquilar"},
+		{"u/t-noprice", "price", "no publica", "0 ARS"},
+		{"u/t-near", "natural_light", "No tengo", "afirma"},
+	} {
+		got := rec.Fallback(q.target, q.topic)
+		ok := strings.Contains(got, q.must) && !strings.Contains(got, q.mustNot) && !strings.Contains(got, "#") && !strings.Contains(got, "Queda antes")
+		t.Logf("ORACLE targeted %s/%s ok=%v: %q", q.target, q.topic, ok, got)
+		if !ok {
+			t.Errorf("ORACLE targeted %s/%s: want %q without %q or ranking recap, got %q", q.target, q.topic, q.must, q.mustNot, got)
+		}
+	}
+}
+
+// TestOracleRelaxationGates: a relaxation may only promise listings that pass
+// every other gate. Caución cannot bring back a mandatory contradiction or a
+// listing from another neighborhood.
+func TestOracleRelaxationGates(t *testing.T) {
+	L := "natural_light=high"
+	c := build("relax", "Palermo, tiene que ser luminoso", "", palermo("", []search.AttributeFilter{fLight}, nil), []string{"palermo"}, [][]matching.FitCriterion{{crit(L, "requirement", 1, "", "")}}, []cand{
+		{id: "r-ok", rules: ruleE, labels: map[string]byte{L: '+'}},
+		{id: "r-caucion-contra", rules: ruleX, labels: map[string]byte{L: '-'}},
+		{id: "r-caucion-ok", rules: ruleX, labels: map[string]byte{L: '+'}},
+		{id: "r-caucion-far", hood: "belgrano", rules: ruleX, labels: map[string]byte{L: '+'}},
+	})
+	rec, err := comparison.RunProposed(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := rec.Project()
+	t.Logf("ORACLE relax relaxations=%+v fallback=%q", p.Relaxations, rec.Fallback("", ""))
+	if len(p.Relaxations) != 1 || p.Relaxations[0].Count != 1 {
+		t.Errorf("ORACLE relax: want caución returns exactly 1 (r-caucion-ok), got %+v", p.Relaxations)
+	}
+}

@@ -1,0 +1,105 @@
+[
+  {
+    "case": "legacy-search-port",
+    "revision": "ddef7e4^",
+    "label": "before",
+    "command": [
+      "go",
+      "test",
+      "./internal/search",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 0,
+    "output": "ok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/search\t0.396s [no tests to run]\n"
+  },
+  {
+    "case": "legacy-search-port",
+    "revision": "ddef7e4",
+    "label": "repaired",
+    "command": [
+      "go",
+      "test",
+      "./internal/search",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 1,
+    "output": "FAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/search [build failed]\nFAIL\n# github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search_test [github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search.test]\ninternal/search/audit_reference_test.go:3:14: undefined: search.Repository\n"
+  },
+  {
+    "case": "legacy-search-port",
+    "revision": "HEAD",
+    "label": "current",
+    "command": [
+      "go",
+      "test",
+      "./internal/search",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 1,
+    "output": "FAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/search [build failed]\nFAIL\n# github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search_test [github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search.test]\ninternal/search/audit_reference_test.go:3:14: undefined: search.Repository\n"
+  },
+  {
+    "case": "parked-shortlist",
+    "revision": "45d1f92^",
+    "label": "before",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 0,
+    "output": "ok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer\t0.405s [no tests to run]\n"
+  },
+  {
+    "case": "parked-shortlist",
+    "revision": "45d1f92",
+    "label": "repaired",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 1,
+    "output": "FAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer [build failed]\nFAIL\n# github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer_test [github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer.test]\ninternal/buyer/audit_reference_test.go:3:15: undefined: buyer.BuildShortlist\n"
+  },
+  {
+    "case": "parked-shortlist",
+    "revision": "HEAD",
+    "label": "current",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^$",
+      "-count=1"
+    ],
+    "exit_code": 1,
+    "output": "FAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer [build failed]\nFAIL\n# github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer_test [github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer.test]\ninternal/buyer/audit_reference_test.go:3:15: undefined: buyer.BuildShortlist\n"
+  },
+  {
+    "case": "private-ranking-authority",
+    "label": "prototype",
+    "command": [
+      "go",
+      "build",
+      "-o",
+      "<temporary-output>",
+      "<temporary-source>"
+    ],
+    "exit_code": 1,
+    "output": "# command-line-arguments\ndocs/experiments/agent-friendly-audit/compile-cmk72ttj/main.go:3:43: r.items undefined (cannot refer to unexported field items)\n"
+  }
+]

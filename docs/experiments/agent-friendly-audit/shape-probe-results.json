@@ -1,0 +1,91 @@
+{
+  "correct_initial_result": [
+    {
+      "ID": "supported",
+      "Rank": 1,
+      "Numerator": 1,
+      "Denominator": 2,
+      "Reason": "preference-score",
+      "Assessments": [
+        {
+          "State": "supported",
+          "Provenance": "published",
+          "Quote": "Muy luminoso",
+          "Weight": 1
+        },
+        {
+          "State": "unknown",
+          "Provenance": "published",
+          "Quote": "",
+          "Weight": 1
+        }
+      ]
+    },
+    {
+      "ID": "hint",
+      "Rank": 2,
+      "Numerator": 0,
+      "Denominator": 2,
+      "Reason": "stable-tie",
+      "Assessments": [
+        {
+          "State": "supported",
+          "Provenance": "inferred",
+          "Quote": "Al frente",
+          "Weight": 1
+        },
+        {
+          "State": "unknown",
+          "Provenance": "published",
+          "Quote": "",
+          "Weight": 1
+        }
+      ]
+    },
+    {
+      "ID": "unknown",
+      "Rank": 3,
+      "Numerator": 0,
+      "Denominator": 2,
+      "Reason": "preference-score",
+      "Assessments": [
+        {
+          "State": "unknown",
+          "Provenance": "published",
+          "Quote": "",
+          "Weight": 1
+        },
+        {
+          "State": "unknown",
+          "Provenance": "published",
+          "Quote": "",
+          "Weight": 1
+        }
+      ]
+    },
+    {
+      "ID": "contradicted",
+      "Rank": 4,
+      "Numerator": -1,
+      "Denominator": 2,
+      "Reason": "last-result",
+      "Assessments": [
+        {
+          "State": "contradicted",
+          "Provenance": "published",
+          "Quote": "Poca luz",
+          "Weight": 1
+        },
+        {
+          "State": "unknown",
+          "Provenance": "published",
+          "Quote": "",
+          "Weight": 1
+        }
+      ]
+    }
+  ],
+  "public_shape_accepts_inconsistent_numerator": true,
+  "scope": "preference accounting, stable ties, evidence retention and projection mutation only",
+  "sealed_authority_survives_projection_mutation": true
+}

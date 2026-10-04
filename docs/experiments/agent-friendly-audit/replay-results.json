@@ -1,0 +1,308 @@
+[
+  {
+    "case": "sale-provenance",
+    "label": "before",
+    "revision": "8357233619559497c44db5a424d39acd601af181",
+    "test_source": "40bb5d9",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestASaleTheUserNeverStatedIsARent$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestASaleTheUserNeverStatedIsARent\n    planner_test.go:93: an implied rental must search rentals, got [{Neighborhoods:[] Operation:venta Currency:ARS MinPrice:<nil> MaxPrice:0x7e1e05610520 IncludeUnpriced:false MaxExpensesARS:<nil> MinRooms:0x7e1e05610510 MaxRooms:0x7e1e05610518 MinBedrooms:<nil> MinBathrooms:<nil> MinParkingSpaces:<nil> MinTotalAreaM2:<nil> MaxAgeYears:<nil> RequiredAttributes:[] ExcludedAttributes:[] PreferredAttributes:[] Limit:10}], <nil>\n--- FAIL: TestASaleTheUserNeverStatedIsARent (0.00s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.664s\nFAIL\n"
+  },
+  {
+    "case": "sale-provenance",
+    "label": "repaired",
+    "revision": "40bb5d902949970bd45852434387ddfc5540e2ff",
+    "test_source": "40bb5d9",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestASaleTheUserNeverStatedIsARent$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestASaleTheUserNeverStatedIsARent\n--- PASS: TestASaleTheUserNeverStatedIsARent (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.366s\n"
+  },
+  {
+    "case": "sale-provenance",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestASaleTheUserNeverStatedIsARent$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestASaleTheUserNeverStatedIsARent\n--- PASS: TestASaleTheUserNeverStatedIsARent (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.350s\n"
+  },
+  {
+    "case": "writer-example-facts",
+    "label": "before",
+    "revision": "7f48e5e0fc7b66609b3ad1be6d342a3cfa4995f5",
+    "test_source": "256298a",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy\n    writer_test.go:74: example \"si consegu\u00eds seguro de cauci\u00f3n, vuelven 14\" carries a number a model could copy\n    writer_test.go:77: example \"si consegu\u00eds seguro de cauci\u00f3n, vuelven 14\" names a guarantee a model could copy\n--- FAIL: TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy (0.00s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer\t0.626s\nFAIL\n"
+  },
+  {
+    "case": "writer-example-facts",
+    "label": "repaired",
+    "revision": "256298a19e58b1aeb8cbf06dbd2aa4b302f3d516",
+    "test_source": "256298a",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy\n--- PASS: TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer\t0.347s\n"
+  },
+  {
+    "case": "writer-example-facts",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./internal/buyer",
+      "-run",
+      "^TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy\n--- PASS: TestLocalWriterExamplesCarryNoCountOrGuaranteeAModelCouldCopy (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer\t0.349s\n"
+  },
+  {
+    "case": "amenity-withdrawal",
+    "label": "before",
+    "revision": "5d785f2cdd9c32946c1c56966acc254235d5c03b",
+    "test_source": "876dc31",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestQwenDropsAnAttributeValueOutsideTheVocabulary$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestQwenDropsAnAttributeValueOutsideTheVocabulary\n    qwen_test.go:67: intake: branch 0: excluded_attributes: \"any\" is not a value for \"amenity\"; the values are pileta, gimnasio, laundry, coworking, sum, seguridad, parrilla, ascensor, cochera, solarium, terraza_comun\n--- FAIL: TestQwenDropsAnAttributeValueOutsideTheVocabulary (0.00s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.387s\nFAIL\n"
+  },
+  {
+    "case": "amenity-withdrawal",
+    "label": "repaired",
+    "revision": "876dc318c14bd425d45d46f0b2878bb7c216eb7e",
+    "test_source": "876dc31",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestQwenDropsAnAttributeValueOutsideTheVocabulary$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestQwenDropsAnAttributeValueOutsideTheVocabulary\n--- PASS: TestQwenDropsAnAttributeValueOutsideTheVocabulary (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.343s\n"
+  },
+  {
+    "case": "amenity-withdrawal",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestQwenDropsAnAttributeValueOutsideTheVocabulary$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestQwenDropsAnAttributeValueOutsideTheVocabulary\n--- PASS: TestQwenDropsAnAttributeValueOutsideTheVocabulary (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.356s\n"
+  },
+  {
+    "case": "clarification-fallback",
+    "label": "before",
+    "revision": "ee6957a0539b6148b155080c4060159ee37e5f10",
+    "test_source": "087b641^",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestUnnamedAmenitiesAreNotAPlannerFailure$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestUnnamedAmenitiesAreNotAPlannerFailure\n2026/10/04 00:39:46 WARN planner_fallback error_class=failed\n    planner_test.go:147: want Jev's plan back unresolved without a fallback call, got 1 fallback calls, {Intent:new_search Branches:[{Neighborhoods:[palermo] Operation:alquiler Currency: MinPrice:<nil> MaxPrice:<nil> IncludeUnpriced:false MaxExpensesARS:<nil> MinRooms:0x56170da8fba8 MaxRooms:0x56170da8fba8 MinBedrooms:<nil> MinBathrooms:<nil> MinParkingSpaces:<nil> MinTotalAreaM2:<nil> MaxAgeYears:<nil> RequiredAttributes:[amenity=any] ExcludedAttributes:[] PreferredAttributes:[] Limit:0}] Sort: Qualification:map[] PlannedBy:}, intake: branch 0: required_attributes: \"any\" is not a value for \"amenity\"; the values are pileta, gimnasio, laundry, coworking, sum, seguridad, parrilla, ascensor, cochera, solarium, terraza_comun\n        the fallback cannot name them either\n--- FAIL: TestUnnamedAmenitiesAreNotAPlannerFailure (0.00s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.372s\nFAIL\n"
+  },
+  {
+    "case": "clarification-fallback",
+    "label": "repaired",
+    "revision": "087b641eade50a601feb06e0182890e3d5dcce86",
+    "test_source": "087b641^",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestUnnamedAmenitiesAreNotAPlannerFailure$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestUnnamedAmenitiesAreNotAPlannerFailure\n--- PASS: TestUnnamedAmenitiesAreNotAPlannerFailure (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.322s\n"
+  },
+  {
+    "case": "clarification-fallback",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./internal/intake",
+      "-run",
+      "^TestUnnamedAmenitiesAreNotAPlannerFailure$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestUnnamedAmenitiesAreNotAPlannerFailure\n--- PASS: TestUnnamedAmenitiesAreNotAPlannerFailure (0.00s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake\t0.353s\n"
+  },
+  {
+    "case": "database-startup",
+    "label": "before",
+    "revision": "367c8ebcf2cd866a9748f683d5877ead80a83022",
+    "test_source": "958b332",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutItsDatabase$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestServerRefusesToStartWithoutItsDatabase\n    main_test.go:154: the server kept running without its database:\n        {\"time\":\"2026-10-04T00:39:49.910825-03:00\",\"level\":\"INFO\",\"msg\":\"model_configured\",\"service\":\"hausy\",\"provider\":\"local\",\"writer_provider\":\"local\"}\n        {\"time\":\"2026-10-04T00:39:49.913568-03:00\",\"level\":\"WARN\",\"msg\":\"database_unavailable\",\"service\":\"hausy\",\"stage\":\"open\",\"error_class\":\"connection_refused\",\"mode\":\"requirements_only\"}\n        {\"time\":\"2026-10-04T00:39:49.984058-03:00\",\"level\":\"INFO\",\"msg\":\"server_listening\",\"service\":\"hausy\",\"address\":\"127.0.0.1:0\"}\n--- FAIL: TestServerRefusesToStartWithoutItsDatabase (10.00s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t10.414s\nFAIL\n"
+  },
+  {
+    "case": "database-startup",
+    "label": "repaired",
+    "revision": "958b332661f704edec1556465b4bab599fb83648",
+    "test_source": "958b332",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutItsDatabase$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestServerRefusesToStartWithoutItsDatabase\n--- PASS: TestServerRefusesToStartWithoutItsDatabase (0.01s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t0.408s\n"
+  },
+  {
+    "case": "database-startup",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutItsDatabase$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestServerRefusesToStartWithoutItsDatabase\n--- PASS: TestServerRefusesToStartWithoutItsDatabase (0.01s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t0.463s\n"
+  },
+  {
+    "case": "credentials-startup",
+    "label": "before",
+    "revision": "e98dc442d36de1161029ab7e948bed300b26642f",
+    "test_source": "73ef67c",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutBedrockCredentials$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 1,
+    "output": "=== RUN   TestServerRefusesToStartWithoutBedrockCredentials\n    main_test.go:180: want exit status 1 naming the AWS credentials, got exit status 1:\n        {\"time\":\"2026-10-04T00:40:03.722291-03:00\",\"level\":\"INFO\",\"msg\":\"model_configured\",\"service\":\"hausy\",\"provider\":\"local\",\"writer_provider\":\"bedrock\"}\n        {\"time\":\"2026-10-04T00:40:03.72522-03:00\",\"level\":\"ERROR\",\"msg\":\"startup_failed\",\"service\":\"hausy\",\"stage\":\"database_open\",\"error_class\":\"connection_refused\"}\n--- FAIL: TestServerRefusesToStartWithoutBedrockCredentials (0.01s)\nFAIL\nFAIL\tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t0.413s\nFAIL\n"
+  },
+  {
+    "case": "credentials-startup",
+    "label": "repaired",
+    "revision": "73ef67c272749e710692878417ce665de5266068",
+    "test_source": "73ef67c",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutBedrockCredentials$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestServerRefusesToStartWithoutBedrockCredentials\n--- PASS: TestServerRefusesToStartWithoutBedrockCredentials (0.01s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t0.427s\n"
+  },
+  {
+    "case": "credentials-startup",
+    "label": "current",
+    "revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+    "test_source": "HEAD",
+    "command": [
+      "go",
+      "test",
+      "./cmd/hausy",
+      "-run",
+      "^TestServerRefusesToStartWithoutBedrockCredentials$",
+      "-count=1",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "=== RUN   TestServerRefusesToStartWithoutBedrockCredentials\n--- PASS: TestServerRefusesToStartWithoutBedrockCredentials (0.01s)\nPASS\nok  \tgithub.com/Grupo-6-Seminario/proyecto-angus-back/cmd/hausy\t0.447s\n"
+  }
+]

@@ -1,0 +1,3783 @@
+[
+  {
+    "id": "weighted-net",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes. priorizo buena luz natural.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 2,
+          "source_quote": "priorizo buena luz natural",
+          "priority_source": "priorizo buena luz natural"
+        },
+        {
+          "id": "noise_level",
+          "text": "silencio",
+          "attribute_type": "noise_level",
+          "attribute_value": "quiet",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:c",
+          "address": "Ejemplo c",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento en alquiler. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "discretionary",
+            "evidence": "Garantía sujeta a aprobación del propietario."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:d",
+          "address": "Ejemplo d",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 750000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento en alquiler. ",
+          "attributes": []
+        },
+        "rules": []
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:c": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:d": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:b",
+        "fixture:e",
+        "fixture:c",
+        "fixture:d"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "mandatory-alternatives",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ],
+          "preferred_attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "requirement",
+          "weight": 1
+        },
+        {
+          "id": "noise_level",
+          "text": "silencio",
+          "attribute_type": "noise_level",
+          "attribute_value": "quiet",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:c",
+          "address": "Ejemplo c",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento en alquiler. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "discretionary",
+            "evidence": "Garantía sujeta a aprobación del propietario."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:d",
+          "address": "Ejemplo d",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 750000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento en alquiler. ",
+          "attributes": []
+        },
+        "rules": []
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:f",
+          "address": "Ejemplo f",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 650000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "caucion"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta caución."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:h",
+          "address": "Ejemplo h",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento al frente con orientación norte.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "inferred",
+              "evidence": "frente con orientación norte"
+            },
+            {
+              "type": "exposure",
+              "value": "frente",
+              "provenance": "stated",
+              "evidence": "al frente"
+            },
+            {
+              "type": "orientation",
+              "value": "norte",
+              "provenance": "stated",
+              "evidence": "orientación norte"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:c": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:d": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:f": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:h": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:b",
+        "fixture:h",
+        "fixture:c",
+        "fixture:d"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "nearby-gate",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:nearby",
+          "address": "Ejemplo nearby",
+          "neighborhood": "belgrano",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:nearby": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:e"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "price-replaces-score",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "price_asc",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:e",
+        "fixture:b",
+        "fixture:a"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "no-preferences",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": []
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      []
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:f",
+          "address": "Ejemplo f",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 650000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "caucion"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta caución."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:f": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:b"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "lone-result",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "noise_level",
+          "text": "silencio",
+          "attribute_type": "noise_level",
+          "attribute_value": "quiet",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:b"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "empty-results",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:f",
+          "address": "Ejemplo f",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 650000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "caucion"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta caución."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:nearby",
+          "address": "Ejemplo nearby",
+          "neighborhood": "belgrano",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:f": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:nearby": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": []
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "hints-zero",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:h",
+          "address": "Ejemplo h",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento al frente con orientación norte.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "inferred",
+              "evidence": "frente con orientación norte"
+            },
+            {
+              "type": "exposure",
+              "value": "frente",
+              "provenance": "stated",
+              "evidence": "al frente"
+            },
+            {
+              "type": "orientation",
+              "value": "norte",
+              "provenance": "stated",
+              "evidence": "orientación norte"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:h": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:h",
+        "fixture:e"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "conflicting-required",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ],
+          "preferred_attributes": []
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "requirement",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso. El mismo departamento tiene poca luz natural.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "conflicting_evidence",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:b",
+        "fixture:a"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "provider-failure",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ],
+          "preferred_attributes": []
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "requirement",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:b",
+        "fixture:a"
+      ]
+    },
+    "failures": {
+      "fixture:a": "provider_error"
+    },
+    "expected_ranking_complete": {
+      "palermo": false
+    }
+  },
+  {
+    "id": "needs-review",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ],
+          "preferred_attributes": []
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "requirement",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "needs_review",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:b",
+        "fixture:a"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "stable-tie",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:b"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "missing-price-desc",
+    "split": "heldout",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "price_desc",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ],
+          "include_unpriced": true
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:h",
+          "address": "Ejemplo h",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {},
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento al frente con orientación norte.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "inferred",
+              "evidence": "frente con orientación norte"
+            },
+            {
+              "type": "exposure",
+              "value": "frente",
+              "provenance": "stated",
+              "evidence": "al frente"
+            },
+            {
+              "type": "orientation",
+              "value": "norte",
+              "provenance": "stated",
+              "evidence": "orientación norte"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:h": {
+        "natural_light=high": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:e",
+        "fixture:h"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "area-replaces-score",
+    "split": "heldout",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "area_desc",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 30,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:e",
+          "address": "Ejemplo e",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 600000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 80,
+          "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": []
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:e": {
+        "natural_light=high": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:e",
+        "fixture:b",
+        "fixture:a"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "eligible-before-score",
+    "split": "heldout",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:c",
+          "address": "Ejemplo c",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 800000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso.",
+          "attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "discretionary",
+            "evidence": "Garantía sujeta a aprobación del propietario."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:d",
+          "address": "Ejemplo d",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 750000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso.",
+          "attributes": []
+        },
+        "rules": []
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:c": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:d": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "insufficient_evidence",
+          "status": "evaluated",
+          "evidence_refs": []
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:c",
+        "fixture:d"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    }
+  },
+  {
+    "id": "branch-specific-shared",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        },
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "preferred_attributes": [
+            {
+              "type": "noise_level",
+              "value": "quiet"
+            }
+          ]
+        },
+        {
+          "neighborhoods": [
+            "caballito"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2
+        }
+      ]
+    },
+    "branch_ids": [
+      "light",
+      "quiet",
+      "empty"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ],
+      [
+        {
+          "id": "noise_level",
+          "text": "silencio",
+          "attribute_type": "noise_level",
+          "attribute_value": "quiet",
+          "strength": "preference",
+          "weight": 1
+        }
+      ],
+      []
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "light": [
+        "fixture:a",
+        "fixture:b"
+      ],
+      "quiet": [
+        "fixture:a",
+        "fixture:b"
+      ],
+      "empty": []
+    },
+    "expected_ranking_complete": {
+      "light": true,
+      "quiet": true,
+      "empty": true
+    }
+  },
+  {
+    "id": "snapshot-direct-light",
+    "split": "development",
+    "question": "Busco alquiler en Palermo con dos ambientes.",
+    "plan": {
+      "intent": "new_search",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "congreso"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "congreso"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [],
+    "answers": {
+      "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-alquiler-1-dormitorio-1-bano-60-m-59659916.html": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "congreso": [
+        "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-alquiler-1-dormitorio-1-bano-60-m-59659916.html"
+      ]
+    },
+    "snapshot_urls": [
+      "https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-alquiler-1-dormitorio-1-bano-60-m-59659916.html"
+    ],
+    "expected_ranking_complete": {
+      "congreso": true
+    }
+  },
+  {
+    "id": "targeted-listing-question",
+    "split": "development",
+    "question": "¿Cuánto cuesta el alquiler de Ejemplo b?",
+    "plan": {
+      "intent": "ask_about_listing",
+      "planned_by": "frozen_fixture",
+      "sort": "",
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "operation": "alquiler",
+          "currency": "ARS",
+          "max_price": 1000000,
+          "min_rooms": 2,
+          "required_attributes": [],
+          "preferred_attributes": [
+            {
+              "type": "natural_light",
+              "value": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "branch_ids": [
+      "palermo"
+    ],
+    "criteria": [
+      [
+        {
+          "id": "natural_light",
+          "text": "buena luz natural",
+          "attribute_type": "natural_light",
+          "attribute_value": "high",
+          "strength": "preference",
+          "weight": 1
+        }
+      ]
+    ],
+    "qualification": {
+      "guarantee": [
+        "propietaria_caba"
+      ]
+    },
+    "candidates": [
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:b",
+          "address": "Ejemplo b",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 700000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      },
+      {
+        "listing": {
+          "source": "synthetic",
+          "url": "fixture:a",
+          "address": "Ejemplo a",
+          "neighborhood": "palermo",
+          "operation": "alquiler",
+          "price": {
+            "amount": 900000,
+            "currency": "ARS"
+          },
+          "expenses": {
+            "amount": 100000,
+            "currency": "ARS"
+          },
+          "rooms": 2,
+          "total_area_m2": 50,
+          "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+          "attributes": [
+            {
+              "type": "natural_light",
+              "value": "high",
+              "provenance": "stated",
+              "evidence": "Departamento luminoso en todos sus ambientes principales"
+            },
+            {
+              "type": "noise_level",
+              "value": "quiet",
+              "provenance": "stated",
+              "evidence": "Departamento silencioso."
+            }
+          ]
+        },
+        "rules": [
+          {
+            "fact": "guarantee",
+            "operator": "one_of",
+            "values": [
+              "propietaria_caba"
+            ],
+            "hardness": "hard",
+            "evidence": "Acepta garantía propietaria de CABA."
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fixture:b": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "contradicted",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      },
+      "fixture:a": {
+        "natural_light=high": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        },
+        "noise_level=quiet": {
+          "assessment": "supported",
+          "status": "evaluated",
+          "evidence_refs": [
+            "description"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "palermo": [
+        "fixture:a",
+        "fixture:b"
+      ]
+    },
+    "expected_ranking_complete": {
+      "palermo": true
+    },
+    "target_url": "fixture:b",
+    "topic": "price"
+  }
+]

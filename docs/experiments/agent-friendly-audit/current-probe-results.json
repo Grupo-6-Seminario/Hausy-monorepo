@@ -1,0 +1,309 @@
+{
+  "inferred-only-baseline": {
+    "policy_version": "evidence-tiers-v1",
+    "matches": [
+      {
+        "candidate_id": "inferred-only",
+        "rank": 1,
+        "assessments": [
+          {
+            "criterion_id": "pets",
+            "assessment": "supported",
+            "evidence_refs": [
+              "hint"
+            ],
+            "evaluation_status": "evaluated"
+          }
+        ],
+        "supported": 1,
+        "unknown": 0,
+        "needs_review": 0
+      }
+    ]
+  },
+  "preferred-light": {
+    "results": [
+      {
+        "rank": 1,
+        "source": "",
+        "url": "z-supported",
+        "neighborhood": "palermo",
+        "description": "Muy luminoso.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        }
+      },
+      {
+        "rank": 2,
+        "source": "",
+        "url": "c-hint",
+        "neighborhood": "palermo",
+        "description": "Al frente.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "attributes": [
+          {
+            "type": "exposure",
+            "value": "frente",
+            "provenance": "stated"
+          }
+        ],
+        "eligibility": {
+          "state": "unknown"
+        }
+      },
+      {
+        "rank": 3,
+        "source": "",
+        "url": "a-contradicted",
+        "neighborhood": "palermo",
+        "description": "Poca luz natural.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        }
+      },
+      {
+        "rank": 4,
+        "source": "",
+        "url": "b-unknown",
+        "neighborhood": "palermo",
+        "description": "Sin información de luz.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        }
+      }
+    ],
+    "writer_packet": {
+      "intent": "new_search",
+      "question": "Palermo con buena luz natural",
+      "sort": "relevance",
+      "requirements": [
+        {
+          "type": "neighborhood",
+          "value": "palermo"
+        },
+        {
+          "type": "operation",
+          "value": "alquiler"
+        },
+        {
+          "type": "prefiere_natural_light",
+          "value": "high"
+        }
+      ],
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "matches": 4
+        }
+      ],
+      "shown": [
+        {
+          "rank": 1,
+          "source": "",
+          "url": "z-supported",
+          "neighborhood": "palermo",
+          "description": "Muy luminoso.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "eligibility": {
+            "state": "unknown"
+          }
+        },
+        {
+          "rank": 2,
+          "source": "",
+          "url": "c-hint",
+          "neighborhood": "palermo",
+          "description": "Al frente.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "attributes": [
+            {
+              "type": "exposure",
+              "value": "frente",
+              "provenance": "stated"
+            }
+          ],
+          "eligibility": {
+            "state": "unknown"
+          }
+        },
+        {
+          "rank": 3,
+          "source": "",
+          "url": "a-contradicted",
+          "neighborhood": "palermo",
+          "description": "Poca luz natural.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "eligibility": {
+            "state": "unknown"
+          }
+        }
+      ],
+      "hidden_ineligible": 0
+    }
+  },
+  "required-light": {
+    "results": [
+      {
+        "rank": 1,
+        "source": "",
+        "url": "z-supported",
+        "neighborhood": "palermo",
+        "description": "Muy luminoso.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        },
+        "qualitative_fit": "exact"
+      },
+      {
+        "rank": 2,
+        "source": "",
+        "url": "c-hint",
+        "neighborhood": "palermo",
+        "description": "Al frente.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "attributes": [
+          {
+            "type": "exposure",
+            "value": "frente",
+            "provenance": "stated"
+          }
+        ],
+        "eligibility": {
+          "state": "unknown"
+        },
+        "qualitative_fit": "unconfirmed"
+      },
+      {
+        "rank": 3,
+        "source": "",
+        "url": "a-contradicted",
+        "neighborhood": "palermo",
+        "description": "Poca luz natural.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        },
+        "qualitative_fit": "unconfirmed"
+      },
+      {
+        "rank": 4,
+        "source": "",
+        "url": "b-unknown",
+        "neighborhood": "palermo",
+        "description": "Sin información de luz.",
+        "price": {},
+        "expenses": {},
+        "scraped_at": "0001-01-01T00:00:00Z",
+        "eligibility": {
+          "state": "unknown"
+        },
+        "qualitative_fit": "unconfirmed"
+      }
+    ],
+    "writer_packet": {
+      "intent": "new_search",
+      "question": "Palermo con buena luz natural",
+      "sort": "relevance",
+      "requirements": [
+        {
+          "type": "natural_light",
+          "value": "high"
+        },
+        {
+          "type": "neighborhood",
+          "value": "palermo"
+        },
+        {
+          "type": "operation",
+          "value": "alquiler"
+        }
+      ],
+      "branches": [
+        {
+          "neighborhoods": [
+            "palermo"
+          ],
+          "matches": 4
+        }
+      ],
+      "shown": [
+        {
+          "rank": 1,
+          "source": "",
+          "url": "z-supported",
+          "neighborhood": "palermo",
+          "description": "Muy luminoso.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "eligibility": {
+            "state": "unknown"
+          },
+          "qualitative_fit": "exact"
+        },
+        {
+          "rank": 2,
+          "source": "",
+          "url": "c-hint",
+          "neighborhood": "palermo",
+          "description": "Al frente.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "attributes": [
+            {
+              "type": "exposure",
+              "value": "frente",
+              "provenance": "stated"
+            }
+          ],
+          "eligibility": {
+            "state": "unknown"
+          },
+          "qualitative_fit": "unconfirmed"
+        },
+        {
+          "rank": 3,
+          "source": "",
+          "url": "a-contradicted",
+          "neighborhood": "palermo",
+          "description": "Poca luz natural.",
+          "price": {},
+          "expenses": {},
+          "scraped_at": "0001-01-01T00:00:00Z",
+          "eligibility": {
+            "state": "unknown"
+          },
+          "qualitative_fit": "unconfirmed"
+        }
+      ],
+      "hidden_ineligible": 0
+    }
+  }
+}

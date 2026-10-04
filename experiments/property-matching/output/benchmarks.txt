@@ -1,0 +1,46 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/Grupo-6-Seminario/proyecto-angus-back/experiments/property-matching
+cpu: Apple M4 Pro
+BenchmarkComparison/weighted-net/baseline-12         	   20461	     17255 ns/op	   31966 B/op	     140 allocs/op
+BenchmarkComparison/weighted-net/baseline-12         	   21116	     17014 ns/op	   31966 B/op	     140 allocs/op
+BenchmarkComparison/weighted-net/baseline-12         	   21393	     16828 ns/op	   31967 B/op	     140 allocs/op
+BenchmarkComparison/weighted-net/baseline-12         	   19927	     17465 ns/op	   31967 B/op	     140 allocs/op
+BenchmarkComparison/weighted-net/baseline-12         	   21375	     16850 ns/op	   31965 B/op	     140 allocs/op
+BenchmarkComparison/weighted-net/proposed-12         	    1251	    278498 ns/op	  144895 B/op	    1377 allocs/op
+BenchmarkComparison/weighted-net/proposed-12         	    1298	    279608 ns/op	  144723 B/op	    1377 allocs/op
+BenchmarkComparison/weighted-net/proposed-12         	    1272	    277680 ns/op	  144661 B/op	    1377 allocs/op
+BenchmarkComparison/weighted-net/proposed-12         	    1318	    278020 ns/op	  144700 B/op	    1377 allocs/op
+BenchmarkComparison/weighted-net/proposed-12         	    1323	    280807 ns/op	  144742 B/op	    1377 allocs/op
+BenchmarkComparison/mandatory-alternatives/baseline-12         	   19135	     18793 ns/op	   33874 B/op	     161 allocs/op
+BenchmarkComparison/mandatory-alternatives/baseline-12         	   19311	     18778 ns/op	   33876 B/op	     161 allocs/op
+BenchmarkComparison/mandatory-alternatives/baseline-12         	   18888	     18936 ns/op	   33876 B/op	     161 allocs/op
+BenchmarkComparison/mandatory-alternatives/baseline-12         	   19076	     18855 ns/op	   33878 B/op	     161 allocs/op
+BenchmarkComparison/mandatory-alternatives/baseline-12         	   19048	     18810 ns/op	   33874 B/op	     161 allocs/op
+BenchmarkComparison/mandatory-alternatives/proposed-12         	    1064	    335987 ns/op	  171751 B/op	    1696 allocs/op
+BenchmarkComparison/mandatory-alternatives/proposed-12         	    1087	    334365 ns/op	  171627 B/op	    1696 allocs/op
+BenchmarkComparison/mandatory-alternatives/proposed-12         	    1084	    334506 ns/op	  171777 B/op	    1696 allocs/op
+BenchmarkComparison/mandatory-alternatives/proposed-12         	    1065	    337412 ns/op	  171845 B/op	    1696 allocs/op
+BenchmarkComparison/mandatory-alternatives/proposed-12         	    1063	    335295 ns/op	  171790 B/op	    1696 allocs/op
+BenchmarkComparison/branch-specific-shared/baseline-12         	   21320	     16814 ns/op	   13753 B/op	     117 allocs/op
+BenchmarkComparison/branch-specific-shared/baseline-12         	   21460	     16832 ns/op	   13753 B/op	     117 allocs/op
+BenchmarkComparison/branch-specific-shared/baseline-12         	   21440	     16776 ns/op	   13753 B/op	     117 allocs/op
+BenchmarkComparison/branch-specific-shared/baseline-12         	   21520	     16700 ns/op	   13754 B/op	     117 allocs/op
+BenchmarkComparison/branch-specific-shared/baseline-12         	   21316	     16913 ns/op	   13754 B/op	     117 allocs/op
+BenchmarkComparison/branch-specific-shared/proposed-12         	    1942	    181887 ns/op	   77501 B/op	     953 allocs/op
+BenchmarkComparison/branch-specific-shared/proposed-12         	    2042	    182395 ns/op	   77677 B/op	     953 allocs/op
+BenchmarkComparison/branch-specific-shared/proposed-12         	    2007	    181961 ns/op	   77510 B/op	     953 allocs/op
+BenchmarkComparison/branch-specific-shared/proposed-12         	    1968	    184408 ns/op	   77611 B/op	     953 allocs/op
+BenchmarkComparison/branch-specific-shared/proposed-12         	    1951	    182552 ns/op	   77427 B/op	     953 allocs/op
+BenchmarkComparison/snapshot-direct-light/baseline-12          	   36367	      9991 ns/op	    6011 B/op	      64 allocs/op
+BenchmarkComparison/snapshot-direct-light/baseline-12          	   36487	      9822 ns/op	    6011 B/op	      64 allocs/op
+BenchmarkComparison/snapshot-direct-light/baseline-12          	   36984	      9869 ns/op	    6011 B/op	      64 allocs/op
+BenchmarkComparison/snapshot-direct-light/baseline-12          	   36112	     10007 ns/op	    6012 B/op	      64 allocs/op
+BenchmarkComparison/snapshot-direct-light/baseline-12          	   35461	     10052 ns/op	    6012 B/op	      64 allocs/op
+BenchmarkComparison/snapshot-direct-light/proposed-12          	    3638	     93432 ns/op	   46315 B/op	     344 allocs/op
+BenchmarkComparison/snapshot-direct-light/proposed-12          	    4066	     91307 ns/op	   46266 B/op	     344 allocs/op
+BenchmarkComparison/snapshot-direct-light/proposed-12          	    3750	     95030 ns/op	   46263 B/op	     344 allocs/op
+BenchmarkComparison/snapshot-direct-light/proposed-12          	    3895	     92592 ns/op	   46308 B/op	     344 allocs/op
+BenchmarkComparison/snapshot-direct-light/proposed-12          	    3913	     93159 ns/op	   46223 B/op	     344 allocs/op
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/experiments/property-matching	15.133s

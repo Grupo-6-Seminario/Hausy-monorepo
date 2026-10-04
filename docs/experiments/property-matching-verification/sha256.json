@@ -1,0 +1,10 @@
+{
+  "oracle-controls.go.txt": "c685f712fce4efa42e850223ca77fe7530299c2badcad1f2a28243914e78d6ad",
+  "baseline-controls.go.txt": "a5384c684fe3295ec45ad7e924a38e471290c46e252f9d25bd5f5c32a45fce27",
+  "heldout.md": "aa179eecbbfc2f22790d9131676e4d8b0647c2ef898e9bb6ca8daeba7c55759a",
+  "independent-before-wording-fixes.txt": "c12b761f2cbead00e4a34dd9804acf6d4a356c97369fb65a62f201fa9dd8ef7e",
+  "reviewed-source-hashes.txt": "4ba50811bff369483e7467d18a0e74350c90c4ffc1fcbbfc8d7d3ac3492e8261",
+  "oracle-controls-final.go.txt": "55cc8e54f6d70e85653cc4b309c05d954cd17751aa788d12a0149c15ee246be6",
+  "independent-after-wording-before-lexical-fix.txt": "7a3a3daf884e798ac7c0ec9e112e2efee673d8fba14c1ac58d586c587e9c2f8a",
+  "independent-final.txt": "9e193e3e11363c0cb9884ab94803518836767b94984a29ac0a2bb3ba42fdc446"
+}

@@ -1,0 +1,3316 @@
+{
+  "created": "2026-10-04T04:14:58.097102Z",
+  "baseline_revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+  "runtime": "go1.26.4",
+  "machine": "darwin/arm64",
+  "sha256": {
+    "data/listings.eligibility.jsonl": "c222088b12a3d818bfd0aca63d58ed7d72141cfcaaef9f39e93a45ddd0b75e54",
+    "data/listings.parsed.jsonl": "a5c6eeb9e0c2d603daa22130287389dc75087f25d938873ccb43d3a56066630e",
+    "data/listings.quality.jsonl": "09135de0a5bff359ad6a21e53216f901ec76c0a26fad7a22ad0c75c6f50245d7",
+    "fixtures/cases.json": "e73614db394c9a3345edcae63d126392519422282a249acce565688ba0856b9a"
+  },
+  "retrieval_boundary": "Offline in-memory adapter over selected frozen rows and synthetic controls. Complete within each fixture only. Published numeric/location/attribute gates and content-bound snapshot publication reviews applied; no SQL, paging, archive or live inventory proof.",
+  "baseline_boundary": "Actual buyer.Agent with frozen intake planner, recording classifier and failing recording writer to expose actual deterministic fallback. Global URL dedup and max 10 results preserved.",
+  "proposed_policy": "weighted-net-fit-v1, each branch finalized independently with all branch memberships and denominators retained",
+  "new_noise_semantics": "Current buyer semantically evaluates natural light only. Proposed noise uses recorded direct-property support/contradiction assessments; noise changes are additional rubric behavior, not isolated score-policy benefit. Live classifier accuracy unverified.",
+  "cases": [
+    {
+      "id": "weighted-net",
+      "split": "development",
+      "baseline": {
+        "reply": "## Mi lectura\nOrdené las propiedades según si podés alquilarlas.\n\n## Por qué las elegí\n- **#1 Ejemplo a**: podés aplicar.\n- **#2 Ejemplo b**: podés aplicar.\n- **#3 Ejemplo e**: podés aplicar.\n",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_natural_light",
+            "value": "high"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "listings": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:a",
+            "neighborhood": "palermo",
+            "address": "Ejemplo a",
+            "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 900000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "source": "synthetic",
+            "url": "fixture:e",
+            "neighborhood": "palermo",
+            "address": "Ejemplo e",
+            "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 600000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            }
+          },
+          {
+            "rank": 4,
+            "source": "synthetic",
+            "url": "fixture:c",
+            "neighborhood": "palermo",
+            "address": "Ejemplo c",
+            "description": "Departamento en alquiler. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 800000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "conditionally_eligible",
+              "conditions": [
+                {
+                  "rule": {
+                    "fact": "guarantee",
+                    "operator": "one_of",
+                    "values": [
+                      "propietaria_caba"
+                    ],
+                    "hardness": "discretionary",
+                    "evidence": "Garantía sujeta a aprobación del propietario."
+                  },
+                  "reason": "discretionary"
+                }
+              ]
+            },
+            "matched": [
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 5,
+            "source": "synthetic",
+            "url": "fixture:d",
+            "neighborhood": "palermo",
+            "address": "Ejemplo d",
+            "description": "Departamento en alquiler. ",
+            "operation": "alquiler",
+            "price": {
+              "amount": 750000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "eligibility": {
+              "state": "unknown"
+            }
+          }
+        ]
+      },
+      "baseline_packet": {
+        "intent": "new_search",
+        "question": "Busco alquiler en Palermo con dos ambientes. priorizo buena luz natural.",
+        "sort": "",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_natural_light",
+            "value": "high"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "branches": [
+          {
+            "neighborhoods": [
+              "palermo"
+            ],
+            "matches": 5
+          }
+        ],
+        "shown": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:a",
+            "neighborhood": "palermo",
+            "address": "Ejemplo a",
+            "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 900000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "source": "synthetic",
+            "url": "fixture:e",
+            "neighborhood": "palermo",
+            "address": "Ejemplo e",
+            "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 600000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            }
+          }
+        ],
+        "hidden_ineligible": 0
+      },
+      "baseline_classifier": [
+        {
+          "candidate": {
+            "id": "fixture:a",
+            "url": "fixture:a",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "supported",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:b",
+            "url": "fixture:b",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "supported",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:c",
+            "url": "fixture:c",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento en alquiler. Departamento silencioso.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "insufficient_evidence",
+              "evidence_refs": [],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:d",
+            "url": "fixture:d",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento en alquiler. ",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "insufficient_evidence",
+              "evidence_refs": [],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:e",
+            "url": "fixture:e",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "contradicted",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        }
+      ],
+      "proposed": {
+        "branches": [
+          {
+            "id": "palermo",
+            "neighborhoods": [
+              "palermo"
+            ],
+            "hard_filter_matches": 5,
+            "retrieval_complete_within_fixture": true,
+            "ranking_complete": true,
+            "confirmed": 5,
+            "unconfirmed": 0,
+            "hidden_ineligible": 0,
+            "excluded_contradictions": 0,
+            "shown": [
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 1,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:a",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo a",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 900000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    },
+                    {
+                      "type": "noise_level",
+                      "value": "quiet",
+                      "provenance": "stated",
+                      "evidence": "Departamento silencioso."
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:a",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "preference",
+                        "weight": 2,
+                        "source_quote": "priorizo buena luz natural",
+                        "priority_source": "priorizo buena luz natural"
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 2
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 1
+                    }
+                  ],
+                  "numerator": 3,
+                  "denominator": 3,
+                  "score": 1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "criterion_differences": [
+                    {
+                      "criterion_id": "noise_level",
+                      "before": {
+                        "criterion": {
+                          "id": "noise_level",
+                          "text": "silencio",
+                          "priority": "",
+                          "attribute_type": "noise_level",
+                          "attribute_value": "quiet",
+                          "strength": "preference",
+                          "weight": 1
+                        },
+                        "assessment": {
+                          "criterion_id": "noise_level",
+                          "assessment": "supported",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "supported",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": 1
+                      },
+                      "after": {
+                        "criterion": {
+                          "id": "noise_level",
+                          "text": "silencio",
+                          "priority": "",
+                          "attribute_type": "noise_level",
+                          "attribute_value": "quiet",
+                          "strength": "preference",
+                          "weight": 1
+                        },
+                        "assessment": {
+                          "criterion_id": "noise_level",
+                          "assessment": "contradicted",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "contradicted",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": -1
+                      }
+                    }
+                  ],
+                  "rule": "preference_score",
+                  "before_url": "fixture:a",
+                  "after_url": "fixture:b",
+                  "before_rank": 1,
+                  "after_rank": 2,
+                  "criterion_ids": [
+                    "noise_level"
+                  ],
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 2,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:b",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo b",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 700000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:b",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "preference",
+                        "weight": 2,
+                        "source_quote": "priorizo buena luz natural",
+                        "priority_source": "priorizo buena luz natural"
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 2
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -1
+                    }
+                  ],
+                  "numerator": 1,
+                  "denominator": 3,
+                  "score": 0.3333333333333333,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "criterion_differences": [
+                    {
+                      "criterion_id": "natural_light",
+                      "before": {
+                        "criterion": {
+                          "id": "natural_light",
+                          "text": "buena luz natural",
+                          "priority": "",
+                          "attribute_type": "natural_light",
+                          "attribute_value": "high",
+                          "strength": "preference",
+                          "weight": 2,
+                          "source_quote": "priorizo buena luz natural",
+                          "priority_source": "priorizo buena luz natural"
+                        },
+                        "assessment": {
+                          "criterion_id": "natural_light",
+                          "assessment": "supported",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "supported",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": 2
+                      },
+                      "after": {
+                        "criterion": {
+                          "id": "natural_light",
+                          "text": "buena luz natural",
+                          "priority": "",
+                          "attribute_type": "natural_light",
+                          "attribute_value": "high",
+                          "strength": "preference",
+                          "weight": 2,
+                          "source_quote": "priorizo buena luz natural",
+                          "priority_source": "priorizo buena luz natural"
+                        },
+                        "assessment": {
+                          "criterion_id": "natural_light",
+                          "assessment": "contradicted",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "contradicted",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": -2
+                      }
+                    }
+                  ],
+                  "rule": "preference_score",
+                  "before_url": "fixture:b",
+                  "after_url": "fixture:e",
+                  "before_rank": 2,
+                  "after_rank": 3,
+                  "criterion_ids": [
+                    "natural_light"
+                  ],
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 3,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:e",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo e",
+                  "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 600000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z"
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:e",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "preference",
+                        "weight": 2,
+                        "source_quote": "priorizo buena luz natural",
+                        "priority_source": "priorizo buena luz natural"
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -2
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -1
+                    }
+                  ],
+                  "numerator": -3,
+                  "denominator": 3,
+                  "score": -1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "eligibility",
+                  "before_url": "fixture:e",
+                  "after_url": "fixture:c",
+                  "before_rank": 3,
+                  "after_rank": 4,
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 4,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:c",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo c",
+                  "description": "Departamento en alquiler. Departamento silencioso.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 800000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "noise_level",
+                      "value": "quiet",
+                      "provenance": "stated",
+                      "evidence": "Departamento silencioso."
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "conditionally_eligible",
+                  "conditions": [
+                    {
+                      "rule": {
+                        "fact": "guarantee",
+                        "operator": "one_of",
+                        "values": [
+                          "propietaria_caba"
+                        ],
+                        "hardness": "discretionary",
+                        "evidence": "Garantía sujeta a aprobación del propietario."
+                      },
+                      "reason": "discretionary"
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:c",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "preference",
+                        "weight": 2,
+                        "source_quote": "priorizo buena luz natural",
+                        "priority_source": "priorizo buena luz natural"
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento en alquiler. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 1
+                    }
+                  ],
+                  "numerator": 1,
+                  "denominator": 3,
+                  "score": 0.3333333333333333,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "eligibility",
+                  "before_url": "fixture:c",
+                  "after_url": "fixture:d",
+                  "before_rank": 4,
+                  "after_rank": 5,
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 5,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:d",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo d",
+                  "description": "Departamento en alquiler. ",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 750000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z"
+                },
+                "eligibility": {
+                  "state": "unknown"
+                },
+                "fit": {
+                  "candidate_id": "fixture:d",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "preference",
+                        "weight": 2,
+                        "source_quote": "priorizo buena luz natural",
+                        "priority_source": "priorizo buena luz natural"
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    }
+                  ],
+                  "numerator": 0,
+                  "denominator": 3,
+                  "score": 0,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "last_fit",
+                  "before_url": "fixture:d",
+                  "before_rank": 5,
+                  "substantive_advantage": false
+                }
+              }
+            ],
+            "excluded": []
+          }
+        ],
+        "relaxations": []
+      },
+      "proposed_fallback": "Encontré 5 opciones para mostrarte.\n\n**#1, Ejemplo a.** Queda antes de #2 porque el aviso afirma silencio; en #2, el aviso contradice silencio. El aviso dice: \"Acepta garantía propietaria de CABA.\".\n\n**#2, Ejemplo b.** Queda antes de #3 porque el aviso afirma buena luz natural; en #3, el aviso contradice buena luz natural y priorizaste esa cualidad. El aviso dice: \"Acepta garantía propietaria de CABA.\".\n\n**#3, Ejemplo e.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso contradice buena luz natural; el aviso contradice silencio. El aviso dice: \"Acepta garantía propietaria de CABA.\".",
+      "baseline_words": 33,
+      "proposed_words": 97,
+      "literal_expected_order_pass": true,
+      "findings": []
+    },
+    {
+      "id": "mandatory-alternatives",
+      "split": "development",
+      "baseline": {
+        "reply": "## Mi lectura\nOrdené las propiedades según si podés alquilarlas.\n\n## Por qué las elegí\n- **#1 Ejemplo a**: podés aplicar.\n- **#2 Ejemplo b**: podés aplicar.\n- **#3 Ejemplo h**: podés aplicar.\n\n## Qué falta confirmar\n- Si conseguís seguro de caución, vuelven 1 propiedades.\n",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "natural_light",
+            "value": "high"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "listings": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:a",
+            "neighborhood": "palermo",
+            "address": "Ejemplo a",
+            "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 900000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "exact",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "exact",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "source": "synthetic",
+            "url": "fixture:h",
+            "neighborhood": "palermo",
+            "address": "Ejemplo h",
+            "description": "Departamento al frente con orientación norte.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 800000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "inferred",
+                "evidence": "frente con orientación norte"
+              },
+              {
+                "type": "exposure",
+                "value": "frente",
+                "provenance": "stated",
+                "evidence": "al frente"
+              },
+              {
+                "type": "orientation",
+                "value": "norte",
+                "provenance": "stated",
+                "evidence": "orientación norte"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "unconfirmed",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "inferred",
+                "evidence": "frente con orientación norte"
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "source": "synthetic",
+            "url": "fixture:e",
+            "neighborhood": "palermo",
+            "address": "Ejemplo e",
+            "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 600000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "unconfirmed"
+          },
+          {
+            "rank": 5,
+            "source": "synthetic",
+            "url": "fixture:c",
+            "neighborhood": "palermo",
+            "address": "Ejemplo c",
+            "description": "Departamento en alquiler. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 800000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "conditionally_eligible",
+              "conditions": [
+                {
+                  "rule": {
+                    "fact": "guarantee",
+                    "operator": "one_of",
+                    "values": [
+                      "propietaria_caba"
+                    ],
+                    "hardness": "discretionary",
+                    "evidence": "Garantía sujeta a aprobación del propietario."
+                  },
+                  "reason": "discretionary"
+                }
+              ]
+            },
+            "qualitative_fit": "unconfirmed",
+            "matched": [
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 6,
+            "source": "synthetic",
+            "url": "fixture:d",
+            "neighborhood": "palermo",
+            "address": "Ejemplo d",
+            "description": "Departamento en alquiler. ",
+            "operation": "alquiler",
+            "price": {
+              "amount": 750000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "eligibility": {
+              "state": "unknown"
+            },
+            "qualitative_fit": "unconfirmed"
+          }
+        ],
+        "relaxations": [
+          {
+            "fact": "guarantee",
+            "value": "caucion",
+            "count": 1
+          }
+        ]
+      },
+      "baseline_packet": {
+        "intent": "new_search",
+        "question": "Busco alquiler en Palermo con dos ambientes.",
+        "sort": "",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "natural_light",
+            "value": "high"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "branches": [
+          {
+            "neighborhoods": [
+              "palermo"
+            ],
+            "matches": 7
+          }
+        ],
+        "shown": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:a",
+            "neighborhood": "palermo",
+            "address": "Ejemplo a",
+            "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 900000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "exact",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              },
+              {
+                "type": "noise_level",
+                "value": "quiet",
+                "provenance": "stated",
+                "evidence": "Departamento silencioso."
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "exact",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "source": "synthetic",
+            "url": "fixture:h",
+            "neighborhood": "palermo",
+            "address": "Ejemplo h",
+            "description": "Departamento al frente con orientación norte.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 800000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "inferred",
+                "evidence": "frente con orientación norte"
+              },
+              {
+                "type": "exposure",
+                "value": "frente",
+                "provenance": "stated",
+                "evidence": "al frente"
+              },
+              {
+                "type": "orientation",
+                "value": "norte",
+                "provenance": "stated",
+                "evidence": "orientación norte"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            },
+            "qualitative_fit": "unconfirmed",
+            "matched": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "inferred",
+                "evidence": "frente con orientación norte"
+              }
+            ]
+          }
+        ],
+        "hidden_ineligible": 1,
+        "relaxations": [
+          {
+            "fact": "guarantee",
+            "value": "caucion",
+            "count": 1
+          }
+        ]
+      },
+      "baseline_classifier": [
+        {
+          "candidate": {
+            "id": "fixture:a",
+            "url": "fixture:a",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "supported",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:b",
+            "url": "fixture:b",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "supported",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:c",
+            "url": "fixture:c",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento en alquiler. Departamento silencioso.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "insufficient_evidence",
+              "evidence_refs": [],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:d",
+            "url": "fixture:d",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento en alquiler. ",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "insufficient_evidence",
+              "evidence_refs": [],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:e",
+            "url": "fixture:e",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "contradicted",
+              "evidence_refs": [
+                "description"
+              ],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        },
+        {
+          "candidate": {
+            "id": "fixture:h",
+            "url": "fixture:h",
+            "evidence": [
+              {
+                "id": "description",
+                "text": "Departamento al frente con orientación norte.",
+                "provenance": "published"
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "q0",
+              "text": "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice.",
+              "priority": "primary",
+              "attribute_type": "natural_light",
+              "attribute_value": "high"
+            }
+          ],
+          "answers": [
+            {
+              "criterion_id": "q0",
+              "assessment": "insufficient_evidence",
+              "evidence_refs": [],
+              "evaluation_status": "evaluated"
+            }
+          ]
+        }
+      ],
+      "proposed": {
+        "branches": [
+          {
+            "id": "palermo",
+            "neighborhoods": [
+              "palermo"
+            ],
+            "hard_filter_matches": 7,
+            "retrieval_complete_within_fixture": true,
+            "ranking_complete": true,
+            "confirmed": 2,
+            "unconfirmed": 3,
+            "hidden_ineligible": 1,
+            "excluded_contradictions": 1,
+            "shown": [
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 1,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:a",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo a",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 900000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    },
+                    {
+                      "type": "noise_level",
+                      "value": "quiet",
+                      "provenance": "stated",
+                      "evidence": "Departamento silencioso."
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:a",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 1
+                    }
+                  ],
+                  "numerator": 1,
+                  "denominator": 1,
+                  "score": 1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "criterion_differences": [
+                    {
+                      "criterion_id": "noise_level",
+                      "before": {
+                        "criterion": {
+                          "id": "noise_level",
+                          "text": "silencio",
+                          "priority": "",
+                          "attribute_type": "noise_level",
+                          "attribute_value": "quiet",
+                          "strength": "preference",
+                          "weight": 1
+                        },
+                        "assessment": {
+                          "criterion_id": "noise_level",
+                          "assessment": "supported",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "supported",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": 1
+                      },
+                      "after": {
+                        "criterion": {
+                          "id": "noise_level",
+                          "text": "silencio",
+                          "priority": "",
+                          "attribute_type": "noise_level",
+                          "attribute_value": "quiet",
+                          "strength": "preference",
+                          "weight": 1
+                        },
+                        "assessment": {
+                          "criterion_id": "noise_level",
+                          "assessment": "contradicted",
+                          "evidence_refs": [
+                            "description"
+                          ],
+                          "evaluation_status": "evaluated"
+                        },
+                        "effective_assessment": "contradicted",
+                        "evidence": [
+                          {
+                            "id": "description",
+                            "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                            "provenance": "published"
+                          }
+                        ],
+                        "points": -1
+                      }
+                    }
+                  ],
+                  "rule": "preference_score",
+                  "before_url": "fixture:a",
+                  "after_url": "fixture:b",
+                  "before_rank": 1,
+                  "after_rank": 2,
+                  "criterion_ids": [
+                    "noise_level"
+                  ],
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 2,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:b",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo b",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 700000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:b",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -1
+                    }
+                  ],
+                  "numerator": -1,
+                  "denominator": 1,
+                  "score": -1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "required_evidence",
+                  "before_url": "fixture:b",
+                  "after_url": "fixture:h",
+                  "before_rank": 2,
+                  "after_rank": 3,
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 3,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:h",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo h",
+                  "description": "Departamento al frente con orientación norte.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 800000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "inferred",
+                      "evidence": "frente con orientación norte"
+                    },
+                    {
+                      "type": "exposure",
+                      "value": "frente",
+                      "provenance": "stated",
+                      "evidence": "al frente"
+                    },
+                    {
+                      "type": "orientation",
+                      "value": "norte",
+                      "provenance": "stated",
+                      "evidence": "orientación norte"
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:h",
+                  "required_fit": "unconfirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    }
+                  ],
+                  "numerator": 0,
+                  "denominator": 1,
+                  "score": 0,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "eligibility",
+                  "before_url": "fixture:h",
+                  "after_url": "fixture:c",
+                  "before_rank": 3,
+                  "after_rank": 4,
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 4,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:c",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo c",
+                  "description": "Departamento en alquiler. Departamento silencioso.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 800000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "noise_level",
+                      "value": "quiet",
+                      "provenance": "stated",
+                      "evidence": "Departamento silencioso."
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "conditionally_eligible",
+                  "conditions": [
+                    {
+                      "rule": {
+                        "fact": "guarantee",
+                        "operator": "one_of",
+                        "values": [
+                          "propietaria_caba"
+                        ],
+                        "hardness": "discretionary",
+                        "evidence": "Garantía sujeta a aprobación del propietario."
+                      },
+                      "reason": "discretionary"
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:c",
+                  "required_fit": "unconfirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento en alquiler. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 1
+                    }
+                  ],
+                  "numerator": 1,
+                  "denominator": 1,
+                  "score": 1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "eligibility",
+                  "before_url": "fixture:c",
+                  "after_url": "fixture:d",
+                  "before_rank": 4,
+                  "after_rank": 5,
+                  "substantive_advantage": true
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 5,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:d",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo d",
+                  "description": "Departamento en alquiler. ",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 750000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z"
+                },
+                "eligibility": {
+                  "state": "unknown"
+                },
+                "fit": {
+                  "candidate_id": "fixture:d",
+                  "required_fit": "unconfirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "insufficient_evidence",
+                        "evidence_refs": [],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "insufficient_evidence",
+                      "evidence": [],
+                      "points": 0
+                    }
+                  ],
+                  "numerator": 0,
+                  "denominator": 1,
+                  "score": 0,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "last_fit",
+                  "before_url": "fixture:d",
+                  "before_rank": 5,
+                  "substantive_advantage": false
+                }
+              }
+            ],
+            "excluded": [
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 0,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:e",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo e",
+                  "description": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 600000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z"
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:e",
+                  "required_fit": "contradicted",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento oscuro, con poca luz natural. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -1
+                    }
+                  ],
+                  "numerator": -1,
+                  "denominator": 1,
+                  "score": -1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "required_contradiction",
+                  "before_url": "",
+                  "before_rank": 0,
+                  "substantive_advantage": false
+                }
+              },
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 0,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:f",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo f",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 650000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    },
+                    {
+                      "type": "noise_level",
+                      "value": "quiet",
+                      "provenance": "stated",
+                      "evidence": "Departamento silencioso."
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "ineligible",
+                  "conditions": [
+                    {
+                      "rule": {
+                        "fact": "guarantee",
+                        "operator": "one_of",
+                        "values": [
+                          "caucion"
+                        ],
+                        "hardness": "hard",
+                        "evidence": "Acepta caución."
+                      },
+                      "reason": "not_met"
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:f",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "natural_light",
+                        "text": "buena luz natural",
+                        "priority": "",
+                        "attribute_type": "natural_light",
+                        "attribute_value": "high",
+                        "strength": "requirement",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "natural_light",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 0
+                    },
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "supported",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "supported",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Departamento silencioso.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": 1
+                    }
+                  ],
+                  "numerator": 1,
+                  "denominator": 1,
+                  "score": 1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "ineligible",
+                  "before_url": "",
+                  "before_rank": 0,
+                  "substantive_advantage": false
+                }
+              }
+            ]
+          }
+        ],
+        "relaxations": [
+          {
+            "fact": "guarantee",
+            "value": "caucion",
+            "count": 1
+          }
+        ]
+      },
+      "proposed_fallback": "Encontré 5 opciones para mostrarte.\n\n**#1, Ejemplo a.** Queda antes de #2 porque el aviso afirma silencio; en #2, el aviso contradice silencio. El aviso dice: \"Acepta garantía propietaria de CABA.\".\n\n**#2, Ejemplo b.** Queda antes de #3 porque el aviso confirma todas las cualidades obligatorias. El aviso contradice silencio. El aviso dice: \"Acepta garantía propietaria de CABA.\".\n\n**#3, Ejemplo h.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso no confirma buena luz natural. El aviso dice: \"Acepta garantía propietaria de CABA.\".\n\nHay 1 opciones excluidas por los requisitos para alquilar.\n\nHay 1 opciones excluidas porque el aviso contradice una cualidad obligatoria. Si conseguís caucion, vuelven 1 propiedades.",
+      "baseline_words": 46,
+      "proposed_words": 113,
+      "literal_expected_order_pass": true,
+      "findings": [
+        "baseline shows mandatory contradiction fixture:e",
+        "palermo fixture:c baseline global rank 5 -\u003e proposed branch rank 4; deciding rule eligibility",
+        "palermo fixture:d baseline global rank 6 -\u003e proposed branch rank 5; deciding rule last_fit"
+      ]
+    },
+    {
+      "id": "lone-result",
+      "split": "development",
+      "baseline": {
+        "reply": "## Mi lectura\nOrdené las propiedades según si podés alquilarlas.\n\n## Por qué las elegí\n- **#1 Ejemplo b**: podés aplicar.\n",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "listings": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "baseline_packet": {
+        "intent": "new_search",
+        "question": "Busco alquiler en Palermo con dos ambientes.",
+        "sort": "",
+        "requirements": [
+          {
+            "type": "max_price",
+            "value": "1000000 ARS"
+          },
+          {
+            "type": "min_rooms",
+            "value": "2"
+          },
+          {
+            "type": "neighborhood",
+            "value": "palermo"
+          },
+          {
+            "type": "operation",
+            "value": "alquiler"
+          },
+          {
+            "type": "prefiere_noise_level",
+            "value": "quiet"
+          }
+        ],
+        "branches": [
+          {
+            "neighborhoods": [
+              "palermo"
+            ],
+            "matches": 1
+          }
+        ],
+        "shown": [
+          {
+            "rank": 1,
+            "source": "synthetic",
+            "url": "fixture:b",
+            "neighborhood": "palermo",
+            "address": "Ejemplo b",
+            "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+            "operation": "alquiler",
+            "price": {
+              "amount": 700000,
+              "currency": "ARS"
+            },
+            "expenses": {
+              "amount": 100000,
+              "currency": "ARS"
+            },
+            "total_area_m2": 50,
+            "rooms": 2,
+            "scraped_at": "0001-01-01T00:00:00Z",
+            "attributes": [
+              {
+                "type": "natural_light",
+                "value": "high",
+                "provenance": "stated",
+                "evidence": "Departamento luminoso en todos sus ambientes principales"
+              }
+            ],
+            "eligibility": {
+              "state": "eligible",
+              "met": [
+                {
+                  "fact": "guarantee",
+                  "operator": "one_of",
+                  "values": [
+                    "propietaria_caba"
+                  ],
+                  "hardness": "hard",
+                  "evidence": "Acepta garantía propietaria de CABA."
+                }
+              ]
+            }
+          }
+        ],
+        "hidden_ineligible": 0
+      },
+      "baseline_classifier": null,
+      "proposed": {
+        "branches": [
+          {
+            "id": "palermo",
+            "neighborhoods": [
+              "palermo"
+            ],
+            "hard_filter_matches": 1,
+            "retrieval_complete_within_fixture": true,
+            "ranking_complete": true,
+            "confirmed": 1,
+            "unconfirmed": 0,
+            "hidden_ineligible": 0,
+            "excluded_contradictions": 0,
+            "shown": [
+              {
+                "comparison_peer_in_packet": false,
+                "rank": 1,
+                "branch_id": "palermo",
+                "listing": {
+                  "source": "synthetic",
+                  "url": "fixture:b",
+                  "neighborhood": "palermo",
+                  "address": "Ejemplo b",
+                  "description": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                  "operation": "alquiler",
+                  "price": {
+                    "amount": 700000,
+                    "currency": "ARS"
+                  },
+                  "expenses": {
+                    "amount": 100000,
+                    "currency": "ARS"
+                  },
+                  "total_area_m2": 50,
+                  "rooms": 2,
+                  "scraped_at": "0001-01-01T00:00:00Z",
+                  "attributes": [
+                    {
+                      "type": "natural_light",
+                      "value": "high",
+                      "provenance": "stated",
+                      "evidence": "Departamento luminoso en todos sus ambientes principales"
+                    }
+                  ]
+                },
+                "eligibility": {
+                  "state": "eligible",
+                  "met": [
+                    {
+                      "fact": "guarantee",
+                      "operator": "one_of",
+                      "values": [
+                        "propietaria_caba"
+                      ],
+                      "hardness": "hard",
+                      "evidence": "Acepta garantía propietaria de CABA."
+                    }
+                  ]
+                },
+                "fit": {
+                  "candidate_id": "fixture:b",
+                  "required_fit": "confirmed",
+                  "contributions": [
+                    {
+                      "criterion": {
+                        "id": "noise_level",
+                        "text": "silencio",
+                        "priority": "",
+                        "attribute_type": "noise_level",
+                        "attribute_value": "quiet",
+                        "strength": "preference",
+                        "weight": 1
+                      },
+                      "assessment": {
+                        "criterion_id": "noise_level",
+                        "assessment": "contradicted",
+                        "evidence_refs": [
+                          "description"
+                        ],
+                        "evaluation_status": "evaluated"
+                      },
+                      "effective_assessment": "contradicted",
+                      "evidence": [
+                        {
+                          "id": "description",
+                          "text": "Departamento luminoso en todos sus ambientes principales. Se escucha mucho ruido de tránsito dentro del departamento.",
+                          "provenance": "published"
+                        }
+                      ],
+                      "points": -1
+                    }
+                  ],
+                  "numerator": -1,
+                  "denominator": 1,
+                  "score": -1,
+                  "no_preference_advantage": false
+                },
+                "reason": {
+                  "rule": "lone_fit",
+                  "before_url": "fixture:b",
+                  "before_rank": 1,
+                  "substantive_advantage": false
+                }
+              }
+            ],
+            "excluded": []
+          }
+        ],
+        "relaxations": []
+      },
+      "proposed_fallback": "Encontré una opción para mostrarte.\n\n**#1, Ejemplo b.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso contradice silencio. El aviso dice: \"Acepta garantía propietaria de CABA.\".",
+      "baseline_words": 21,
+      "proposed_words": 31,
+      "literal_expected_order_pass": true,
+      "findings": []
+    }
+  ],
+  "live": {
+    "lone-result": {
+      "baseline": {
+        "content": "## Mi lectura\nEs una opción viable porque cumple con el presupuesto, la cantidad de ambientes y la ubicación, aunque el ruido del tránsito es alto.\n\n## Por qué las elegí\nEs la única propiedad que encontré en Palermo que tiene los dos ambientes que necesitás y el precio total (con gastos) está por debajo de tu límite de un millón. Además, la inmobiliaria acepta garantía propietaria de CABA, que es lo que tenés.\n\n## Qué falta confirmar\nLa comodidad de \"quieto\" no se cumple: el aviso dice explícito que hay mucho ruido de tránsito dentro del departamento, lo cual contradice tu preferencia por lugares tranquilos.",
+        "words": 106,
+        "latency_ms": 5566.439,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      },
+      "proposed": {
+        "content": "El aviso de fixture:b es el único resultado mostrado en el barrio de Palermo, ya que no hay otros avisos con los que compararlo en este paquete.\n\nAunque el anuncio cumple con el requisito de aceptar garantía propietaria de CABA, la descripción textual indica que hay mucho ruido de tránsito, lo cual contradice la preferencia por el silencio y hace que el aviso sea menos atractivo según el criterio de ruido.\n\nPor esta contradicción interna entre la preferencia del usuario y la realidad descrita en el texto, el sistema lo clasifica como confirmado pero con una desventaja puntual, sin que existan otros avisos que lo superen en este grupo.",
+        "words": 109,
+        "latency_ms": 5187.075,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      }
+    },
+    "mandatory-alternatives": {
+      "baseline": {
+        "content": "## Mi lectura\nTenés siete opciones opcionespropiedades en Palermo que cumplen con los requisitos de precio, cantidad de ambientes y luz natural, además de que la inmobiliaria acepta garantía propietaria de CABA.\n\n## Por qué las elegí\nLa opción #1 es la mejor porque es un departamento de dos ambientes con mucha luz natural y está ubicado en un lugar silencioso, además de cumplir con la garantía que necesitás. La opción #2 también tiene dos ambientes y mucha luz, pero tené en cuenta que el ruido del tránsito se escucha dentro del departamento, así que no es tan tranquilo como el primero.\n\n## Qué falta confirmar\nEn la opción #3, la luz natural es alta pero eso es una inferencia basada en que está al frente con orientación norte; la inmobiliaria no lo confirma explícitamente en el aviso, así que podés pedirle que lo verifiquen.",
+        "words": 145,
+        "latency_ms": 8355.797,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      },
+      "proposed": {
+        "content": "En el barrio de Palermo, el primer aviso es el que se muestra primero porque cumple con la preferencia de tener mucho ruido de tránsito, aunque eso contradice la búsqueda de silencio, mientras que el segundo aviso no tiene esa ventaja y además su descripción contradice el criterio de silencio. El tercer aviso aparece después porque no tiene confirmación de que cumpla con la luz natural ni con el silencio, ya que la evidencia para esos puntos es insuficiente o no está disponible en su texto.",
+        "words": 86,
+        "latency_ms": 8203.233,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      }
+    },
+    "weighted-net": {
+      "baseline": {
+        "content": "## Mi lectura\nTenés cinco opciones en Palermo que cumplen con todo lo que pediste: dos ambientes, precio bajo de un millón, buena luz y tranquilidad.\n\n## Por qué las elegí\nLa opción #1 es la mejor porque el aviso confirma textualmente que tiene mucha luz natural en todos los ambientes y es silencioso, además de aceptar tu garantía propietaria de CABA. La opción #2 también tiene mucha luz y cumple con el precio y la garantía, pero el aviso dice explícito que se escucha mucho ruido de tránsito, así que no es tan tranquila como la primera.\n\n## Qué falta confirmar\nNo hay nada por confirmar en esta búsqueda; las propiedades mostradas ya cumplen con todos los requisitos que tenés planteados.",
+        "words": 122,
+        "latency_ms": 13043.309,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      },
+      "proposed": {
+        "content": "El resultado muestra tres departamentos en Palermo, todos elegibles por aceptar garantía propietaria de CABA, pero con diferencias clave en luz y ruido que definen el orden.\n\nEl primero (Ejemplo a) es el mejor porque cumple con la preferencia de buena luz natural y es silencioso, sin contradicciones en sus atributos.\n\nEl segundo (Ejemplo b) baja de posición respecto al primero porque, aunque tiene buena luz, la descripción confirma que hay mucho ruido, lo cual contradice la preferencia de silencio.\n\nEl tercero (Ejemplo e) cae al final porque su descripción indica que es oscuro y ruidoso, contradiciendo ambas preferencias y perdiendo puntos en la evaluación.",
+        "words": 105,
+        "latency_ms": 10257.491,
+        "status": "generated",
+        "tokens": null,
+        "cost": null
+      }
+    }
+  },
+  "all_literal_orders_pass": true
+}

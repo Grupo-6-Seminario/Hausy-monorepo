@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-04T04:37:30.432393+00:00",
+  "baseline_revision": "7c7012072fc37476a2806b9776771a3bf58d4110",
+  "machine": {
+    "cpu": "Apple M4 Pro",
+    "memory_bytes": 25769803776,
+    "cores": 12,
+    "runtime": "go1.26.4 darwin/arm64"
+  },
+  "local_writer": {
+    "model": "Qwen3.5-9B-4bit",
+    "server": "omlx 0.6.4",
+    "endpoint": "http://127.0.0.1:8000",
+    "temperature": 0,
+    "max_tokens": 900,
+    "offline_weights": true,
+    "tokens": null,
+    "cost": null
+  },
+  "commands": {
+    "live": "go run ./experiments/property-matching/cmd -live -output experiments/property-matching/output/live-final.json",
+    "benchmark": "go test ./experiments/property-matching -run '^$' -bench BenchmarkComparison -benchmem -benchtime=300ms -count=5",
+    "full_tests": "go test -json ./... -count=1"
+  },
+  "sha256": {
+    "experiments/property-matching/benchmark_test.go": "3046bd79756df67011f19f7fafedafca3c29b2ec6e2986662978dc8a15345ebc",
+    "experiments/property-matching/cmd/main.go": "fd5b773eec6a747bad5f360d278339857a5a036c460c375ccab77ddd01298736",
+    "experiments/property-matching/cmd/main_test.go": "604172030bb2320d6c9dc728c856fc273d995323d5670696ebac2319a2c078b7",
+    "experiments/property-matching/comparison.go": "f14354fe4e1821f3f8c4b33c219f0a4a14d19d7ef8e1c9fad6d94c8eafd999e7",
+    "experiments/property-matching/comparison_test.go": "e05b611397bbdabc701890e55b43778729977c5203e1ae82c9f17377ccf63068",
+    "experiments/property-matching/explanation.go": "9bf74df86b2e611463bbef9da2bc883827ced58d34b13cd3d335850a915c0986",
+    "experiments/property-matching/fixtures/cases.json": "d9b4e5d996646b7f15ac477d93dcb5823c94117e23508ed32d6242e82e2e5bf7",
+    "experiments/property-matching/fixtures/freeze.json": "92d4441084e6d0a378c0af8800b6f8d5033909ed62a8807a566537e8d6049fc6",
+    "experiments/property-matching/inventory.go": "76beec0981a22a3091c560dd2074a5aa0774f262cb5a919031b8586466b8f285",
+    "internal/matching/fit.go": "610851f7fc08a642f3100cf249c2a5af9ada922e1bad4599a851806e897ae533",
+    "internal/matching/fit_test.go": "e218830836df0feb36841cdacc00cfe3db3f9c20737eff4e77ecdc42763ef12c"
+  }
+}

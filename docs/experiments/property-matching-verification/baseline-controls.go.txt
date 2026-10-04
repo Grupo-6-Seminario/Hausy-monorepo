@@ -1,0 +1,238 @@
+package buyer_test
+
+// Oracle baseline observation (verifier-owned, injected with go test -overlay).
+// Runs the current buyer on the oracle fixtures and prints the observed order.
+
+import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+)
+
+// frozen answers the natural_light criterion per listing URL.
+type frozen struct {
+	light map[string]string
+	fail  map[string]bool
+}
+
+func (f frozen) Classify(_ context.Context, c matching.Candidate, qs []matching.Criterion) ([]matching.Assessment, error) {
+	if f.fail[c.ID] {
+		return nil, errors.New("provider unavailable")
+	}
+	out := make([]matching.Assessment, len(qs))
+	for i, q := range qs {
+		a := f.light[c.ID]
+		if a == "" {
+			a = "insufficient_evidence"
+		}
+		refs := []string{}
+		if a != "insufficient_evidence" {
+			refs = []string{"description"}
+		}
+		out[i] = matching.Assessment{CriterionID: q.ID, Assessment: a, EvidenceRefs: refs, Status: "evaluated"}
+	}
+	return out, nil
+}
+
+var (
+	lightS  = listing.Attribute{Type: "natural_light", Value: "high", Provenance: listing.Stated, Evidence: "muy luminoso"}
+	lightI  = listing.Attribute{Type: "natural_light", Value: "high", Provenance: listing.Inferred, Evidence: "orientación norte"}
+	darkS   = listing.Attribute{Type: "natural_light", Value: "low", Provenance: listing.Stated, Evidence: "poca luz"}
+	norteS  = listing.Attribute{Type: "orientation", Value: "norte", Provenance: listing.Stated, Evidence: "orientación norte"}
+	quietS  = listing.Attribute{Type: "noise_level", Value: "quiet", Provenance: listing.Stated, Evidence: "muy silencioso"}
+	quietI  = listing.Attribute{Type: "noise_level", Value: "quiet", Provenance: listing.Inferred, Evidence: "zona residencial"}
+	noisyS  = listing.Attribute{Type: "noise_level", Value: "noisy", Provenance: listing.Stated, Evidence: "ruidoso, sobre avenida"}
+	elig    = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria"}, Hardness: "hard", Evidence: "Garantía propietaria"}}
+	cond    = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria", "caucion"}, Hardness: "discretionary", Evidence: "ver cuáles permite la propietaria"}}
+	inel    = []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard", Evidence: "Seguro de caución (excluyente)"}}
+	income3 = []eligibility.Rule{{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard", Evidence: "ingresos 3x"}}
+	prop    = eligibility.Qualification{"guarantee": {"propietaria"}}
+	light   = search.AttributeFilter{Type: "natural_light", Value: "high"}
+	quiet   = search.AttributeFilter{Type: "noise_level", Value: "quiet"}
+)
+
+func with(c eligibility.Candidate, area *float64, desc string) eligibility.Candidate {
+	c.Listing.TotalAreaM2, c.Listing.Description = area, desc
+	return c
+}
+
+func observe(t *testing.T, name string, plan intake.Plan, items []eligibility.Candidate, cls matching.Classifier, q eligibility.Qualification) {
+	t.Helper()
+	inv := stock{byHood: map[string][]eligibility.Candidate{}}
+	for _, c := range items {
+		if c.Listing.Description == "" {
+			c.Listing.Description = "aviso"
+		}
+		inv.byHood[c.Listing.Neighborhood] = append(inv.byHood[c.Listing.Neighborhood], c)
+	}
+	opts := []buyer.Option{}
+	if cls != nil {
+		opts = append(opts, buyer.WithMatching(cls))
+	}
+	w := &fakeWriter{}
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, w, opts...), "m", q)
+	var got []string
+	for _, r := range resp.Listings {
+		state := ""
+		if r.Eligibility != nil {
+			state = string(r.Eligibility.State)
+		}
+		got = append(got, fmt.Sprintf("%s[%s|%s]", r.URL, r.QualitativeFit, state))
+	}
+	t.Logf("BASELINE %s: %s hidden=%d", name, strings.Join(got, " "), w.packets[0].Hidden)
+}
+
+func plan(sort string, req, pref []search.AttributeFilter, hoods ...string) intake.Plan {
+	return intake.Plan{Intent: "new_search", Sort: sort, Branches: []search.Query{{Neighborhoods: hoods, Operation: "alquiler", RequiredAttributes: req, PreferredAttributes: pref}}}
+}
+
+func TestOracleBaseline(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	// C03 contributions, equal weights.
+	observe(t, "C03", plan("relevance", nil, []search.AttributeFilter{light, quiet}, "palermo"), []eligibility.Candidate{
+		candidate("u/p-both", "palermo", 700000, elig, lightS, quietS),
+		candidate("u/p-light", "palermo", 700000, elig, lightS),
+		candidate("u/p-hint", "palermo", 700000, elig, lightI, norteS, quietI),
+		candidate("u/p-none", "palermo", 700000, elig),
+		candidate("u/p-dark", "palermo", 700000, elig, darkS, quietS),
+		candidate("u/p-noisy", "palermo", 700000, elig, noisyS),
+	}, frozen{light: map[string]string{"u/p-both": "supported", "u/p-light": "supported", "u/p-dark": "contradicted"}}, prop)
+	// C04 explicit priority (baseline has no weights).
+	observe(t, "C04", plan("relevance", nil, []search.AttributeFilter{light, quiet}, "palermo"), []eligibility.Candidate{
+		candidate("u/q-quiet", "palermo", 700000, elig, quietS),
+		candidate("u/q-light", "palermo", 700000, elig, lightS),
+		candidate("u/q-both", "palermo", 700000, elig, lightS, quietS),
+		candidate("u/q-lightnoisy", "palermo", 700000, elig, lightS, noisyS),
+	}, frozen{light: map[string]string{"u/q-light": "supported", "u/q-both": "supported", "u/q-lightnoisy": "supported"}}, prop)
+	// C05 mandatory light, preferred quiet.
+	observe(t, "C05", plan("relevance", []search.AttributeFilter{light}, []search.AttributeFilter{quiet}, "palermo"), []eligibility.Candidate{
+		candidate("u/m-sup", "palermo", 700000, elig, lightS),
+		candidate("u/m-sup-quiet", "palermo", 700000, elig, lightS, quietS),
+		candidate("u/m-unk", "palermo", 700000, elig, quietS),
+		candidate("u/m-hint", "palermo", 700000, elig, norteS),
+		candidate("u/m-contra", "palermo", 700000, elig, darkS, quietS),
+		candidate("u/m-conflict", "palermo", 700000, elig),
+		candidate("u/m-scope", "palermo", 700000, elig),
+	}, frozen{light: map[string]string{"u/m-sup": "supported", "u/m-sup-quiet": "supported", "u/m-contra": "contradicted", "u/m-conflict": "conflicting_evidence"}}, prop)
+	// C06 eligibility groups.
+	observe(t, "C06", plan("relevance", nil, []search.AttributeFilter{light}, "palermo"), []eligibility.Candidate{
+		candidate("u/e-elig", "palermo", 700000, elig),
+		candidate("u/e-cond", "palermo", 700000, cond, lightS),
+		candidate("u/e-unk", "palermo", 700000, nil, lightS),
+		candidate("u/e-inel", "palermo", 700000, inel, lightS),
+		candidate("u/e-unk2", "palermo", 700000, income3),
+	}, frozen{light: map[string]string{"u/e-cond": "supported", "u/e-unk": "supported", "u/e-inel": "supported"}}, prop)
+	// C08a area_desc with ties and missing.
+	observe(t, "C08a", plan("area_desc", nil, []search.AttributeFilter{light}, "palermo"), []eligibility.Candidate{
+		with(candidate("u/s-small", "palermo", 700000, elig, lightS), f(40), ""),
+		with(candidate("u/s-noarea-b", "palermo", 700000, elig), nil, ""),
+		with(candidate("u/s-big-tie", "palermo", 700000, elig, lightS), f(80), ""),
+		with(candidate("u/s-noarea-a", "palermo", 700000, elig, lightS), nil, ""),
+		with(candidate("u/s-big", "palermo", 700000, elig), f(80), ""),
+	}, frozen{light: map[string]string{"u/s-small": "supported", "u/s-big-tie": "supported", "u/s-noarea-a": "supported"}}, prop)
+	// C08b price_desc across eligibility groups.
+	observe(t, "C08b", plan("price_desc", nil, nil, "palermo"), []eligibility.Candidate{
+		candidate("u/d-unk-exp", "palermo", 1000000, nil),
+		candidate("u/d-elig-cheap", "palermo", 600000, elig),
+		candidate("u/d-elig-exp", "palermo", 900000, elig),
+	}, nil, prop)
+	// C08c price_asc with mandatory confirmation.
+	observe(t, "C08c", plan("price_asc", []search.AttributeFilter{light}, nil, "palermo"), []eligibility.Candidate{
+		candidate("u/x-unconf", "palermo", 400000, elig),
+		candidate("u/x-conf", "palermo", 900000, elig, lightS),
+	}, frozen{light: map[string]string{"u/x-conf": "supported"}}, prop)
+	// C09 no preferences.
+	observe(t, "C09", plan("relevance", nil, nil, "palermo"), []eligibility.Candidate{
+		candidate("u/n-b", "palermo", 700000, elig), candidate("u/n-c", "palermo", 600000, elig), candidate("u/n-a", "palermo", 800000, elig),
+	}, nil, prop)
+	// C12 provider failure for one candidate; mandatory light, preferred quiet.
+	observe(t, "C12", plan("relevance", []search.AttributeFilter{light}, []search.AttributeFilter{quiet}, "palermo"), []eligibility.Candidate{
+		candidate("u/f-ok", "palermo", 700000, elig, lightS), candidate("u/f-fail", "palermo", 700000, elig),
+	}, frozen{light: map[string]string{"u/f-ok": "supported"}, fail: map[string]bool{"u/f-fail": true}}, prop)
+}
+
+func TestOracleBaselineReal(t *testing.T) {
+	var rows []eligibility.Candidate
+	rules := map[string][]eligibility.Rule{}
+	eachLine(t, "listings.eligibility.jsonl", func(b []byte) {
+		var r struct {
+			URL   string             `json:"url"`
+			Rules []eligibility.Rule `json:"rules"`
+		}
+		_ = json.Unmarshal(b, &r)
+		rules[r.URL] = r.Rules
+	})
+	eachLine(t, "listings.parsed.jsonl", func(b []byte) {
+		var l listing.Listing
+		_ = json.Unmarshal(b, &l)
+		rows = append(rows, eligibility.Candidate{Listing: l, Rules: rules[l.URL]})
+	})
+	gate := func(max float64) []eligibility.Candidate {
+		var out []eligibility.Candidate
+		for _, c := range rows {
+			l := c.Listing
+			if l.Neighborhood == "palermo" && l.Operation == "alquiler" && l.Price.Currency == "ARS" && l.Price.Amount != nil && *l.Price.Amount <= max && l.Rooms != nil && *l.Rooms == 2 {
+				out = append(out, c)
+			}
+		}
+		return out
+	}
+	labels := map[string]string{}
+	for _, id := range []string{"59889701", "59918611", "59835247", "59679253", "59791377", "59775328"} {
+		for _, c := range rows {
+			if strings.Contains(c.Listing.URL, id) {
+				labels[c.Listing.URL] = "supported"
+			}
+		}
+	}
+	p := plan("relevance", nil, []search.AttributeFilter{light, quiet}, "palermo")
+	for _, tc := range []struct {
+		name string
+		max  float64
+	}{{"R1", 700000}, {"H2", 1000000}} {
+		inv := gate(tc.max)
+		short := func(resp []string) {}
+		_ = short
+		observeReal(t, tc.name, p, inv, frozen{light: labels})
+		observeReal(t, tc.name+"-noclassifier", p, inv, nil)
+	}
+}
+
+func observeReal(t *testing.T, name string, plan intake.Plan, items []eligibility.Candidate, cls matching.Classifier) {
+	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": items}}
+	opts := []buyer.Option{}
+	if cls != nil {
+		opts = append(opts, buyer.WithMatching(cls))
+	}
+	w := &fakeWriter{}
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, w, opts...), "m", prop)
+	var got []string
+	for _, r := range resp.Listings {
+		u := r.URL
+		got = append(got, u[len(u)-13:len(u)-5]+"["+string(r.Eligibility.State)[:4]+"]")
+	}
+	t.Logf("BASELINE %s: %s hidden=%d relax=%+v", name, strings.Join(got, " "), w.packets[0].Hidden, resp.Relaxations)
+}
+
+func eachLine(t *testing.T, name string, fn func([]byte)) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "data", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range bytes.Split(bytes.TrimSpace(data), []byte("\n")) {
+		fn(line)
+	}
+}

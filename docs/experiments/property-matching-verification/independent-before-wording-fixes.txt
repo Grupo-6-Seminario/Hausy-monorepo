@@ -1,0 +1,450 @@
+=== RUN   TestOracleControls
+=== RUN   TestOracleControls/B1-gates
+    oracle_controls_test.go:164: ORACLE B1-gates branch=palermo shown=[g-ok] rules=[] hidden=0 excluded=0 matches=1 complete=true
+    oracle_controls_test.go:172: ORACLE B1-gates relaxations=[]
+    oracle_controls_test.go:173: ORACLE B1-gates FALLBACK:
+        Encontré una opción para mostrarte.
+
+        **#1, Departamento en palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=1 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=success candidates=1 batches=1 failed_batches=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=1 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=1 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B1-gates baseline=[g-ok]
+=== RUN   TestOracleControls/B2-nearby
+    oracle_controls_test.go:164: ORACLE B2-nearby branch=palermo shown=[n-in] rules=[] hidden=0 excluded=0 matches=1 complete=true
+    oracle_controls_test.go:172: ORACLE B2-nearby relaxations=[]
+    oracle_controls_test.go:173: ORACLE B2-nearby FALLBACK:
+        Encontré una opción para mostrarte.
+
+        **#1, Departamento en palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=1 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=success candidates=1 batches=1 failed_batches=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=1 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=1 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B2-nearby baseline=[n-in]
+=== RUN   TestOracleControls/B3-contributions
+    oracle_controls_test.go:164: ORACLE B3-contributions branch=palermo shown=[p-both p-light p-dark p-hint p-none p-noisy] rules=[preference_score preference_score stable_tie stable_tie preference_score] hidden=0 excluded=0 matches=6 complete=true
+    oracle_controls_test.go:172: ORACLE B3-contributions relaxations=[]
+    oracle_controls_test.go:173: ORACLE B3-contributions FALLBACK:
+        Encontré 6 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso describe el departamento como silencioso; en #2, el aviso no confirma tranquilo. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 porque el aviso describe la propiedad como luminosa; en #3, el aviso afirma que la propiedad tiene poca luz natural; el aviso no confirma tranquilo; en #3, el aviso describe el departamento como silencioso. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe el departamento como silencioso. El aviso afirma que la propiedad tiene poca luz natural. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=6 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=6 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=6 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=6 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=6 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=6 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B3-contributions baseline=[p-both p-hint p-dark p-light p-noisy p-none]
+=== RUN   TestOracleControls/B4-priority
+    oracle_controls_test.go:164: ORACLE B4-priority branch=palermo shown=[q-both q-quiet q-light q-lightnoisy] rules=[preference_score preference_score preference_score] hidden=0 excluded=0 matches=4 complete=true
+    oracle_controls_test.go:172: ORACLE B4-priority relaxations=[]
+    oracle_controls_test.go:173: ORACLE B4-priority FALLBACK:
+        Encontré 4 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso describe la propiedad como luminosa; en #2, el aviso no confirma luminoso. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 porque el aviso no confirma luminoso; en #3, el aviso describe la propiedad como luminosa; el aviso describe el departamento como silencioso; en #3, el aviso no confirma tranquilo y priorizaste esa cualidad. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=4 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=4 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=4 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=4 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=4 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=4 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B4-priority baseline=[q-both q-light q-lightnoisy q-quiet]
+=== RUN   TestOracleControls/B4-equal
+    oracle_controls_test.go:164: ORACLE B4-equal branch=palermo shown=[q-both q-light q-quiet q-lightnoisy] rules=[preference_score stable_tie preference_score] hidden=0 excluded=0 matches=4 complete=true
+    oracle_controls_test.go:172: ORACLE B4-equal relaxations=[]
+    oracle_controls_test.go:173: ORACLE B4-equal FALLBACK:
+        Encontré 4 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso describe el departamento como silencioso; en #2, el aviso no confirma tranquilo. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** No hay una ventaja que justifique ponerla antes de #3; mantienen un orden fijo. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe el departamento como silencioso. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=4 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=4 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=4 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=4 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=4 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=4 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B4-equal baseline=[q-both q-light q-lightnoisy q-quiet]
+=== RUN   TestOracleControls/B4b-phrase-absent-from-message
+    oracle_controls_test.go:130: ORACLE B4b-phrase-absent-from-message: rejected: comparison: priority source not in original question
+=== RUN   TestOracleControls/B4b-weight3
+    oracle_controls_test.go:130: ORACLE B4b-weight3: rejected: matching fit: weight must be 1 or 2
+=== RUN   TestOracleControls/B4b-no-phrase
+    oracle_controls_test.go:130: ORACLE B4b-no-phrase: rejected: comparison: priority source not in original question
+=== RUN   TestOracleControls/B5-mandatory
+    oracle_controls_test.go:164: ORACLE B5-mandatory branch=palermo shown=[m-sup-quiet m-sup m-unk m-conflict m-hint m-scope] rules=[preference_score required_evidence preference_score stable_tie stable_tie] hidden=0 excluded=1 matches=7 complete=true
+    oracle_controls_test.go:172: ORACLE B5-mandatory relaxations=[]
+    oracle_controls_test.go:173: ORACLE B5-mandatory FALLBACK:
+        Encontré 6 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso describe el departamento como silencioso; en #2, el aviso no confirma tranquilo. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 porque el aviso confirma todas las cualidades obligatorias. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe el departamento como silencioso. El aviso no confirma luminoso. El aviso dice: "Garantía propietaria".
+
+        Hay una opción excluida porque el aviso contradice una cualidad obligatoria.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=7 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=7 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=7 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=7 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=7 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=7 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B5-mandatory baseline=[m-contra m-sup-quiet m-unk m-conflict m-hint m-scope m-sup]
+=== RUN   TestOracleControls/B6-eligibility
+    oracle_controls_test.go:164: ORACLE B6-eligibility branch=palermo shown=[e-elig e-cond e-unk e-unk2] rules=[eligibility eligibility preference_score] hidden=1 excluded=0 matches=5 complete=true
+    oracle_controls_test.go:172: ORACLE B6-eligibility relaxations=[{Fact:guarantee Value:caucion Count:1}]
+    oracle_controls_test.go:173: ORACLE B6-eligibility FALLBACK:
+        Encontré 4 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 por los requisitos para alquilar: el aviso respalda mejor tu situación. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 por los requisitos para alquilar: el aviso respalda mejor tu situación. Depende de aprobación: ver cuáles permite la propietaria.
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso no publica requisitos suficientes para saber si podés alquilarla.
+
+        Hay una opción excluida por los requisitos para alquilar. Si conseguís una caución, vuelve una propiedad.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=5 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=5 hidden=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=4 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=4 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=4 hidden=1 relaxations=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=4 hidden=1 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B6-eligibility baseline=[e-elig e-cond e-unk e-unk2]
+=== RUN   TestOracleControls/B7-branches
+    oracle_controls_test.go:164: ORACLE B7-branches branch=A shown=[a2 a1] rules=[preference_score] hidden=0 excluded=0 matches=2 complete=true
+    oracle_controls_test.go:164: ORACLE B7-branches branch=B shown=[b1 b2] rules=[preference_score] hidden=0 excluded=0 matches=2 complete=true
+    oracle_controls_test.go:164: ORACLE B7-branches branch=C shown=[] rules=[] hidden=0 excluded=0 matches=0 complete=true
+    oracle_controls_test.go:172: ORACLE B7-branches relaxations=[]
+    oracle_controls_test.go:173: ORACLE B7-branches FALLBACK:
+        Encontré 4 opciones para mostrarte.
+
+        **A, #1, Departamento en palermo.** Queda antes de #2 porque el aviso describe el departamento como silencioso; en #2, el aviso no confirma tranquilo. El aviso dice: "Garantía propietaria".
+
+        **A, #2, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso dice: "Garantía propietaria".
+
+        **B, #1, Departamento en caballito.** Cumple los filtros publicados y el aviso afirma balcón. El aviso dice: "Garantía propietaria".
+
+        belgrano: 0 opciones.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=3 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=1 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=1 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=2 count=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=2 count=0 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=2 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=2 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=3 shown=4 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=4 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B7-branches baseline=[a2 a1 b1 b2]
+=== RUN   TestOracleControls/B8a-area
+    oracle_controls_test.go:164: ORACLE B8a-area branch=palermo shown=[s-big s-big-tie s-small s-noarea-a s-noarea-b] rules=[stable_tie area_desc area_desc stable_tie] hidden=0 excluded=0 matches=5 complete=true
+    oracle_controls_test.go:172: ORACLE B8a-area relaxations=[]
+    oracle_controls_test.go:173: ORACLE B8a-area FALLBACK:
+        Encontré 5 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** No hay una ventaja que justifique ponerla antes de #2; mantienen un orden fijo. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 porque pediste más superficie primero. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=5 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=5 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=5 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=5 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=5 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=5 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B8a-area baseline=[s-big s-big-tie s-small s-noarea-a s-noarea-b]
+=== RUN   TestOracleControls/B8b-price-desc
+    oracle_controls_test.go:164: ORACLE B8b-price-desc branch=palermo shown=[d-elig-exp d-elig-cheap d-unk-exp] rules=[price_desc eligibility] hidden=0 excluded=0 matches=3 complete=true
+    oracle_controls_test.go:172: ORACLE B8b-price-desc relaxations=[]
+    oracle_controls_test.go:173: ORACLE B8b-price-desc FALLBACK:
+        Encontré 3 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque pediste el mayor precio primero. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 por los requisitos para alquilar: el aviso respalda mejor tu situación. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** No pediste preferencias para distinguirla de otras opciones. El aviso no publica requisitos suficientes para saber si podés alquilarla.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=3 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=3 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=3 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=3 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B8b-price-desc baseline=[d-elig-exp d-elig-cheap d-unk-exp]
+=== RUN   TestOracleControls/B8c-price-asc-required
+    oracle_controls_test.go:164: ORACLE B8c-price-asc-required branch=palermo shown=[x-conf x-unconf] rules=[required_evidence] hidden=0 excluded=0 matches=2 complete=true
+    oracle_controls_test.go:172: ORACLE B8c-price-asc-required relaxations=[]
+    oracle_controls_test.go:173: ORACLE B8c-price-asc-required FALLBACK:
+        Encontré 2 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso confirma todas las cualidades obligatorias. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** No pediste preferencias para distinguirla de otras opciones. El aviso no confirma luminoso. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=2 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=2 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=2 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=2 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B8c-price-asc-required baseline=[x-unconf x-conf]
+=== RUN   TestOracleControls/B9-no-prefs
+    oracle_controls_test.go:164: ORACLE B9-no-prefs branch=palermo shown=[n-a n-b n-c] rules=[stable_tie stable_tie] hidden=0 excluded=0 matches=3 complete=true
+    oracle_controls_test.go:172: ORACLE B9-no-prefs relaxations=[]
+    oracle_controls_test.go:173: ORACLE B9-no-prefs FALLBACK:
+        Encontré 3 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** No hay una ventaja que justifique ponerla antes de #2; mantienen un orden fijo. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** No hay una ventaja que justifique ponerla antes de #3; mantienen un orden fijo. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** No pediste preferencias para distinguirla de otras opciones. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=3 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=3 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=3 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=3 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B9-no-prefs baseline=[n-a n-b n-c]
+=== RUN   TestOracleControls/B10-lone
+    oracle_controls_test.go:164: ORACLE B10-lone branch=palermo shown=[l-1] rules=[] hidden=0 excluded=0 matches=1 complete=true
+    oracle_controls_test.go:172: ORACLE B10-lone relaxations=[]
+    oracle_controls_test.go:173: ORACLE B10-lone FALLBACK:
+        Encontré una opción para mostrarte.
+
+        **#1, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=1 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=1 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=1 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=1 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=1 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B10-lone baseline=[l-1]
+=== RUN   TestOracleControls/B11a-empty
+    oracle_controls_test.go:164: ORACLE B11a-empty branch=palermo shown=[] rules=[] hidden=0 excluded=0 matches=0 complete=true
+    oracle_controls_test.go:172: ORACLE B11a-empty relaxations=[]
+    oracle_controls_test.go:173: ORACLE B11a-empty FALLBACK:
+        No encontré opciones para mostrarte.
+
+        palermo: 0 opciones.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=0 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=0 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=0 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B11a-empty baseline=[]
+=== RUN   TestOracleControls/B11b-all-ineligible
+    oracle_controls_test.go:164: ORACLE B11b-all-ineligible branch=palermo shown=[] rules=[] hidden=2 excluded=0 matches=2 complete=true
+    oracle_controls_test.go:172: ORACLE B11b-all-ineligible relaxations=[{Fact:guarantee Value:caucion Count:2}]
+    oracle_controls_test.go:173: ORACLE B11b-all-ineligible FALLBACK:
+        No encontré opciones para mostrarte.
+
+        palermo: 0 opciones. Hay 2 opciones excluidas por los requisitos para alquilar. Si conseguís una caución, vuelven 2 propiedades.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=0 hidden=2 relaxations=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=0 hidden=2 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B11b-all-ineligible baseline=[]
+=== RUN   TestOracleControls/B12-provider
+    oracle_controls_test.go:164: ORACLE B12-provider branch=palermo shown=[f-ok f-fail] rules=[required_evidence] hidden=0 excluded=0 matches=2 complete=false
+    oracle_controls_test.go:172: ORACLE B12-provider relaxations=[]
+    oracle_controls_test.go:173: ORACLE B12-provider FALLBACK:
+        Encontré 2 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso confirma todas las cualidades obligatorias. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. La evaluación de luminoso no estuvo disponible; la evaluación de tranquilo no estuvo disponible. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=2 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=2 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=2 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=2 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B12-provider baseline=[f-fail f-ok]
+=== RUN   TestOracleControls/B13-precedence
+    oracle_controls_test.go:164: ORACLE B13-precedence branch=palermo shown=[pr-stated pr-inferred] rules=[preference_score] hidden=0 excluded=0 matches=2 complete=true
+    oracle_controls_test.go:172: ORACLE B13-precedence relaxations=[]
+    oracle_controls_test.go:173: ORACLE B13-precedence FALLBACK:
+        Encontré 2 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque el aviso afirma balcón; en #2, hay indicios de balcón, sin confirmación. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=2 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=2 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE B13-precedence baseline=[pr-inferred pr-stated]
+=== RUN   TestOracleControls/H1-combined
+    oracle_controls_test.go:164: ORACLE H1-combined branch=palermo shown=[h1-d h1-a h1-c h1-b h1-e] rules=[price_asc price_asc eligibility required_evidence] hidden=1 excluded=1 matches=7 complete=false
+    oracle_controls_test.go:172: ORACLE H1-combined relaxations=[{Fact:guarantee Value:caucion Count:1}]
+    oracle_controls_test.go:173: ORACLE H1-combined FALLBACK:
+        Encontré 5 opciones para mostrarte.
+
+        **#1, Departamento en palermo.** Queda antes de #2 porque pediste el menor precio primero. El aviso menciona ruido dentro del departamento. El aviso dice: "Garantía propietaria".
+
+        **#2, Departamento en palermo.** Queda antes de #3 porque publica precio y esa opción no. El aviso dice: "Garantía propietaria".
+
+        **#3, Departamento en palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa; el aviso describe el departamento como silencioso; el aviso afirma balcón. El aviso dice: "Garantía propietaria".
+
+        Hay una opción excluida por los requisitos para alquilar. Hay una opción excluida porque el aviso contradice una cualidad obligatoria. Si conseguís una caución, vuelve una propiedad.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=7 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=7 hidden=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=6 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=6 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=6 hidden=1 relaxations=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=6 hidden=1 duration_ms=0
+    oracle_controls_test.go:184: ORACLE H1-combined baseline=[h1-f h1-e h1-d h1-a h1-c h1-b]
+=== RUN   TestOracleControls/H3-branches-failure
+    oracle_controls_test.go:164: ORACLE H3-branches-failure branch=A shown=[a-sup a-fail] rules=[preference_score] hidden=0 excluded=0 matches=2 complete=false
+    oracle_controls_test.go:164: ORACLE H3-branches-failure branch=B shown=[b-1] rules=[] hidden=0 excluded=0 matches=1 complete=true
+    oracle_controls_test.go:172: ORACLE H3-branches-failure relaxations=[]
+    oracle_controls_test.go:173: ORACLE H3-branches-failure FALLBACK:
+        Encontré 3 opciones para mostrarte.
+
+        **A, #1, Departamento en palermo.** Queda antes de #2 porque el aviso describe la propiedad como luminosa; en #2, la evaluación de luminoso no estuvo disponible. El aviso dice: "Garantía propietaria".
+
+        **A, #2, Departamento en palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. La evaluación de luminoso no estuvo disponible. El aviso dice: "Garantía propietaria".
+
+        **B, #1, Departamento en caballito.** No pediste preferencias para distinguirla de otras opciones. El aviso dice: "Garantía propietaria".
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=2 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=2 hidden=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=1 count=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=1 count=1 hidden=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=2 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=2 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=2 shown=3 hidden=0 relaxations=0 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=3 hidden=0 duration_ms=0
+    oracle_controls_test.go:184: ORACLE H3-branches-failure baseline=[a-sup a-fail b-1]
+--- PASS: TestOracleControls (0.01s)
+    --- PASS: TestOracleControls/B1-gates (0.00s)
+    --- PASS: TestOracleControls/B2-nearby (0.00s)
+    --- PASS: TestOracleControls/B3-contributions (0.00s)
+    --- PASS: TestOracleControls/B4-priority (0.00s)
+    --- PASS: TestOracleControls/B4-equal (0.00s)
+    --- PASS: TestOracleControls/B4b-phrase-absent-from-message (0.00s)
+    --- PASS: TestOracleControls/B4b-weight3 (0.00s)
+    --- PASS: TestOracleControls/B4b-no-phrase (0.00s)
+    --- PASS: TestOracleControls/B5-mandatory (0.00s)
+    --- PASS: TestOracleControls/B6-eligibility (0.00s)
+    --- PASS: TestOracleControls/B7-branches (0.00s)
+    --- PASS: TestOracleControls/B8a-area (0.00s)
+    --- PASS: TestOracleControls/B8b-price-desc (0.00s)
+    --- PASS: TestOracleControls/B8c-price-asc-required (0.00s)
+    --- PASS: TestOracleControls/B9-no-prefs (0.00s)
+    --- PASS: TestOracleControls/B10-lone (0.00s)
+    --- PASS: TestOracleControls/B11a-empty (0.00s)
+    --- PASS: TestOracleControls/B11b-all-ineligible (0.00s)
+    --- PASS: TestOracleControls/B12-provider (0.00s)
+    --- PASS: TestOracleControls/B13-precedence (0.00s)
+    --- PASS: TestOracleControls/H1-combined (0.00s)
+    --- PASS: TestOracleControls/H3-branches-failure (0.00s)
+=== RUN   TestOracleReal
+=== RUN   TestOracleReal/R1
+    oracle_controls_test.go:164: ORACLE R1 branch=palermo shown=[59918611 60033803] rules=[preference_score] hidden=1 excluded=0 matches=3 complete=true
+    oracle_controls_test.go:172: ORACLE R1 relaxations=[{Fact:guarantee Value:caucion Count:1}]
+    oracle_controls_test.go:173: ORACLE R1 FALLBACK:
+        Encontré 2 opciones para mostrarte.
+
+        **#1, Sinclair al 3100, Palermo Chico, Palermo.** Queda antes de #2 porque el aviso describe la propiedad como luminosa; en #2, el aviso no confirma luminoso. El aviso no publica requisitos suficientes para saber si podés alquilarla.
+
+        **#2, Migueletes al 900 Piso 6º, Las Cañitas, Palermo.** Es una opción dentro de los filtros publicados de tu búsqueda. Falta confirmar si cumplís: No se aceptan mascotas.
+
+        Hay una opción excluida por los requisitos para alquilar. Si conseguís una caución, vuelve una propiedad.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=3 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=3 hidden=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=success candidates=2 batches=1 failed_batches=0 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=2 hidden=1 relaxations=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=2 hidden=1 duration_ms=0
+    oracle_controls_test.go:184: ORACLE R1 baseline=[https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-luminoso-en-palermo-chico-59918611.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-en-alquiler-en-las-60033803.html]
+=== RUN   TestOracleReal/H2
+    oracle_controls_test.go:164: ORACLE H2 branch=palermo shown=[59775328 59835247 59679253 59918611 59470722 60033803 59906462] rules=[stable_tie stable_tie stable_tie preference_score stable_tie stable_tie] hidden=4 excluded=0 matches=11 complete=true
+    oracle_controls_test.go:172: ORACLE H2 relaxations=[{Fact:guarantee Value:caucion Count:4}]
+    oracle_controls_test.go:173: ORACLE H2 FALLBACK:
+        Encontré 7 opciones para mostrarte.
+
+        **#1, Migueletes al 700 Piso 7, Las Cañitas, Palermo.** No hay una ventaja que justifique ponerla antes de #2; mantienen un orden fijo. Falta confirmar si cumplís: no se aceptan mascotas.
+
+        **#2, Salguero al 2900, Palermo, Capital Federal.** No hay una ventaja que justifique ponerla antes de #3; mantienen un orden fijo. El aviso no publica requisitos suficientes para saber si podés alquilarla.
+
+        **#3, Jorge Newbery al 1800, Las Cañitas, Palermo.** Cumple los filtros publicados y el aviso describe la propiedad como luminosa. El aviso no publica requisitos suficientes para saber si podés alquilarla.
+
+        Hay 4 opciones excluidas por los requisitos para alquilar. Si conseguís una caución, vuelven 4 propiedades.
+2026/10/04 01:37:06 INFO buyer_plan outcome=success planner=oracle branches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_candidates outcome=success branch=0 count=11 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_eligibility branch=0 count=11 hidden=4 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_qualitative_fallback candidates=7 error_class=failed
+2026/10/04 01:37:06 INFO buyer_qualitative outcome=fallback candidates=7 batches=1 failed_batches=1 duration_ms=0
+2026/10/04 01:37:06 INFO buyer_search outcome=success branches=1 shown=7 hidden=4 relaxations=1 duration_ms=0
+2026/10/04 01:37:06 WARN buyer_writer outcome=fallback duration_ms=0
+2026/10/04 01:37:06 INFO buyer_turn outcome=success planner=oracle writer=fallback shown=7 hidden=4 duration_ms=0
+    oracle_controls_test.go:184: ORACLE H2 baseline=[https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-2-ambientes-en-alquiler-full-amenities-vigilancia-24hs-59775328.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-canitas-2-amb-con-balcon-piso-alto-59679253.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-alquiler-2-ambientes.-bajas-expensas!-palermo-59835247.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-en-alquiler-apto-59470722.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-luminoso-en-palermo-chico-59918611.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-de-2-ambientes-en-alquiler-en-las-60033803.html https://www.zonaprop.com.ar/propiedades/clasificado/alclapin-departamento-en-palermo-chico-59906462.html]
+--- PASS: TestOracleReal (0.03s)
+    --- PASS: TestOracleReal/R1 (0.00s)
+    --- PASS: TestOracleReal/H2 (0.00s)
+=== RUN   TestOraclePetsNone
+    oracle_controls_test.go:457: ORACLE pets-none 60033803.html state=eligible conditions=[]
+--- PASS: TestOraclePetsNone (0.01s)
+=== RUN   TestOracleTargetedQuestions
+    oracle_controls_test.go:493: ORACLE targeted u/t-ok/natural_light ok=true: "El aviso describe la propiedad como luminosa."
+    oracle_controls_test.go:493: ORACLE targeted u/t-fail/natural_light ok=true: "La evaluación de luminoso no estuvo disponible."
+    oracle_controls_test.go:493: ORACLE targeted u/t-fail/noise_level ok=true: "La evaluación de tranquilo no estuvo disponible."
+    oracle_controls_test.go:493: ORACLE targeted u/t-hint/natural_light ok=true: "Hay indicios de luminoso, sin confirmación."
+    oracle_controls_test.go:493: ORACLE targeted u/t-hint/noise_level ok=true: "El aviso menciona ruido dentro del departamento."
+    oracle_controls_test.go:493: ORACLE targeted u/t-ok/noise_level ok=true: "El aviso no confirma tranquilo."
+    oracle_controls_test.go:493: ORACLE targeted u/t-hint/eligibility ok=true: "Depende de aprobación: ver cuáles permite la propietaria."
+    oracle_controls_test.go:493: ORACLE targeted u/t-noprice/price ok=true: "El aviso no publica el precio."
+    oracle_controls_test.go:493: ORACLE targeted u/t-near/natural_light ok=true: "No tengo ese dato en las opciones de esta búsqueda."
+--- PASS: TestOracleTargetedQuestions (0.00s)
+PASS
+ok  	github.com/Grupo-6-Seminario/proyecto-angus-back/experiments/property-matching	0.393s

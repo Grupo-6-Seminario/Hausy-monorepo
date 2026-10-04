@@ -1,0 +1,70 @@
+{
+  "boundary": "Backend operation costs on identical frozen cases; different retained data and branch behavior. No SQL or model calls. Inference server stopped before timing.",
+  "machine": "Apple M4 Pro, 24 GiB, 12 cores, go1.26.4 darwin/arm64",
+  "rows": [
+    {
+      "case": "weighted-net",
+      "path": "baseline",
+      "samples": 5,
+      "median_ns": 17014.0,
+      "median_bytes": 31966.0,
+      "median_allocs": 140.0
+    },
+    {
+      "case": "weighted-net",
+      "path": "proposed",
+      "samples": 5,
+      "median_ns": 278498.0,
+      "median_bytes": 144723.0,
+      "median_allocs": 1377.0
+    },
+    {
+      "case": "mandatory-alternatives",
+      "path": "baseline",
+      "samples": 5,
+      "median_ns": 18810.0,
+      "median_bytes": 33876.0,
+      "median_allocs": 161.0
+    },
+    {
+      "case": "mandatory-alternatives",
+      "path": "proposed",
+      "samples": 5,
+      "median_ns": 335295.0,
+      "median_bytes": 171777.0,
+      "median_allocs": 1696.0
+    },
+    {
+      "case": "branch-specific-shared",
+      "path": "baseline",
+      "samples": 5,
+      "median_ns": 16814.0,
+      "median_bytes": 13753.0,
+      "median_allocs": 117.0
+    },
+    {
+      "case": "branch-specific-shared",
+      "path": "proposed",
+      "samples": 5,
+      "median_ns": 182395.0,
+      "median_bytes": 77510.0,
+      "median_allocs": 953.0
+    },
+    {
+      "case": "snapshot-direct-light",
+      "path": "baseline",
+      "samples": 5,
+      "median_ns": 9991.0,
+      "median_bytes": 6011.0,
+      "median_allocs": 64.0
+    },
+    {
+      "case": "snapshot-direct-light",
+      "path": "proposed",
+      "samples": 5,
+      "median_ns": 93159.0,
+      "median_bytes": 46266.0,
+      "median_allocs": 344.0
+    }
+  ]
+}

@@ -34,8 +34,16 @@ _Avoid_: inferred default, model guess
 A quality the searcher would like but would trade away, as in "idealmente luminoso". It affects ordering without excluding properties.
 _Avoid_: soft requirement
 
+**Criterion assessment**:
+How the available property evidence supports or contradicts a requirement or preference, or leaves it unconfirmed. A listing claim and an inferred hint remain distinguishable; neither establishes rental eligibility.
+_Avoid_: verified physical quality, model confidence as fact
+
+**Preference score**:
+An internal comparison of evidence-supported and contradicted preferences, weighted by priorities the searcher explicitly declared. Missing evidence remains part of the requested preference set; the score is neither a public match percentage nor a probability of being able to rent.
+_Avoid_: eligibility score, probability of approval
+
 **Qualitative evidence**:
-A passage or published field about the particular property used to assess a subjective requirement. A direct claim can support or contradict it in equivalent wording, but only at the scope described ("dormitorio luminoso" is not a claim about the whole home); structural clues can adjust ranking without establishing a match.
+A passage or published field about the particular property used to assess a subjective requirement. A direct claim can support or contradict it in equivalent wording, but only at the scope described ("dormitorio luminoso" is not a claim about the whole home). Structural clues remain hints, distinct from direct support; their ranking contribution depends on the matching policy.
 _Avoid_: verified quality, match probability
 
 **Inconsistent listing**:

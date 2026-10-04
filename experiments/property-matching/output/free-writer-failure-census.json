@@ -1,0 +1,46 @@
+{
+  "premise": "A local model can freely rewrite correct ranking facts without changing their meaning.",
+  "limit": "Counts replay only the concrete observed phrases. Manual evidence review establishes semantic failures.",
+  "runs": [
+    {
+      "source": "live-comparison.json",
+      "observed_phrase_counts": {
+        "current_buyer_writer": {
+          "reversed_noise": 0,
+          "unsupported_guarantee": 0,
+          "internal_ranking_language": 0
+        },
+        "free_prototype_writer": {
+          "reversed_noise": 1,
+          "unsupported_guarantee": 0,
+          "internal_ranking_language": 2
+        },
+        "deterministic_fallback": {
+          "reversed_noise": 0,
+          "unsupported_guarantee": 0,
+          "internal_ranking_language": 0
+        }
+      }
+    },
+    {
+      "source": "live-comparison-v2.json",
+      "observed_phrase_counts": {
+        "current_buyer_writer": {
+          "reversed_noise": 0,
+          "unsupported_guarantee": 0,
+          "internal_ranking_language": 0
+        },
+        "free_prototype_writer": {
+          "reversed_noise": 1,
+          "unsupported_guarantee": 1,
+          "internal_ranking_language": 1
+        },
+        "deterministic_fallback": {
+          "reversed_noise": 0,
+          "unsupported_guarantee": 0,
+          "internal_ranking_language": 0
+        }
+      }
+    }
+  ]
+}
