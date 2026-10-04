@@ -178,7 +178,7 @@ func main() {
 		options = append(options, buyer.WithMatching(matchingjev.New(matchingjev.GatewayURL, key, nil)))
 	}
 	options = append(options, buyer.WithClarifier(judge))
-	agent := buyer.NewAgent(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: writer}, options...)
+	agent := buyer.NewAgent(plannerFromEnv(llmClient), store, buyer.CompactWriter{Client: writer}, options...)
 	// ponytail: the only Provider today is Local; an AWS Cognito Provider would
 	// be chosen here from configuration without changing httpapi or the frontend.
 	provider := auth.NewLocal(store)

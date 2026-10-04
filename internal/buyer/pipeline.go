@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
@@ -29,7 +30,7 @@ type Inventory interface {
 	Facts(ctx context.Context) (eligibility.Catalog, error)
 }
 
-// Writer explains a finished ranking. It cannot search or reorder. reply,
+// Writer renders a reply after ranking. It cannot search or reorder. reply,
 // when not nil, receives the text as it is written.
 type Writer interface {
 	Write(ctx context.Context, p Packet, reply func(delta string)) (string, error)
@@ -49,11 +50,13 @@ type Packet struct {
 
 // BranchReport keeps an empty branch visible ("Caballito: 0 avisos").
 type BranchReport struct {
-	Neighborhoods []string `json:"neighborhoods"`
-	// Matches meet every hard filter and confirm every required amenity;
-	// Unconfirmed are shown after them without confirming one.
-	Matches     int `json:"matches"`
-	Unconfirmed int `json:"unconfirmed,omitempty"`
+	Neighborhoods  []string `json:"neighborhoods"`
+	CandidateCount int      `json:"candidate_count"`
+	// Matches confirm required qualitative criteria. Unconfirmed listings are
+	// shown after them; Contradicted listings are withheld.
+	Matches      int `json:"matches"`
+	Unconfirmed  int `json:"unconfirmed,omitempty"`
+	Contradicted int `json:"contradicted,omitempty"`
 }
 
 type pipeline struct {
@@ -80,6 +83,7 @@ func WithMatching(classifier matching.Classifier) Option {
 
 // maxShown matches the old search page size.
 const maxShown = 10
+const maxFitBatch = 4
 
 var section = map[eligibility.State]int{eligibility.Eligible: 0, eligibility.ConditionallyEligible: 1, eligibility.Unknown: 2}
 
@@ -222,7 +226,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 	writerStarted := time.Now()
 	reply, err := p.writer.Write(ctx, packet, events.Reply)
-	writerOutcome = "generated"
+	writerOutcome = "rendered"
 	if err != nil {
 		// The ranking is already done; a writer outage must not lose it.
 		reply = templateReply(packet)
@@ -243,27 +247,26 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 }
 
 type scored struct {
-	result               Result
-	section              int
-	fit                  int
-	quality              int
-	requiredQualitative  []search.AttributeFilter
-	preferredQualitative []search.AttributeFilter
-	requiredAmenities    []search.AttributeFilter
+	result    Result
+	candidate eligibility.Candidate
+	section   int
+	branch    int
+	fit       matching.FitMatch
 }
 
 // rank retrieves every branch, assesses each listing and orders the merged
-// list: eligibility section first, then the user's sort (default: how many
-// preferred requirements the listing meets), then URL for a stable order.
+// list by confirmed mandatory qualities, rental eligibility, then explicit
+// user sort or evidence-backed preference fit.
 func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, catalog eligibility.Catalog) ([]Result, []eligibility.Relaxation, []BranchReport, int, error) {
 	logger := logging.FromContext(ctx)
-	var all []eligibility.Candidate
+	var relaxable []eligibility.Candidate
 	var rows []scored
 	var reports []BranchReport
 	seen := map[string]bool{}
+	seenRelaxable := map[string]bool{}
 	hidden := 0
 	for branchIndex, branch := range plan.Branches {
-		storedQuery, qualitative, preferredQualitative, amenities := separateQualitative(branch)
+		storedQuery, criteria := separateQualitative(branch)
 		candidateStarted := time.Now()
 		candidates, err := p.inventory.Candidates(ctx, storedQuery)
 		if err != nil {
@@ -275,46 +278,92 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_candidates", slog.String("outcome", "success"),
 			slog.Int("branch", branchIndex), slog.Int("count", len(candidates)),
 			slog.Int64("duration_ms", time.Since(candidateStarted).Milliseconds()))
-		unconfirmed := 0
-		for _, c := range candidates {
-			if !statesAll(c.Listing, amenities) {
-				unconfirmed++
-			}
-		}
-		reports = append(reports, BranchReport{Neighborhoods: branch.Neighborhoods, Matches: len(candidates) - unconfirmed, Unconfirmed: unconfirmed})
 		eligibilityStarted := time.Now()
 		previousHidden := hidden
+		branchRows := []scored{}
+		fitCandidates := []matching.Candidate{}
+		branchSeen := map[string]bool{}
 		for _, c := range candidates {
-			if seen[c.Listing.URL] {
+			if branchSeen[c.Listing.URL] {
 				continue
+			}
+			branchSeen[c.Listing.URL] = true
+			verdict := eligibility.Assess(q, c.Listing.Price, c.Rules, catalog)
+			if !seen[c.Listing.URL] && verdict.State == eligibility.Ineligible {
+				hidden++
 			}
 			seen[c.Listing.URL] = true
-			all = append(all, c)
-			verdict := eligibility.Assess(q, c.Listing.Price, c.Rules, catalog)
-			if verdict.State == eligibility.Ineligible {
-				hidden++
+			branchRows = append(branchRows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict, Matched: matched(c.Listing, branch)}, candidate: c, section: section[verdict.State]})
+			fitCandidates = append(fitCandidates, matchingCandidate(c.Listing))
+		}
+		fitStarted := time.Now()
+		fitResult := matching.FitResult{Matches: []matching.FitMatch{}}
+		for start := 0; start < len(fitCandidates); start += maxFitBatch {
+			end := min(start+maxFitBatch, len(fitCandidates))
+			candidateCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+			batch, err := matching.New(p.matcher).AssessFit(candidateCtx, matching.FitRequest{Criteria: criteria, Candidates: fitCandidates[start:end]})
+			cancel()
+			if err != nil {
+				if ctx.Err() != nil || !errors.Is(err, context.DeadlineExceeded) {
+					return nil, nil, nil, 0, fmt.Errorf("buyer: assess fit: %w", err)
+				}
+				batch = matching.UnavailableFit(matching.FitRequest{Criteria: criteria, Candidates: fitCandidates[start:end]}, "assessment_timeout")
+			}
+			fitResult.Matches = append(fitResult.Matches, batch.Matches...)
+		}
+		confirmed, unconfirmed, contradicted := 0, 0, 0
+		for i := range branchRows {
+			branchRows[i].fit = fitResult.Matches[i]
+			switch branchRows[i].fit.RequiredFit {
+			case "contradicted":
+				if branchRows[i].result.Eligibility.State != eligibility.Ineligible {
+					contradicted++
+				}
+				continue
+			case "unconfirmed":
+				branchRows[i].result.QualitativeFit = "unconfirmed"
+			default:
+				if len(criteria) > 0 && hasRequirement(criteria) {
+					branchRows[i].result.QualitativeFit = "exact"
+				}
+			}
+			if !seenRelaxable[branchRows[i].candidate.Listing.URL] {
+				seenRelaxable[branchRows[i].candidate.Listing.URL] = true
+				relaxable = append(relaxable, branchRows[i].candidate)
+			}
+			if branchRows[i].fit.RequiredFit == "unconfirmed" {
+				unconfirmed++
+			} else {
+				confirmed++
+			}
+			if branchRows[i].result.Eligibility.State == eligibility.Ineligible {
 				continue
 			}
-			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict, Matched: matched(c.Listing, branch)}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative, requiredAmenities: amenities})
+			if !slices.ContainsFunc(rows, func(existing scored) bool { return existing.result.URL == branchRows[i].result.URL }) {
+				branchRows[i].branch = branchIndex
+				rows = append(rows, branchRows[i])
+			}
+		}
+		reports = append(reports, BranchReport{Neighborhoods: branch.Neighborhoods, CandidateCount: len(branchRows), Matches: confirmed, Unconfirmed: unconfirmed, Contradicted: contradicted})
+		if len(criteria) > 0 {
+			outcome := "success"
+			for _, m := range fitResult.Matches {
+				if m.Failure != "" {
+					outcome = "partial_fallback"
+				}
+			}
+			if outcome == "success" && len(fitCandidates) == 0 {
+				outcome = "empty"
+			}
+			logger.LogAttrs(ctx, slog.LevelInfo, "buyer_qualitative", slog.String("outcome", outcome),
+				slog.Int("candidates", len(fitCandidates)), slog.Int("contradicted", contradicted),
+				slog.Int64("duration_ms", time.Since(fitStarted).Milliseconds()))
 		}
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_eligibility", slog.Int("branch", branchIndex),
 			slog.Int("count", len(candidates)), slog.Int("hidden", hidden-previousHidden),
 			slog.Int64("duration_ms", time.Since(eligibilityStarted).Milliseconds()))
 	}
-	p.assessQualitative(ctx, rows)
-	confirmAmenities(rows)
-	slices.SortFunc(rows, func(a, b scored) int {
-		if c := cmp.Compare(a.quality, b.quality); c != 0 {
-			return c
-		}
-		if c := cmp.Compare(a.section, b.section); c != 0 {
-			return c
-		}
-		if c := byUserSort(plan.Sort, a, b); c != 0 {
-			return c
-		}
-		return cmp.Compare(a.result.URL, b.result.URL)
-	})
+	slices.SortFunc(rows, func(a, b scored) int { n, _ := compareScored(a, b, plan.Sort); return n })
 	if len(rows) > maxShown {
 		rows = rows[:maxShown]
 	}
@@ -322,44 +371,173 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 	for i, r := range rows {
 		results[i] = r.result
 		results[i].Rank = i + 1
+		if i+1 < len(rows) {
+			_, results[i].orderReason = compareScored(r, rows[i+1], plan.Sort)
+			results[i].orderReason += ":" + rows[i+1].result.URL
+		} else {
+			results[i].orderReason = "last"
+		}
+		results[i].fit = r.fit
 	}
-	return results, eligibility.Relaxations(q, all, catalog), reports, hidden, nil
+	return results, eligibility.Relaxations(q, relaxable, catalog), reports, hidden, nil
 }
 
-// Only qualities with an evidence rubric belong here. The other attributes
-// still use the existing published/parsed attribute SQL contract, except a
-// required amenity: a listing that never mentions it is unconfirmed, not
-// excluded, so it leaves the SQL filter too.
-func separateQualitative(q search.Query) (search.Query, []search.AttributeFilter, []search.AttributeFilter, []search.AttributeFilter) {
-	var prose, preferredProse, amenities []search.AttributeFilter
+// Deterministic required attributes stay in SQL. Qualities without a
+// deterministic gate and every preference become evidence-scored criteria.
+func separateQualitative(q search.Query) (search.Query, []matching.FitCriterion) {
+	criteria := []matching.FitCriterion{}
 	required := q.RequiredAttributes[:0:0]
 	for _, f := range q.RequiredAttributes {
-		switch f.Type {
-		case "natural_light":
-			prose = append(prose, f)
-		case "amenity":
-			amenities = append(amenities, f)
-		default:
+		if fitRequirement(f) {
+			if !hasAttributeCriterion(criteria, f) {
+				criteria = append(criteria, makeFitCriterion(f, "requirement", len(criteria)))
+			}
+		} else {
 			required = append(required, f)
 		}
 	}
 	q.RequiredAttributes = required
 	for _, f := range q.PreferredAttributes {
-		if f.Type == "natural_light" {
-			preferredProse = append(preferredProse, f)
+		if !hasAttributeCriterion(criteria, f) {
+			criteria = append(criteria, makeFitCriterion(f, "preference", len(criteria)))
 		}
 	}
-	return q, prose, preferredProse, amenities
+	return q, criteria
 }
 
-// statesAll reports whether the listing carries every filter as an attribute.
-func statesAll(l listing.Listing, filters []search.AttributeFilter) bool {
-	for _, want := range filters {
-		if !slices.ContainsFunc(l.Attributes, func(a listing.Attribute) bool { return a.Type == want.Type && a.Value == want.Value }) {
-			return false
+func hasAttributeCriterion(criteria []matching.FitCriterion, filter search.AttributeFilter) bool {
+	return slices.ContainsFunc(criteria, func(c matching.FitCriterion) bool {
+		return c.AttributeType == filter.Type && c.AttributeValue == filter.Value
+	})
+}
+
+func fitRequirement(f search.AttributeFilter) bool {
+	switch f.Type {
+	case "natural_light", "noise_level", "amenity":
+		return true
+	default:
+		return false
+	}
+}
+
+func makeFitCriterion(f search.AttributeFilter, strength string, index int) matching.FitCriterion {
+	text := fitLabel(f)
+	return matching.FitCriterion{Criterion: matching.Criterion{ID: fmt.Sprintf("q%d:%s:%s", index, f.Type, f.Value), Text: text, Priority: "primary", AttributeType: f.Type, AttributeValue: f.Value}, Strength: strength, Weight: 1}
+}
+
+func fitLabel(f search.AttributeFilter) string {
+	switch f.Type {
+	case "natural_light":
+		if f.Value == "low" {
+			return "poca luz natural"
+		}
+		return "buena luz natural"
+	case "noise_level":
+		if f.Value == "noisy" {
+			return "ruido"
+		}
+		if f.Value == "moderate" {
+			return "ruido moderado"
+		}
+		return "silencio"
+	case "amenity", "outdoor_space":
+		return "que tiene " + fitValueLabel(f.Value)
+	case "furnished":
+		if f.Value == "no" {
+			return "que no está amueblado"
+		}
+		return "que está amueblado"
+	case "pets_allowed":
+		if f.Value == "no" {
+			return "que no acepta mascotas"
+		}
+		return "que acepta mascotas"
+	case "air_conditioning":
+		if f.Value == "no" {
+			return "que no tiene aire acondicionado"
+		}
+		return "que tiene aire acondicionado"
+	case "transit_access":
+		return "acceso a " + fitValueLabel(f.Value)
+	default:
+		return f.Value
+	}
+}
+
+func fitValueLabel(value string) string {
+	switch value {
+	case "balcon":
+		return "balcón"
+	case "subte_a", "subte_b", "subte_c", "subte_d", "subte_e", "subte_h":
+		return "la línea " + strings.TrimPrefix(value, "subte_")
+	case "tren":
+		return "tren"
+	case "colectivo":
+		return "colectivo"
+	default:
+		return value
+	}
+}
+
+func hasRequirement(criteria []matching.FitCriterion) bool {
+	return slices.ContainsFunc(criteria, func(c matching.FitCriterion) bool { return c.Strength == "requirement" })
+}
+
+func matchingCandidate(item listing.Listing) matching.Candidate {
+	candidate := matching.Candidate{ID: item.URL, URL: item.URL, Evidence: []matching.Evidence{}}
+	if item.Description != "" {
+		candidate.Evidence = append(candidate.Evidence, matching.Evidence{ID: "description", Text: item.Description, Provenance: "published"})
+	}
+	for i, a := range item.Attributes {
+		if a.Provenance != listing.Stated && a.Provenance != listing.Inferred {
+			continue
+		}
+		text := a.Evidence
+		if text == "" {
+			if a.Type == "natural_light" || a.Type == "noise_level" {
+				continue
+			}
+			text = fmt.Sprintf("ficha: %s=%s", a.Type, a.Value)
+		}
+		candidate.Evidence = append(candidate.Evidence, matching.Evidence{ID: fmt.Sprintf("attribute:%d", i), Text: text, Provenance: string(a.Provenance), Type: a.Type, Value: a.Value})
+	}
+	return candidate
+}
+
+func compareScored(a, b scored, userSort string) (int, string) {
+	if a.branch != b.branch {
+		return cmp.Compare(a.branch, b.branch), "other_branch"
+	}
+	group := func(r scored) int {
+		if r.fit.RequiredFit == "unconfirmed" {
+			return 1
+		}
+		return 0
+	}
+	if n := cmp.Compare(group(a), group(b)); n != 0 {
+		return n, "required_evidence"
+	}
+	if n := cmp.Compare(a.section, b.section); n != 0 {
+		return n, "eligibility"
+	}
+	var n int
+	switch userSort {
+	case "price_asc":
+		n = compareMissingLast(a.result.Price.Amount, b.result.Price.Amount, 1)
+	case "price_desc":
+		n = compareMissingLast(a.result.Price.Amount, b.result.Price.Amount, -1)
+	case "area_desc":
+		n = compareMissingLast(a.result.TotalAreaM2, b.result.TotalAreaM2, -1)
+	default:
+		n = cmp.Compare(b.fit.Score, a.fit.Score)
+		if n != 0 {
+			return n, "preference_score"
 		}
 	}
-	return true
+	if n != 0 {
+		return n, userSort
+	}
+	return cmp.Compare(a.result.URL, b.result.URL), "stable_tie"
 }
 
 // matched returns the listing's attributes that answer a quality the branch
@@ -375,145 +553,6 @@ func matched(l listing.Listing, q search.Query) []listing.Attribute {
 	return out
 }
 
-// confirmAmenities ranks a listing that does not state every required amenity
-// after those that do. Stored amenities are only the ones the listing names in
-// its own words, so having the attribute is the confirmation.
-func confirmAmenities(rows []scored) {
-	for i := range rows {
-		r := &rows[i]
-		if len(r.requiredAmenities) == 0 {
-			continue
-		}
-		if !statesAll(r.result.Listing, r.requiredAmenities) {
-			r.result.QualitativeFit, r.quality = "unconfirmed", 1
-		} else if r.result.QualitativeFit == "" {
-			r.result.QualitativeFit = "exact"
-		}
-	}
-}
-
-func (p *pipeline) assessQualitative(ctx context.Context, rows []scored) {
-	started := time.Now()
-	groups := map[string][]int{}
-	needed, batches, failures := 0, 0, 0
-	for i := range rows {
-		r := &rows[i]
-		if len(r.requiredQualitative)+len(r.preferredQualitative) == 0 {
-			continue
-		}
-		needed++
-		if len(r.requiredQualitative) > 0 {
-			r.result.QualitativeFit, r.quality = "unconfirmed", 1
-		}
-		r.fit += lightHints(r.result.Listing, append(slices.Clone(r.requiredQualitative), r.preferredQualitative...))
-		if p.matcher != nil && r.result.Description != "" {
-			key := fmt.Sprintf("%v|%v", r.requiredQualitative, r.preferredQualitative)
-			groups[key] = append(groups[key], i)
-		}
-	}
-	for _, ids := range groups {
-		first := rows[ids[0]]
-		filters := append(slices.Clone(first.requiredQualitative), first.preferredQualitative...)
-		criteria := make([]matching.Criterion, len(filters))
-		for i, f := range filters {
-			criteria[i] = matching.Criterion{ID: fmt.Sprintf("q%d", i), Text: qualitativeQuestion(f), AttributeType: f.Type, AttributeValue: f.Value, Priority: "primary"}
-		}
-		// ponytail: eight descriptions fit Jev's existing 80-option request limit.
-		for start := 0; start < len(ids); start += 8 {
-			batches++
-			batch := ids[start:min(start+8, len(ids))]
-			candidates := make([]matching.Candidate, len(batch))
-			for j, index := range batch {
-				item := rows[index].result.Listing
-				candidates[j] = matching.Candidate{ID: item.URL, URL: item.URL, Evidence: []matching.Evidence{{ID: "description", Text: item.Description, Provenance: "published"}}}
-			}
-			candidateCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-			result, err := matching.New(p.matcher).Evaluate(candidateCtx, matching.Request{Criteria: criteria, Candidates: candidates})
-			cancel()
-			if err != nil {
-				failures++
-				logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "buyer_qualitative_fallback",
-					slog.Int("candidates", len(batch)), slog.String("error_class", logging.ErrorClass(err)))
-				continue
-			}
-			byID := map[string]matching.Match{}
-			for _, m := range result.Matches {
-				byID[m.CandidateID] = m
-			}
-			for _, index := range batch {
-				m, ok := byID[rows[index].result.URL]
-				if !ok {
-					continue
-				}
-				allRequired := len(rows[index].requiredQualitative) > 0
-				for j, a := range m.Assessments {
-					supported := a.Status == "evaluated" && a.Assessment == "supported"
-					if j < len(rows[index].requiredQualitative) && !supported {
-						allRequired = false
-					}
-					if supported {
-						rows[index].fit += 3
-					}
-				}
-				if allRequired {
-					rows[index].result.QualitativeFit, rows[index].quality = "exact", 0
-				}
-			}
-		}
-	}
-	if needed > 0 {
-		outcome := "success"
-		switch {
-		case batches == 0:
-			outcome = "unavailable"
-		case failures == batches:
-			outcome = "fallback"
-		case failures > 0:
-			outcome = "partial_fallback"
-		}
-		logging.FromContext(ctx).LogAttrs(ctx, slog.LevelInfo, "buyer_qualitative",
-			slog.String("outcome", outcome), slog.Int("candidates", needed),
-			slog.Int("batches", batches), slog.Int("failed_batches", failures),
-			slog.Int64("duration_ms", time.Since(started).Milliseconds()))
-	}
-}
-
-func lightHints(item listing.Listing, criteria []search.AttributeFilter) int {
-	needsLight := slices.ContainsFunc(criteria, func(f search.AttributeFilter) bool { return f.Type == "natural_light" && f.Value == "high" })
-	if !needsLight {
-		return 0
-	}
-	bonus := 0
-	for _, a := range item.Attributes {
-		if a.Type == "exposure" && a.Value == "frente" {
-			bonus++
-		}
-		if a.Type == "orientation" && (a.Value == "norte" || a.Value == "noreste" || a.Value == "noroeste") {
-			bonus++
-		}
-	}
-	return bonus
-}
-
-func qualitativeQuestion(f search.AttributeFilter) string {
-	if f.Type == "natural_light" && f.Value == "high" {
-		return "El aviso afirma explícitamente que la propiedad en conjunto o sus ambientes principales reciben buena luz natural (por ejemplo, luminoso, luz natural, sol directo). La orientación, frente, ventanas o luz de un solo cuarto son indicios, nunca apoyo suficiente. Sólo una afirmación directa de poca luz contradice."
-	}
-	return f.String()
-}
-
-func byUserSort(sort string, a, b scored) int {
-	switch sort {
-	case "price_asc":
-		return compareMissingLast(a.result.Price.Amount, b.result.Price.Amount, 1)
-	case "price_desc":
-		return compareMissingLast(a.result.Price.Amount, b.result.Price.Amount, -1)
-	case "area_desc":
-		return compareMissingLast(a.result.TotalAreaM2, b.result.TotalAreaM2, -1)
-	}
-	return cmp.Compare(b.fit, a.fit)
-}
-
 // compareMissingLast orders by value in direction dir; an unpublished value
 // sorts last either way.
 func compareMissingLast(a, b *float64, dir int) int {
@@ -526,16 +565,6 @@ func compareMissingLast(a, b *float64, dir int) int {
 		return -1
 	}
 	return dir * cmp.Compare(*a, *b)
-}
-
-func fit(l listing.Listing, preferred []search.AttributeFilter) int {
-	n := 0
-	for _, want := range preferred {
-		if slices.ContainsFunc(l.Attributes, func(a listing.Attribute) bool { return a.Type == want.Type && a.Value == want.Value }) {
-			n++
-		}
-	}
-	return n
 }
 
 // mergeQualification adds what the searcher said in the chat to what they

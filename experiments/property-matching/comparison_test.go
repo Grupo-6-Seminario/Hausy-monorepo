@@ -17,7 +17,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
-func TestComparisonPreservesRealBuyerBaselineAndMandatoryAlternatives(t *testing.T) {
+func TestComparisonTracksProductionBuyerAndMandatoryAlternatives(t *testing.T) {
 	cases, _, err := comparison.Load("../..", "fixtures/cases.json")
 	if err != nil {
 		t.Fatal(err)
@@ -50,8 +50,8 @@ func TestComparisonPreservesRealBuyerBaselineAndMandatoryAlternatives(t *testing
 			baselineContainsContradiction = true
 		}
 	}
-	if !baselineContainsContradiction {
-		t.Fatal("real current buyer baseline defect must remain observable")
+	if baselineContainsContradiction {
+		t.Fatal("production buyer must withhold a mandatory contradiction")
 	}
 	if report.BaselinePacket.Intent != "new_search" {
 		t.Fatalf("packet=%+v", report.BaselinePacket)

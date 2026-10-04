@@ -1,6 +1,6 @@
 # Property matching prototype
 
-Status: the user reviewed and accepted the plan and selected the local stack playbook. The standalone prototype and independent review are complete; see the [results](property-matching-results.md). Broader cleanup and application adoption retain their separate scope approvals.
+Status: the user reviewed and accepted the plan and selected the local stack playbook. The standalone prototype and independent review are complete; see the [results](property-matching-results.md). The user subsequently authorized production policy integration for local testing; broader SQL cleanup remains separately scoped.
 
 Branch: `refactor/property-matching-explanations`. Baseline: `7c7012072fc37476a2806b9776771a3bf58d4110`, equal to the locally available `origin/dev` when the branch was created. [Decision trail](property-matching-decisions.tsv).
 

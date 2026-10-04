@@ -1,6 +1,6 @@
 # Property matching comparison
 
-This standalone experiment compares the current buyer Agent with a proposed fit policy on fixed plans, selected committed snapshot rows and synthetic controls. It leaves application callers, database state, model-derived snapshots and the current `matching.Evaluator.Evaluate` policy unchanged.
+This standalone experiment compares the buyer Agent at the current revision with a separate fit-policy projection on fixed plans, selected committed snapshot rows and synthetic controls. Archived outputs record earlier revisions and are not current buyer baselines. It leaves database state, model-derived snapshots and `matching.Evaluator.Evaluate` unchanged.
 
 Run from the repository root:
 
@@ -17,7 +17,7 @@ The command writes `output/comparison.json`. Each case contains the actual buyer
 
 The experiment owns published numeric/location filtering, rental eligibility, branch grouping and final ordering. It seals the finalized record as checked JSON before producing independent projections. The single comparator supplies both the ordering and its first deciding rule. Reports, writer inputs and fallback text derive from that record.
 
-The baseline executes `buyer.NewAgent` with a fixed intake planner, offline inventory and recording classifier/writer adapters. Its actual global URL deduplication, ten-result cap, quality-before-eligibility order and deterministic writer fallback remain observable. The proposed path preserves every branch membership and ranks each branch with its own rubric and denominator. A shared URL can appear in several branches. The overview counts distinct shown properties. Different branch rubrics do not establish a direct pooled ranking improvement.
+The baseline executes `buyer.NewAgent` with a fixed intake planner, offline inventory and recording classifier/writer adapters, so it includes the production buyer policy at this revision. The proposed path preserves every branch membership and ranks each branch with its own rubric and denominator. A shared URL can appear in several branches in the projection. The overview counts distinct shown properties. Different branch rubrics do not establish a direct pooled ranking improvement.
 
 Both paths use frozen assessment answers for common light questions. The current buyer assesses natural light semantically and handles noise preferences through parsed attributes. The proposed noise rubric adds recorded support and contradiction assessment. Noise-related changes combine this capability difference with ranking policy changes. They must not be presented as isolated scoring benefits. The command does not measure classifier accuracy.
 

@@ -4,15 +4,34 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
 )
 
-// LocalWriter explains the ranking with one local-model call: no tools, and
-// only the packet as material.
+// LocalWriter handles focused follow-up questions with the completed packet.
 type LocalWriter struct{ Client llm.Client }
+
+// CompactWriter renders the backend's retained fit and ordering evidence. It
+// does not ask a model to restate or change a completed search.
+type CompactWriter struct{ Client llm.Client }
+
+func (w CompactWriter) Write(ctx context.Context, p Packet, reply func(string)) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if p.Intent != "new_search" && p.Intent != "refine" {
+		return (LocalWriter{Client: w.Client}).Write(ctx, p, reply)
+	}
+	text := templateReply(p)
+	if reply != nil {
+		reply(text)
+	}
+	return text, nil
+}
 
 const writerPrompt = `Sos el agente de Hausy. Te paso, en JSON, una búsqueda que YA está resuelta y ordenada.
 Tu única tarea es explicar por qué las propiedades mostradas son una buena opción para esta persona.
@@ -82,30 +101,24 @@ func templateReply(p Packet) string {
 	if len(p.Shown) == 0 {
 		b.WriteString("No encontré propiedades que cumplan todo lo que pediste.\n")
 	} else {
-		if p.Shown[0].QualitativeFit == "unconfirmed" {
-			b.WriteString("No encontré coincidencias exactas con evidencia para todas las cualidades pedidas. Estas son opciones que faltan confirmar.\n")
-		} else {
-			b.WriteString("Ordené las propiedades según si podés alquilarlas.\n")
-		}
+		b.WriteString("Te muestro las opciones más alineadas, ordenadas por evidencia y posibilidad de aplicar.\n")
 	}
 	if len(p.Shown) > 0 {
-		b.WriteString("\n## Por qué las elegí\n")
+		b.WriteString("\n## Por qué\n")
 	}
 	for _, r := range p.Shown {
 		title := r.Address
 		if title == "" {
 			title = "Departamento en " + r.Neighborhood
 		}
-		line := fmt.Sprintf("- **#%d %s**", r.Rank, title)
+		line := fmt.Sprintf("- **#%d %s**: %s.", r.Rank, title, compactOrderingReason(r, p.Shown))
 		if r.Eligibility != nil {
-			line += ": " + verdictLabel(*r.Eligibility)
-			for _, c := range r.Eligibility.Conditions {
-				if c.Rule.Evidence != "" {
-					line += fmt.Sprintf(" (\"%s\")", c.Rule.Evidence)
-				}
-			}
+			line += " " + compactEligibility(*r.Eligibility)
 		}
-		b.WriteString(line + ".\n")
+		if r.QualitativeFit == "unconfirmed" {
+			line += " Falta confirmar " + missingRequiredFit(r.fit) + "."
+		}
+		b.WriteString(strings.TrimSpace(line) + "\n")
 	}
 	var notes []string
 	for _, r := range p.Relaxations {
@@ -113,15 +126,229 @@ func templateReply(p Packet) string {
 		if label == "" {
 			label = r.Value
 		}
-		notes = append(notes, fmt.Sprintf("Si conseguís %s, vuelven %d propiedades.", label, r.Count))
+		if r.Count == 1 {
+			notes = append(notes, fmt.Sprintf("Si conseguís %s, vuelve una propiedad.", label))
+		} else {
+			notes = append(notes, fmt.Sprintf("Si conseguís %s, vuelven %d propiedades.", label, r.Count))
+		}
 	}
 	for _, br := range p.Branches {
-		if br.Matches == 0 {
+		if br.CandidateCount == 0 {
 			notes = append(notes, fmt.Sprintf("%s: 0 avisos con lo que pediste.", strings.Join(br.Neighborhoods, ", ")))
+		} else if br.Matches == 0 && br.Unconfirmed > 0 {
+			notes = append(notes, fmt.Sprintf("%s: no hay coincidencias confirmadas; faltan cualidades por verificar.", strings.Join(br.Neighborhoods, ", ")))
 		}
+		if br.Contradicted > 0 {
+			count := "avisos contradicen"
+			if br.Contradicted == 1 {
+				count = "aviso contradice"
+			}
+			notes = append(notes, fmt.Sprintf("%s: %d %s una cualidad obligatoria.", strings.Join(br.Neighborhoods, ", "), br.Contradicted, count))
+		}
+	}
+	if p.Hidden > 0 {
+		notes = append(notes, fmt.Sprintf("%d avisos quedaron fuera por los requisitos para alquilar.", p.Hidden))
 	}
 	if len(notes) > 0 {
 		b.WriteString("\n## Qué falta confirmar\n- " + strings.Join(notes, "\n- ") + "\n")
 	}
 	return b.String()
+}
+
+func compactOrderingReason(r Result, shown []Result) string {
+	parts := strings.SplitN(r.orderReason, ":", 2)
+	rule := parts[0]
+	var next Result
+	if len(parts) == 2 {
+		for _, candidate := range shown {
+			if candidate.URL == parts[1] {
+				next = candidate
+				break
+			}
+		}
+	}
+	switch rule {
+	case "other_branch":
+		return "forma parte de otra zona de búsqueda"
+	case "preference_score":
+		if next.URL != "" {
+			facts := compareFit(r.fit, next.fit, next.Rank)
+			if len(facts) > 0 {
+				return fmt.Sprintf("queda antes de #%d porque %s", next.Rank, strings.Join(facts, " y "))
+			}
+		}
+	case "required_evidence":
+		if next.URL != "" {
+			return fmt.Sprintf("el aviso confirma lo obligatorio; en #%d falta confirmarlo", next.Rank)
+		}
+	case "eligibility":
+		if next.URL != "" && r.Eligibility != nil && next.Eligibility != nil {
+			return fmt.Sprintf("hay más respaldo para que puedas alquilarla que en #%d", next.Rank)
+		}
+	case "price_asc":
+		if next.URL != "" && next.Price.Amount == nil {
+			return fmt.Sprintf("el aviso publica el precio y #%d no", next.Rank)
+		}
+		return "priorizaste el menor precio"
+	case "price_desc":
+		if next.URL != "" && next.Price.Amount == nil {
+			return fmt.Sprintf("el aviso publica el precio y #%d no", next.Rank)
+		}
+		return "priorizaste el mayor precio"
+	case "area_desc":
+		if next.URL != "" && next.TotalAreaM2 == nil {
+			return fmt.Sprintf("el aviso publica la superficie y #%d no", next.Rank)
+		}
+		return "priorizaste más superficie"
+	}
+	if facts := supportedFit(r.fit); len(facts) > 0 {
+		return "el aviso confirma " + strings.Join(facts, " y ")
+	}
+	if rule == "stable_tie" {
+		return "no hay una diferencia clara en las preferencias evaluadas"
+	}
+	return "cumple los filtros de la búsqueda"
+}
+
+func compareFit(a, b matching.FitMatch, otherRank int) []string {
+	var out []string
+	for _, before := range a.Contributions {
+		var after matching.Contribution
+		found := false
+		for _, candidate := range b.Contributions {
+			if candidate.Criterion.AttributeType == before.Criterion.AttributeType &&
+				candidate.Criterion.AttributeValue == before.Criterion.AttributeValue &&
+				candidate.Criterion.Strength == before.Criterion.Strength {
+				after, found = candidate, true
+				break
+			}
+		}
+		if !found || before.Points == after.Points {
+			continue
+		}
+		if before.Points > after.Points && before.EffectiveAssessment == "supported" && after.EffectiveAssessment == "contradicted" {
+			out = append(out, fmt.Sprintf("el aviso confirma %s%s y el de #%d lo contradice%s", before.Criterion.Text, fitEvidence(before), otherRank, fitEvidence(after)))
+		} else if before.Points > after.Points && before.EffectiveAssessment == "supported" && after.EffectiveAssessment != "supported" {
+			out = append(out, fmt.Sprintf("el aviso confirma %s%s y en #%d falta confirmarlo", before.Criterion.Text, fitEvidence(before), otherRank))
+		} else if before.Points > after.Points && after.EffectiveAssessment == "contradicted" {
+			out = append(out, fmt.Sprintf("el aviso de #%d contradice %s%s", otherRank, after.Criterion.Text, fitEvidence(after)))
+		} else if after.Points > before.Points && after.EffectiveAssessment == "supported" && before.EffectiveAssessment == "contradicted" {
+			out = append(out, fmt.Sprintf("el de #%d confirma %s%s y este aviso lo contradice%s", otherRank, after.Criterion.Text, fitEvidence(after), fitEvidence(before)))
+		} else if after.Points > before.Points && after.EffectiveAssessment == "supported" {
+			out = append(out, fmt.Sprintf("en #%d el aviso confirma %s%s; acá falta confirmarlo", otherRank, after.Criterion.Text, fitEvidence(after)))
+		} else {
+			continue
+		}
+		if len(out) >= 2 {
+			break
+		}
+	}
+	return out
+}
+
+func fitContributionPhrase(c matching.Contribution) string {
+	label := c.Criterion.Text
+	switch c.EffectiveAssessment {
+	case "supported":
+		return "el aviso confirma " + label + fitEvidence(c)
+	case "contradicted":
+		return "el aviso contradice " + label + fitEvidence(c)
+	case "hint":
+		return "hay indicios, sin confirmar " + label
+	case "unavailable":
+		return "no se pudo evaluar " + label
+	default:
+		return "el aviso no confirma " + label
+	}
+}
+
+func fitEvidence(c matching.Contribution) string {
+	for _, e := range c.Evidence {
+		if strings.HasPrefix(e.Text, "ficha: ") {
+			return ""
+		}
+		text := strings.Join(strings.Fields(e.Text), " ")
+		if text == "" {
+			continue
+		}
+		text = shortQuote(text, 72)
+		return " («" + text + "»)"
+	}
+	return ""
+}
+
+func supportedFit(fit matching.FitMatch) []string {
+	var out []string
+	for _, c := range fit.Contributions {
+		if c.Criterion.Strength == "preference" && c.EffectiveAssessment == "supported" {
+			out = append(out, strings.TrimPrefix(fitContributionPhrase(c), "el aviso confirma "))
+			if len(out) == 2 {
+				break
+			}
+		}
+	}
+	return out
+}
+
+func missingRequiredFit(fit matching.FitMatch) string {
+	for _, c := range fit.Contributions {
+		if c.Criterion.Strength == "requirement" && c.EffectiveAssessment != "supported" {
+			return c.Criterion.Text
+		}
+	}
+	return "un requisito"
+}
+
+func compactEligibility(v eligibility.Verdict) string {
+	switch v.State {
+	case eligibility.Eligible:
+		if evidence := metEvidence(v); evidence != "" {
+			return "Podés aplicar: el aviso acepta «" + evidence + "»."
+		}
+		return "El aviso respalda que podés aplicar."
+	case eligibility.ConditionallyEligible:
+		if evidence := eligibilityEvidence(v); evidence != "" {
+			return "Depende de aprobación: «" + evidence + "»."
+		}
+		return "La inmobiliaria debe confirmar una condición."
+	default:
+		if evidence := eligibilityEvidence(v); evidence != "" {
+			return "Falta confirmar si cumplís lo que pide el aviso: «" + evidence + "»."
+		}
+		if len(v.Conditions) > 0 {
+			return "Falta confirmar un requisito para saber si podés aplicar."
+		}
+		return "El aviso no publica requisitos para aplicar."
+	}
+}
+
+func eligibilityEvidence(v eligibility.Verdict) string {
+	var evidence []string
+	for _, c := range v.Conditions {
+		if c.Rule.Visibility != "private" && c.Rule.Evidence != "" {
+			quote := shortQuote(c.Rule.Evidence, 64)
+			if !slices.Contains(evidence, quote) {
+				evidence = append(evidence, quote)
+			}
+		}
+	}
+	return strings.Join(evidence, "; ")
+}
+
+func metEvidence(v eligibility.Verdict) string {
+	for _, rule := range v.Met {
+		if rule.Visibility != "private" && rule.Evidence != "" {
+			return shortQuote(rule.Evidence, 88)
+		}
+	}
+	return ""
+}
+
+func shortQuote(text string, limit int) string {
+	text = strings.Join(strings.Fields(text), " ")
+	runes := []rune(text)
+	if len(runes) > limit {
+		return string(runes[:limit-1]) + "…"
+	}
+	return text
 }

@@ -61,6 +61,46 @@ type evidenceClassifier struct{ fail bool }
 
 type batchEvidenceClassifier struct{ calls int }
 
+type contradictLightClassifier struct{}
+
+func (contradictLightClassifier) Classify(_ context.Context, c matching.Candidate, criteria []matching.Criterion) ([]matching.Assessment, error) {
+	answers := make([]matching.Assessment, len(criteria))
+	for i, q := range criteria {
+		answers[i] = matching.Assessment{CriterionID: q.ID, Assessment: "contradicted", Status: "evaluated", EvidenceRefs: []string{"description"}}
+	}
+	return answers, nil
+}
+
+func TestAListingRejectedInOneAlternativeBranchCanMatchAnother(t *testing.T) {
+	listing := candidate("shared", "palermo", 700000, nil)
+	listing.Listing.Description = "Oscuro."
+	plan := intake.Plan{Intent: "new_search", Branches: []search.Query{
+		{Neighborhoods: []string{"palermo"}, RequiredAttributes: []search.AttributeFilter{{Type: "natural_light", Value: "high"}}},
+		{Neighborhoods: []string{"palermo"}},
+	}}
+	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": {listing}}}
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(contradictLightClassifier{})), "luminoso en Palermo u otra opción", nil)
+	if got := urls(resp); len(got) != 1 || got[0] != "shared" {
+		t.Fatalf("the listing should survive through the branch it satisfies: %v", got)
+	}
+}
+
+func TestCandidateRankingDoesNotPoolDifferentBranchRubrics(t *testing.T) {
+	first := candidate("first", "palermo", 800000, nil)
+	first.Listing.Description = "Al frente, da al este."
+	second := candidate("second", "caballito", 500000, nil)
+	second.Listing.Description = "Muy luminoso, y tranquilo."
+	plan := intake.Plan{Intent: "new_search", Branches: []search.Query{
+		{Neighborhoods: []string{"palermo"}, PreferredAttributes: []search.AttributeFilter{{Type: "noise_level", Value: "quiet"}}},
+		{Neighborhoods: []string{"caballito"}, PreferredAttributes: []search.AttributeFilter{{Type: "natural_light", Value: "high"}}},
+	}}
+	inv := stock{byHood: map[string][]eligibility.Candidate{"palermo": {first}, "caballito": {second}}}
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(evidenceClassifier{})), "Palermo o Caballito", nil)
+	if got := urls(resp); len(got) != 2 || got[0] != "first" || got[1] != "second" {
+		t.Fatalf("branch-specific fit scores must stay in their own groups: %v", got)
+	}
+}
+
 func (b *batchEvidenceClassifier) Classify(context.Context, matching.Candidate, []matching.Criterion) ([]matching.Assessment, error) {
 	return nil, errors.New("single candidate call is too expensive")
 }
@@ -157,6 +197,48 @@ func TestPreferredLightRanksExplicitStatementAboveOrientationHint(t *testing.T) 
 	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{}, buyer.WithMatching(evidenceClassifier{})), "idealmente luminoso", nil)
 	if got := urls(resp); len(got) != 2 || got[0] != "z-explicit" || resp.Listings[0].QualitativeFit != "" {
 		t.Fatalf("preferred direct claim should rank above weak hints without exact grouping: %+v", resp.Listings)
+	}
+}
+
+func TestPreferenceRankingUsesNetEvidenceAndExplainsTheTradeoff(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{
+		{Type: "furnished", Value: "yes"},
+		{Type: "air_conditioning", Value: "yes"},
+		{Type: "amenity", Value: "pileta"},
+		{Type: "pets_allowed", Value: "yes"},
+		{Type: "outdoor_space", Value: "balcon"},
+	}
+	withAttrs := func(url string, attrs ...listing.Attribute) eligibility.Candidate {
+		c := candidate(url, "palermo", 700000, nil)
+		c.Listing.Attributes = attrs
+		return c
+	}
+	attr := func(kind, value string) listing.Attribute {
+		return listing.Attribute{Type: kind, Value: value, Provenance: listing.Stated, Evidence: kind + " " + value}
+	}
+	moreMatchesButContradiction := withAttrs("z-more-matches",
+		attr("furnished", "yes"), attr("air_conditioning", "yes"), attr("amenity", "pileta"), attr("pets_allowed", "no"))
+	cleanerNetFit := withAttrs("a-cleaner-fit", attr("furnished", "yes"), attr("pets_allowed", "yes"), attr("outdoor_space", "balcon"))
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {moreMatchesButContradiction, cleanerNetFit}}}, buyer.CompactWriter{}), "Busco en Palermo con pileta, amoblado, aire, balcón y acepten mascotas", nil)
+	if got := urls(resp); len(got) != 2 || got[0] != "a-cleaner-fit" || got[1] != "z-more-matches" {
+		t.Fatalf("net fit should rank fewer contradicted preferences higher: %v", got)
+	}
+	for _, want := range []string{"## Mi lectura", "#1", "#2", "queda antes de #2", "confirma"} {
+		if !strings.Contains(strings.ToLower(resp.Reply), strings.ToLower(want)) {
+			t.Fatalf("compact reply should explain ranking tradeoffs with %q:\n%s", want, resp.Reply)
+		}
+	}
+}
+
+func TestRelaxingEligibilityDoesNotReadmitAContradictedQuality(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	blocked := candidate("dark", "palermo", 500000, caucionOnly)
+	blocked.Listing.Description = "Departamento oscuro."
+	resp := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {blocked}}}, buyer.CompactWriter{}, buyer.WithMatching(contradictLightClassifier{})), "Quiero algo luminoso en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
+	if len(resp.Listings) != 0 || len(resp.Relaxations) != 0 || strings.Contains(resp.Reply, "vuelve") {
+		t.Fatalf("a contradictory mandatory quality must stay excluded after eligibility relaxation: %+v\n%s", resp, resp.Reply)
 	}
 }
 

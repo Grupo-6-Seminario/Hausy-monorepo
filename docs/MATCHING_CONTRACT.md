@@ -1,35 +1,18 @@
-# Matching contract v1 — experimental proposal
+# Matching contract v1
 
-Status: partly wired. `buyer.WithMatching` uses the evaluator to assess prose-only
-qualities on listing descriptions when `AI_GATEWAY_API_KEY` is set. Explanation
-packets and pooled selection remain future work.
-Date: 2026-09-23. The ranking policy below is an experiment, not a validated
-product rule. This work evaluates delegated matching, not the value of A2A.
+Status (2026-10-04): the production buyer now applies `internal/matching.Evaluator.AssessFit` to retrieved candidates, retains criterion evidence and fit through ordering, and uses `buyer.CompactWriter` for search replies. Search explanations are deterministic; focused non-search turns still use `LocalWriter`. Scores remain private and the response JSON shape is unchanged.
 
-## Implemented slice and remaining work
+This integration does not establish live classifier accuracy or consumer preference. Retrieval remains bounded by the existing query limit. Intake branches with different criteria stay in planner order; fit scores are compared only within a branch. A shared listing is shown once, under its first branch where it passes mandatory qualities. Production currently assigns equal weight to preferences because intake does not retain source-backed priority phrases.
 
-Implemented: `internal/matching.Evaluator` with provider-neutral criteria,
-evidence, assessments and deterministic ranking; an exact-attribute baseline;
-`internal/matching/jev` with bounded Gateway HTTP transport and answer/evidence
-validation; and `go run ./experiments/jev -provider=baseline|jev` for the frozen
-smoke cases. The user approved tests at matching and Gateway HTTP seams.
+`internal/matching.Evaluate` and the sections below describing the larger `SearchPlan` remain historical proposals unless they match the current implementation. This work evaluates matching, not the value of A2A.
 
-The current evaluator processes one comparable branch at a time. It receives
-already retrieved candidates and does not call SQL or parse chat. Any provider failure
-aborts the whole evaluation; partial results are target semantics. An overall
-answer that disagrees with its per-evidence answers is kept as `needs_review`
-(with `evidence_assessment`) and adds no ranking support. Provider errors report
-HTTP status, Gateway error type and `X-Vercel-Id`, never the error message.
-Retries are disabled in this first slice. Jev questions run per candidate, sequentially.
+## Current production policy
 
-Still pending: intake/plan validation and revisions, exhaustive database candidate
-retrieval, token-size limits, pooled selection, frontend group rendering,
-explanation generation/fallback, raw JSON duplicate-key detection, usage/cost
-telemetry, and live domain evaluation/calibration. Transport tests cannot
-validate Jev quality or establish production readiness. The baseline recognizes
-exact attributes and explicit yes/no opposites; it does not read prose. It
-prefers published attributes over parser readings. General semantic fact
-precedence still needs domain evaluation in the Jev adapter.
+Deterministic location, price, room, and other supported required filters remain query gates. Required qualitative criteria (currently light, noise, and amenities) are assessed against listing evidence: supported criteria rank first, contradicted criteria are withheld, and unknown or unavailable criteria remain visible as unconfirmed alternatives. Rental eligibility is assessed separately; ineligible listings stay hidden. Eligibility relaxations do not count listings that contradict a required quality.
+
+Preferences use `(supported weights - contradicted weights) / all requested preference weights`. Unknown, conflicting, needs-review, unavailable, and inferred-only hints add zero; unknown preferences remain in the denominator. All live weights are 1. Branches remain in planner order and are not pooled by fit score. Within a branch, confirmed mandatory qualities rank first, then rental eligibility; explicit price or area sorting wins within those groups, otherwise results sort by fit score and then URL. The score is private and can be reconstructed from retained contributions.
+
+The buyer retains this state on each internal result and uses it to explain the actual adjacent ordering decision, with short evidence snippets. Search requests do not call the free-form writer model. Up to three results are explained; reply events emit the rendered text after ranking. Focused follow-up questions retain the existing model writer.
 
 ## Responsibilities and existing seams
 
@@ -216,59 +199,9 @@ distribution normalization (tolerance 0.02: Gateway rounds to two decimals), sel
 candidate IDs, criterion IDs, and evidence ownership. Reject extra or duplicate
 answer keys. Empty candidates or criteria require no provider request.
 
-## 5. Ranking policy v1 (baseline to evaluate)
+## 5. Historical ranking proposal
 
-No probability cutoff is declared validated. During the experiment keep raw
-distributions for calibration and mark results experimental. No probability
-becomes a displayed percentage match. A future uncertainty threshold is a
-versioned policy change requiring held-out evaluation.
-
-For each priority tier count supported and contradicted criteria. Unknown,
-conflicting, needs-review, and unavailable assessments add no support; report
-their counts separately. Rank lexicographically by:
-
-1. Primary supported count, descending.
-2. Primary contradicted count, ascending.
-3. Secondary supported count, descending.
-4. Secondary contradicted count, ascending.
-5. Canonical URL, ascending, for deterministic ties.
-
-This deliberately makes primary wishes dominate secondary wishes. It is an
-explicit provisional policy, not a claim that preferences have universal
-weights. Known contradiction sorts below missing evidence when support ties.
-Never renormalize by known criteria: one known match and four unknowns must
-not be represented as perfect coverage. Show support/total and unknown counts.
-
-Rank within each branch using that branch's relevant criteria. Pooled mode
-requires the same criterion set across branches; otherwise return grouped
-results or ask for priorities before comparing incompatible rubrics.
-Each-branch mode returns up to three per nonempty branch, preserving empty
-branch reports. Shared candidates appear in each relevant group but have one
-canonical assessment record. Group-local ranks must not be confused with
-the current frontend's global rank; production integration needs an explicit
-group representation before enabling this mode.
-
-Worked ordering: with quiet primary and light secondary, quiet-supported /
-light-unknown outranks quiet-unknown / light-supported. With equal priorities,
-two supported outrank one supported. Neither ordering depends on 0.99 versus
-0.91 classifier confidence. If every criterion is unknown, say there is no
-evidence-based preference ranking; URL ordering is only a stable display order.
-
-## 6. Application to buyer model: ExplanationPacket
-
-Send the accepted plan summary, selected candidates, fixed ranks and groups,
-criterion assessments, verbatim referenced evidence, provenance, hard-filter
-checks, missing facts, branch counts, and retrieval/evaluation completeness.
-Do not send full inventory, probability arrays, transport errors, or all
-previous tool transcripts. Maximum experiment shortlist is five pooled or
-three per branch; do not silently discard branches to meet a context budget.
-
-The model explains adjustments and concessions in Spanish. It must preserve
-IDs/ranks, distinguish seller claims from inferences, and state missing
-information. It cannot assert rental eligibility from preference fit, change
-constraints, or call tools during explanation. On generation failure return
-the structured shortlist and a deterministic brief; do not lose results.
-Free-text claim accuracy still requires evaluation; a prompt is no guarantee.
+The detailed priority-tier policy and branch grouping in the remaining sections describe the experiment, not the live buyer. The production policy is documented at the top of this file. A future priority model needs source-backed priority phrases in intake and held-out evaluation; do not infer weights from criterion types or model confidence.
 
 ## Failure, cost, and replacement semantics
 

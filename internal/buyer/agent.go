@@ -9,6 +9,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/matching"
 )
 
 // EligibilityState defines the four eligibility states outlined in core.md.
@@ -54,6 +55,9 @@ type Result struct {
 	// Matched are the attributes that answer what the searcher asked for. The
 	// card shows only these; Attributes keeps the rest for a detail view.
 	Matched []listing.Attribute `json:"matched,omitempty"`
+
+	fit         matching.FitMatch `json:"-"`
+	orderReason string            `json:"-"`
 }
 
 // Agent defines the communication interface between the user (or user-facing client) and the Buyer Agent.

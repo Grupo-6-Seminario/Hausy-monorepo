@@ -2,6 +2,7 @@ package buyer_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"regexp"
 	"strings"
@@ -10,7 +11,9 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
 type failingWriter struct{}
@@ -49,6 +52,45 @@ func TestLocalWriterExplainsFromThePacketInOneCall(t *testing.T) {
 	prompt := client.last.Messages[len(client.last.Messages)-1].Content
 	if !strings.Contains(prompt, `"rank":1`) || !strings.Contains(prompt, "ver cuáles permite la propietaria") {
 		t.Fatalf("the writer must receive the packet: %+v", client.last)
+	}
+}
+
+func TestProductionSearchReplyUsesCompactBackendFactsWithoutWriterModelCall(t *testing.T) {
+	client := &recordingLLM{}
+	plan := palermoPlan("relevance")
+	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	brightListing := candidate("explicit", "palermo", 700000, nil, listing.Attribute{Type: "natural_light", Value: "high", Provenance: listing.Stated, Evidence: "muy luminoso"})
+	brightListing.Listing.Description = "Departamento muy luminoso."
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": {brightListing}}}, buyer.CompactWriter{Client: client}, buyer.WithMatching(evidenceClassifier{}))
+	resp, err := agent.HandleMessage(context.Background(), "s", "Busco algo luminoso en Palermo", nil, buyer.Events{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.last.Messages != nil {
+		t.Fatalf("search explanation should not call the writer model: %+v", client.last)
+	}
+	for _, want := range []string{"#1", "buena luz natural"} {
+		if !strings.Contains(strings.ToLower(resp.Reply), strings.ToLower(want)) {
+			t.Fatalf("compact search reply missing %q: %s", want, resp.Reply)
+		}
+	}
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), `"score"`) || strings.Contains(string(data), `"numerator"`) {
+		t.Fatalf("internal fit score leaked into the response: %s", data)
+	}
+}
+
+func TestCompactEligibilityKeepsEveryPublicCondition(t *testing.T) {
+	verdict := eligibility.Verdict{State: eligibility.Unknown, Conditions: []eligibility.Condition{
+		{Rule: eligibility.Rule{Evidence: "garantía propietaria o Finaer"}},
+		{Rule: eligibility.Rule{Evidence: "demostrar ingresos de tres veces el alquiler"}},
+	}}
+	reply, err := (buyer.CompactWriter{}).Write(context.Background(), buyer.Packet{Intent: "new_search", Shown: []buyer.Result{{Listing: listing.Listing{Rank: 1, Address: "Calle 1"}, Eligibility: &verdict}}}, nil)
+	if err != nil || !strings.Contains(reply, "garantía propietaria o Finaer") || !strings.Contains(reply, "demostrar ingresos de tres veces el alquiler") {
+		t.Fatalf("compact reply must preserve every public condition: %v\n%s", err, reply)
 	}
 }
 

@@ -41,6 +41,48 @@ type FitResult struct {
 	Matches       []FitMatch `json:"matches"`
 }
 
+// UnavailableFit keeps a timed-out assessment batch in the search with no
+// claimed semantic evidence. Deterministic listing fields are still scored.
+func UnavailableFit(req FitRequest, reason string) FitResult {
+	result, err := New(nil).AssessFit(context.Background(), req)
+	if err != nil {
+		return FitResult{PolicyVersion: "weighted-net-fit-v1", Matches: []FitMatch{}}
+	}
+	for i := range result.Matches {
+		match := &result.Matches[i]
+		match.Failure = reason
+		match.Numerator = 0
+		match.Denominator = 0
+		match.RequiredFit = "confirmed"
+		for j := range match.Contributions {
+			contribution := &match.Contributions[j]
+			if semanticQuality(contribution.Criterion.Criterion) {
+				contribution.Assessment = Assessment{CriterionID: contribution.Criterion.ID, Status: "unavailable", EvidenceRefs: []string{}}
+				contribution.EffectiveAssessment = "unavailable"
+				contribution.Evidence = []Evidence{}
+				contribution.Points = 0
+			}
+			if contribution.Criterion.Strength == "requirement" {
+				if contribution.EffectiveAssessment != "supported" && match.RequiredFit != "contradicted" {
+					match.RequiredFit = "unconfirmed"
+				}
+			} else {
+				match.Denominator += contribution.Criterion.Weight
+				match.Numerator += contribution.Points
+			}
+		}
+		if match.Denominator > 0 {
+			match.Score = float64(match.Numerator) / float64(match.Denominator)
+		}
+		match.NoPreferenceAdvantage = match.Denominator == 0
+	}
+	return result
+}
+
+func semanticQuality(q Criterion) bool {
+	return q.AttributeType == "" || q.AttributeType == "natural_light" && q.AttributeValue == "high" || q.AttributeType == "noise_level" && q.AttributeValue == "quiet"
+}
+
 // AssessFit classifies evidence and accounts for fit. Retrieval, eligibility and
 // final ordering belong to the caller. A provider failure retains unavailable
 // assessments rather than claiming the listing omitted information.
@@ -55,9 +97,6 @@ func (e *Evaluator) AssessFit(ctx context.Context, req FitRequest) (FitResult, e
 		if q.ID == "" || ids[q.ID] || (q.Strength != "requirement" && q.Strength != "preference") {
 			return FitResult{}, fmt.Errorf("matching fit: invalid criterion")
 		}
-		if q.AttributeType == "natural_light" && q.AttributeValue != "high" || q.AttributeType == "noise_level" && q.AttributeValue != "quiet" {
-			return FitResult{}, fmt.Errorf("matching fit: prototype supports natural_light=high and noise_level=quiet only")
-		}
 		ids[q.ID] = true
 		if q.Weight == 0 {
 			q.Weight = 1
@@ -70,10 +109,10 @@ func (e *Evaluator) AssessFit(ctx context.Context, req FitRequest) (FitResult, e
 		}
 		criteria[i] = q
 		qs[i] = q.Criterion
-		switch q.AttributeType {
-		case "natural_light":
+		switch {
+		case q.AttributeType == "natural_light" && q.AttributeValue == "high":
 			qs[i].Text += ". Sólo una afirmación directa sobre la propiedad completa o sus ambientes principales respalda buena luz natural. Poca luz explícita la contradice. Luz de un solo cuarto, frente, orientación o ventanas son indicios insuficientes."
-		case "noise_level":
+		case q.AttributeType == "noise_level" && q.AttributeValue == "quiet":
 			qs[i].Text += ". Sólo una afirmación directa de silencio o ausencia de ruido dentro de la propiedad respalda silencio. Ruido explícito dentro de la propiedad lo contradice. Contrafrente, piso, barrio o doble vidrio aislados son indicios insuficientes."
 		}
 	}
@@ -93,15 +132,42 @@ func (e *Evaluator) AssessFit(ctx context.Context, req FitRequest) (FitResult, e
 			refs[r.ID] = true
 		}
 	}
+	semantic := []Criterion{}
+	positions := []int{}
+	for i, q := range qs {
+		if semanticQuality(q) {
+			semantic = append(semantic, q)
+			positions = append(positions, i)
+		}
+	}
+	var batched [][]Assessment
+	batchFailure := ""
+	if len(semantic) > 0 && len(req.Candidates) > 1 {
+		if batch, ok := e.classifier.(BatchClassifier); ok {
+			candidates := make([]Candidate, len(req.Candidates))
+			for i, c := range req.Candidates {
+				candidates[i] = semanticCandidate(c, semantic)
+			}
+			result, err := batch.ClassifyBatch(ctx, candidates, semantic)
+			if ctx.Err() != nil {
+				return FitResult{}, ctx.Err()
+			}
+			if err != nil {
+				batchFailure = "provider_error"
+			} else if len(result) != len(req.Candidates) {
+				batchFailure = "invalid_assessment"
+			} else {
+				batched = result
+			}
+		}
+	}
 	result := FitResult{PolicyVersion: "weighted-net-fit-v1", Matches: []FitMatch{}}
 	for _, c := range req.Candidates {
 		answers := make([]Assessment, len(qs))
 		failure := ""
-		semantic := []Criterion{}
-		positions := []int{}
 		for i, q := range qs {
 			answers[i] = Assessment{CriterionID: q.ID, Status: "unavailable", EvidenceRefs: []string{}}
-			if q.AttributeType != "" && q.AttributeType != "natural_light" && q.AttributeType != "noise_level" {
+			if !semanticQuality(q) {
 				exactCandidate := c
 				if slices.ContainsFunc(c.Evidence, func(e Evidence) bool { return e.Type == q.AttributeType && e.Provenance != "inferred" }) {
 					exactCandidate.Evidence = slices.DeleteFunc(slices.Clone(c.Evidence), func(e Evidence) bool { return e.Type == q.AttributeType && e.Provenance == "inferred" })
@@ -112,22 +178,43 @@ func (e *Evaluator) AssessFit(ctx context.Context, req FitRequest) (FitResult, e
 				}
 				answers[i] = exact[0]
 			} else {
-				semantic = append(semantic, q)
-				positions = append(positions, i)
+				continue
 			}
 		}
 		if len(semantic) > 0 {
-			if e.classifier == nil {
-				failure = "provider_unavailable"
+			if batchFailure != "" {
+				failure = batchFailure
+			} else if e.classifier == nil {
+				classified, err := (Baseline{}).Classify(ctx, c, semantic)
+				if err != nil {
+					return FitResult{}, err
+				}
+				for i, a := range classified {
+					hasDescription := slices.ContainsFunc(c.Evidence, func(e Evidence) bool { return e.ID == "description" })
+					if a.Assessment == "insufficient_evidence" && hasDescription {
+						a.Assessment, a.Status = "", "unavailable"
+					}
+					if a.Status == "unavailable" {
+						failure = "provider_unavailable"
+					}
+					answers[positions[i]] = a
+				}
 			} else {
-				classified, err := e.classifier.Classify(ctx, c, semantic)
+				var classified []Assessment
+				var err error
+				semanticInput := semanticCandidate(c, semantic)
+				if batched != nil {
+					classified = batched[len(result.Matches)]
+				} else {
+					classified, err = e.classifier.Classify(ctx, semanticInput, semantic)
+				}
 				if ctx.Err() != nil {
 					return FitResult{}, ctx.Err()
 				}
 				if err != nil {
 					failure = "provider_error"
 				} else {
-					classified, err = validateAssessments(c, semantic, classified)
+					classified, err = validateAssessments(semanticInput, semantic, classified)
 					if err != nil {
 						failure = "invalid_assessment"
 					} else {
@@ -185,4 +272,26 @@ func (e *Evaluator) AssessFit(ctx context.Context, req FitRequest) (FitResult, e
 		result.Matches = append(result.Matches, m)
 	}
 	return result, nil
+}
+
+func semanticCandidate(c Candidate, criteria []Criterion) Candidate {
+	out := c
+	out.Evidence = make([]Evidence, 0, len(c.Evidence))
+	for _, e := range c.Evidence {
+		keep := e.ID == "description"
+		for _, q := range criteria {
+			switch q.AttributeType {
+			case "natural_light":
+				keep = keep || e.Type == "natural_light" || e.Type == "exposure" || e.Type == "orientation"
+			case "noise_level":
+				keep = keep || e.Type == "noise_level" || e.Type == "exposure" || e.Type == "floor" || e.Type == "glazing"
+			default:
+				keep = true
+			}
+		}
+		if keep {
+			out.Evidence = append(out.Evidence, e)
+		}
+	}
+	return out
 }

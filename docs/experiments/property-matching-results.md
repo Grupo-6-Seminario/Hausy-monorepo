@@ -1,6 +1,6 @@
 # Property matching comparison results
 
-Status: standalone prototype complete and independently reviewed. The application path remains unchanged.
+Status: standalone prototype complete and independently reviewed. Production integration was subsequently authorized and is now implemented on this branch; see [the matching contract](../MATCHING_CONTRACT.md). The frozen measurements below remain results of the standalone experiment.
 
 Baseline revision: `7c7012072fc37476a2806b9776771a3bf58d4110`. Branch: `refactor/property-matching-explanations`. Scope and stopping criteria are in the [approved brief](property-matching-prototype.md).
 
@@ -21,7 +21,7 @@ The local endpoint check `GET http://127.0.0.1:8000/v1/models` initially returne
 3. Produce compact Spanish explanations and deterministic failure fallback from the retained record.
 4. Execute the independent cases, repeated comparable benchmarks, full Go checks and independent review. Record implemented, measured and unverified behavior separately.
 
-Broader SQL test migration and application adoption are outside this implementation. The user has since authorized a local commit for this branch. Pushes, PRs, merges and deployment retain their separate authorization boundaries.
+Broader SQL test migration remains outside this implementation. The user later authorized production adoption for local testing. The integration uses the existing response contract and does not change database state. Pushes, PRs, merges and deployment remain separate actions.
 
 ## Initial live pass
 

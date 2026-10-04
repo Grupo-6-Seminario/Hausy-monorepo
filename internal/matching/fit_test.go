@@ -114,11 +114,23 @@ func TestFitUsesDirectExactAttributesWithoutAProvider(t *testing.T) {
 	}
 }
 
-func TestFitRejectsQualitiesOutsideThePrototypeRubric(t *testing.T) {
-	for _, q := range []matching.Criterion{{ID: "light", AttributeType: "natural_light", AttributeValue: "low"}, {ID: "noise", AttributeType: "noise_level", AttributeValue: "noisy"}} {
-		if _, err := matching.New(nil).AssessFit(context.Background(), matching.FitRequest{Criteria: []matching.FitCriterion{{Criterion: q, Strength: "preference"}}}); err == nil {
-			t.Fatalf("unsupported qualitative value accepted: %+v", q)
-		}
+func TestFitUsesExactStoredFactsForQualitiesWithoutAProseRubric(t *testing.T) {
+	req := matching.FitRequest{
+		Criteria: []matching.FitCriterion{
+			{Criterion: matching.Criterion{ID: "light", AttributeType: "natural_light", AttributeValue: "low"}, Strength: "preference"},
+			{Criterion: matching.Criterion{ID: "noise", AttributeType: "noise_level", AttributeValue: "noisy"}, Strength: "preference"},
+		},
+		Candidates: []matching.Candidate{{ID: "a", URL: "a", Evidence: []matching.Evidence{
+			{ID: "light", Text: "baja luminosidad", Type: "natural_light", Value: "low", Provenance: "stated"},
+			{ID: "noise", Text: "ruidoso", Type: "noise_level", Value: "noisy", Provenance: "stated"},
+		}}},
+	}
+	got, err := matching.New(nil).AssessFit(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Matches[0].Score != 1 || got.Matches[0].Numerator != 2 || got.Matches[0].Failure != "" {
+		t.Fatalf("exact tags should remain usable without a prose rubric: %+v", got.Matches[0])
 	}
 }
 func TestFitDirectBooleanClaimOutranksInferredOpposite(t *testing.T) {
@@ -129,5 +141,18 @@ func TestFitDirectBooleanClaimOutranksInferredOpposite(t *testing.T) {
 	}
 	if got.Matches[0].Score != 1 || got.Matches[0].Contributions[0].Assessment.Assessment != "supported" {
 		t.Fatalf("direct fact lost: %+v", got.Matches[0])
+	}
+}
+
+func TestUnavailableFitRetainsExactFieldsAndMarksSemanticCriteriaUnknown(t *testing.T) {
+	criteria := []matching.FitCriterion{
+		{Criterion: matching.Criterion{ID: "furnished", AttributeType: "furnished", AttributeValue: "yes"}, Strength: "preference", Weight: 1},
+		{Criterion: matching.Criterion{ID: "light", AttributeType: "natural_light", AttributeValue: "high"}, Strength: "requirement", Weight: 1},
+	}
+	candidate := matching.Candidate{ID: "p", URL: "p", Evidence: []matching.Evidence{{ID: "furnished", Type: "furnished", Value: "yes", Text: "Amoblado", Provenance: "stated"}}}
+	result := matching.UnavailableFit(matching.FitRequest{Criteria: criteria, Candidates: []matching.Candidate{candidate}}, "assessment_timeout")
+	got := result.Matches[0]
+	if got.RequiredFit != "unconfirmed" || got.Contributions[0].EffectiveAssessment != "supported" || got.Contributions[1].EffectiveAssessment != "unavailable" || got.Numerator != 1 || got.Score != 1 {
+		t.Fatalf("timeout should preserve exact evidence while withholding semantic claims: %+v", got)
 	}
 }
