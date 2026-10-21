@@ -10,15 +10,33 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/logging"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
+// testCatalog is migration 0007's qualification catalog.
+var testCatalog = eligibility.Catalog{
+	"guarantee": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{
+		{Value: "propietaria", Label: "Garantía propietaria"}, {Value: "caucion", Label: "Seguro de caución"},
+		{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"}, {Value: "none", Label: "No tengo"},
+	}},
+	"income_documented": {Admissible: true, Choices: []eligibility.Choice{{Value: "yes", Label: "Sí"}, {Value: "no", Label: "No"}}},
+	"pets": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{
+		{Value: "none", Label: "Ninguna"}, {Value: "dog", Label: "Perro"}, {Value: "cat", Label: "Gato"}, {Value: "other", Label: "Otra"},
+	}},
+	"income_band": {Admissible: true, Choices: []eligibility.Choice{
+		{Value: "0-1000000", Label: "Hasta $1.000.000"}, {Value: "1000000-2000000", Label: "$1.000.000 a $2.000.000"},
+		{Value: "2000000-3000000", Label: "$2.000.000 a $3.000.000"}, {Value: "3000000-", Label: "Más de $3.000.000"},
+	}},
+	"caucion_quoted": {Admissible: true, Choices: []eligibility.Choice{{Value: "yes", Label: "Sí"}, {Value: "no", Label: "No"}}},
+}
+
 type sourceFunc func(context.Context, []string) (intake.Plan, error)
 
-func (f sourceFunc) Plan(ctx context.Context, turns []string) (intake.Plan, error) {
+func (f sourceFunc) Plan(ctx context.Context, turns []string, _ eligibility.Catalog) (intake.Plan, error) {
 	return f(ctx, turns)
 }
 
@@ -35,7 +53,7 @@ func TestSlowPrimaryFallsBackWithinTheBudget(t *testing.T) {
 	})
 	p := intake.Planner{Primary: hang, Fallback: fixed(palermo), Budget: 20 * time.Millisecond}
 	start := time.Now()
-	got, err := p.Plan(context.Background(), []string{"Alquiler en Palermo"}, intake.Plan{})
+	got, err := p.Plan(context.Background(), []string{"Alquiler en Palermo"}, intake.Plan{}, testCatalog)
 	if err != nil || got.PlannedBy != "fallback" || got.Branches[0].Neighborhoods[0] != "palermo" || time.Since(start) > time.Second {
 		t.Fatalf("got %+v, %v after %v", got, err, time.Since(start))
 	}
@@ -57,7 +75,7 @@ func TestFallbackIsNotBoundByThePrimaryBudget(t *testing.T) {
 			return palermo, nil
 		}
 	})
-	got, err := intake.Planner{Primary: hang, Fallback: slow, Budget: budget}.Plan(context.Background(), []string{"Alquiler en Palermo"}, intake.Plan{})
+	got, err := intake.Planner{Primary: hang, Fallback: slow, Budget: budget}.Plan(context.Background(), []string{"Alquiler en Palermo"}, intake.Plan{}, testCatalog)
 	if err != nil || got.PlannedBy != "fallback" {
 		t.Fatalf("got %+v, %v", got, err)
 	}
@@ -65,7 +83,7 @@ func TestFallbackIsNotBoundByThePrimaryBudget(t *testing.T) {
 
 func TestFailingPrimaryFallsBack(t *testing.T) {
 	failing := sourceFunc(func(context.Context, []string) (intake.Plan, error) { return intake.Plan{}, errors.New("HTTP 503") })
-	got, err := intake.Planner{Primary: failing, Fallback: fixed(palermo), Budget: time.Second}.Plan(context.Background(), []string{"x"}, intake.Plan{})
+	got, err := intake.Planner{Primary: failing, Fallback: fixed(palermo), Budget: time.Second}.Plan(context.Background(), []string{"x"}, intake.Plan{}, testCatalog)
 	if err != nil || got.PlannedBy != "fallback" {
 		t.Fatalf("got %+v, %v", got, err)
 	}
@@ -77,7 +95,7 @@ func TestPlannerFallbackLogsReasonClassWithoutProviderBody(t *testing.T) {
 	failing := sourceFunc(func(context.Context, []string) (intake.Plan, error) {
 		return intake.Plan{}, errors.New("private provider response")
 	})
-	got, err := (intake.Planner{Primary: failing, Fallback: fixed(palermo)}).Plan(ctx, []string{"private search text"}, intake.Plan{})
+	got, err := (intake.Planner{Primary: failing, Fallback: fixed(palermo)}).Plan(ctx, []string{"private search text"}, intake.Plan{}, testCatalog)
 	if err != nil || got.PlannedBy != "fallback" {
 		t.Fatalf("expected fallback plan, got %+v, %v", got, err)
 	}
@@ -91,7 +109,7 @@ func TestPlannerFallbackLogsReasonClassWithoutProviderBody(t *testing.T) {
 
 func TestQuestionAboutAListingFreezesThePlan(t *testing.T) {
 	asked := intake.Plan{Intent: "ask_about_listing", Branches: []search.Query{{Neighborhoods: []string{"congreso"}, RequiredAttributes: []search.AttributeFilter{{Type: "outdoor_space", Value: "balcon"}}}}}
-	got, err := intake.Planner{Primary: fixed(asked), Budget: time.Second}.Plan(context.Background(), []string{"...", "¿el primero tiene balcón?"}, palermo)
+	got, err := intake.Planner{Primary: fixed(asked), Budget: time.Second}.Plan(context.Background(), []string{"...", "¿el primero tiene balcón?"}, palermo, testCatalog)
 	if err != nil || got.Intent != "ask_about_listing" || len(got.Branches) != 1 || got.Branches[0].Neighborhoods[0] != "palermo" || len(got.Branches[0].RequiredAttributes) != 0 {
 		t.Fatalf("the previous search must survive a question about a listing, got %+v, %v", got, err)
 	}
@@ -121,7 +139,7 @@ func TestGenericAmenitiesKeepOnlyWhatTheSearcherNamed(t *testing.T) {
 		{"Busco en Palermo, que tenga todos los chiches del edificio", nil, false},
 		{"Busco en Palermo con natatorio", []search.AttributeFilter{{Type: "amenity", Value: "pileta"}}, false},
 	} {
-		plan, err := (intake.Planner{Primary: sourceFunc(everyAmenity)}).Plan(context.Background(), []string{tc.message}, intake.Plan{})
+		plan, err := (intake.Planner{Primary: sourceFunc(everyAmenity)}).Plan(context.Background(), []string{tc.message}, intake.Plan{}, testCatalog)
 		if (err != nil) != tc.unresolved || len(plan.Branches) != 1 || !slices.Equal(plan.Branches[0].RequiredAttributes, tc.want) {
 			t.Errorf("%q: want %v (unresolved=%v), got %+v %v", tc.message, tc.want, tc.unresolved, plan.Branches, err)
 		}
@@ -142,7 +160,7 @@ func TestUnnamedAmenitiesAreNotAPlannerFailure(t *testing.T) {
 		fallbackCalls++
 		return intake.Plan{}, errors.New("the fallback cannot name them either")
 	})
-	plan, err := intake.Planner{Primary: jev, Fallback: fallback}.Plan(context.Background(), []string{"dos ambientes en palermo con amenities"}, intake.Plan{})
+	plan, err := intake.Planner{Primary: jev, Fallback: fallback}.Plan(context.Background(), []string{"dos ambientes en palermo con amenities"}, intake.Plan{}, testCatalog)
 	var unresolved *intake.Unresolved
 	if !errors.As(err, &unresolved) || unresolved.Phrase != "con amenities" || fallbackCalls != 0 || plan.PlannedBy != "primary" || len(plan.Branches) != 1 || *plan.Branches[0].MinRooms != 2 || len(plan.Branches[0].RequiredAttributes) != 0 {
 		t.Fatalf("want Jev's plan back unresolved without a fallback call, got %d fallback calls, %+v, %v", fallbackCalls, plan, err)
@@ -157,7 +175,7 @@ func TestHabitacionesAreDormitorios(t *testing.T) {
 		return intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"palermo"}, MinRooms: &two}}}, nil
 	}
 	for _, turns := range [][]string{{"Busco dos habitaciones en Palermo"}, {"Busco 2 habitaciones en Palermo", "Ordenalos por precio"}} {
-		plan, err := (intake.Planner{Primary: sourceFunc(misread)}).Plan(context.Background(), turns, intake.Plan{})
+		plan, err := (intake.Planner{Primary: sourceFunc(misread)}).Plan(context.Background(), turns, intake.Plan{}, testCatalog)
 		if err != nil || plan.Branches[0].MinRooms != nil || plan.Branches[0].MinBedrooms == nil || *plan.Branches[0].MinBedrooms != 2 {
 			t.Errorf("%q: want two dormitorios and no ambientes, got %+v %v", turns, plan.Branches, err)
 		}
@@ -181,7 +199,7 @@ func TestAPriceBoundMustBeANumberTheSearcherSaid(t *testing.T) {
 		guessed := func(context.Context, []string) (intake.Plan, error) {
 			return intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"monserrat"}, Currency: "ARS", MaxPrice: &said}}}, nil
 		}
-		plan, err := (intake.Planner{Primary: sourceFunc(guessed)}).Plan(context.Background(), []string{tc.message}, intake.Plan{})
+		plan, err := (intake.Planner{Primary: sourceFunc(guessed)}).Plan(context.Background(), []string{tc.message}, intake.Plan{}, testCatalog)
 		got := plan.Branches[0].MaxPrice
 		if err != nil || (got == nil) != (tc.want == nil) || got != nil && *got != *tc.want {
 			t.Errorf("%q: max price %v, want %v (%v)", tc.message, deref(got), deref(tc.want), err)
@@ -200,7 +218,7 @@ func deref(f *float64) any {
 
 func TestUnstatedOperationDefaultsToRent(t *testing.T) {
 	noOp := intake.Plan{Intent: "new_search", Branches: []search.Query{{Neighborhoods: []string{"palermo"}}}}
-	got, err := intake.Planner{Primary: fixed(noOp), Budget: time.Second}.Plan(context.Background(), []string{"Departamento luminoso en Palermo"}, intake.Plan{})
+	got, err := intake.Planner{Primary: fixed(noOp), Budget: time.Second}.Plan(context.Background(), []string{"Departamento luminoso en Palermo"}, intake.Plan{}, testCatalog)
 	if err != nil || got.Branches[0].Operation != "alquiler" || got.PlannedBy != "primary" {
 		t.Fatalf("got %+v, %v", got, err)
 	}
@@ -211,8 +229,8 @@ func TestUnstatedOperationDefaultsToRent(t *testing.T) {
 // search under ARS 900.000 came back empty. Only the user's words make it a sale.
 func TestASaleTheUserNeverStatedIsARent(t *testing.T) {
 	venta := jev.Answer{Type: "choice", Choice: "venta", Probabilities: map[string]float64{"alquiler": 0.20, "venta": 0.58, "unspecified": 0.22}}
-	implied := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "operation": venta, "num_0": pick("rooms_exact"), "num_1": pick("max_price"), "has_propietaria": yes()}}
-	got, err := intake.Planner{Primary: intake.Jev{Evaluate: implied.evaluate}}.Plan(context.Background(), []string{"Busco un 2 ambientes hasta 900 mil, tengo garantía propietaria"}, intake.Plan{})
+	implied := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "operation": venta, "num_0": pick("rooms_exact"), "num_1": pick("max_price"), "has_guarantee_propietaria": yes()}}
+	got, err := intake.Planner{Primary: intake.Jev{Evaluate: implied.evaluate}}.Plan(context.Background(), []string{"Busco un 2 ambientes hasta 900 mil, tengo garantía propietaria"}, intake.Plan{}, testCatalog)
 	if err != nil || got.Branches[0].Operation != "alquiler" || *got.Branches[0].MaxPrice != 900000 {
 		t.Fatalf("an implied rental must search rentals, got %+v, %v", got.Branches, err)
 	}
@@ -223,7 +241,7 @@ func TestASaleTheUserNeverStatedIsARent(t *testing.T) {
 		{"Departamento en venta en Belgrano"},
 	} {
 		stated := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "operation": pick("venta")}}
-		got, err := intake.Planner{Primary: intake.Jev{Evaluate: stated.evaluate}}.Plan(context.Background(), turns, intake.Plan{})
+		got, err := intake.Planner{Primary: intake.Jev{Evaluate: stated.evaluate}}.Plan(context.Background(), turns, intake.Plan{}, testCatalog)
 		if err != nil || got.Branches[0].Operation != "venta" {
 			t.Fatalf("%q states a sale, got %+v, %v", turns, got.Branches, err)
 		}
@@ -234,7 +252,7 @@ func TestASaleTheUserNeverStatedIsARent(t *testing.T) {
 // the turn came back empty. A peso amount that small means thousands.
 func TestABarePesoAmountMeansThousands(t *testing.T) {
 	f := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "hood_palermo": yes(), "num_0": pick("max_price"), "num_1": pick("max_expenses")}}
-	got, err := intake.Planner{Primary: intake.Jev{Evaluate: f.evaluate}}.Plan(context.Background(), []string{"Dos ambientes en palermo, hasta 500, expensas hasta 90"}, intake.Plan{})
+	got, err := intake.Planner{Primary: intake.Jev{Evaluate: f.evaluate}}.Plan(context.Background(), []string{"Dos ambientes en palermo, hasta 500, expensas hasta 90"}, intake.Plan{}, testCatalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +262,7 @@ func TestABarePesoAmountMeansThousands(t *testing.T) {
 	}
 
 	usd := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "hood_palermo": yes(), "num_0": pick("max_price")}}
-	got, err = intake.Planner{Primary: intake.Jev{Evaluate: usd.evaluate}}.Plan(context.Background(), []string{"Palermo, hasta 500 dólares"}, intake.Plan{})
+	got, err = intake.Planner{Primary: intake.Jev{Evaluate: usd.evaluate}}.Plan(context.Background(), []string{"Palermo, hasta 500 dólares"}, intake.Plan{}, testCatalog)
 	if err != nil || got.Branches[0].Currency != "USD" || *got.Branches[0].MaxPrice != 500 {
 		t.Fatalf("a dollar amount stays as said, got %+v, %v", got.Branches, err)
 	}
@@ -252,7 +270,7 @@ func TestABarePesoAmountMeansThousands(t *testing.T) {
 
 func TestInvalidBranchIsAnErrorWhenNothingElseCanPlan(t *testing.T) {
 	bad := intake.Plan{Intent: "new_search", Branches: []search.Query{{Currency: "EUR"}}}
-	if _, err := (intake.Planner{Primary: fixed(bad), Budget: time.Second}).Plan(context.Background(), []string{"x"}, intake.Plan{}); err == nil {
+	if _, err := (intake.Planner{Primary: fixed(bad), Budget: time.Second}).Plan(context.Background(), []string{"x"}, intake.Plan{}, testCatalog); err == nil {
 		t.Fatal("an invalid query must not reach SQL")
 	}
 }

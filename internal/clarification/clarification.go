@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -44,7 +45,7 @@ type Question struct {
 }
 
 type Proposer interface {
-	Propose(ctx context.Context, turns []string, plan intake.Plan, problem string, known eligibility.Qualification) ([]Question, error)
+	Propose(ctx context.Context, turns []string, plan intake.Plan, problem string, known eligibility.Qualification, catalog eligibility.Catalog) ([]Question, error)
 }
 
 type Normalizer interface {
@@ -54,7 +55,7 @@ type Normalizer interface {
 // Model is the generative adapter used with either Jev or a chat-model planner.
 type Model struct{ Client llm.Client }
 
-func (m Model) Propose(ctx context.Context, turns []string, plan intake.Plan, problem string, known eligibility.Qualification) ([]Question, error) {
+func (m Model) Propose(ctx context.Context, turns []string, plan intake.Plan, problem string, known eligibility.Qualification, catalog eligibility.Catalog) ([]Question, error) {
 	request, _ := json.Marshal(struct {
 		Turns   []string                  `json:"turns"`
 		Plan    intake.Plan               `json:"tentative_plan"`
@@ -62,7 +63,7 @@ func (m Model) Propose(ctx context.Context, turns []string, plan intake.Plan, pr
 		Known   eligibility.Qualification `json:"known_qualification,omitempty"`
 	}{turns, plan, problem, known})
 	resp, err := m.Client.Chat(ctx, llm.ChatRequest{Messages: []llm.Message{
-		{Role: "system", Content: proposalPrompt},
+		{Role: "system", Content: proposalPromptFor(catalog)},
 		{Role: "user", Content: string(request)},
 	}, Temperature: 0, MaxTokens: 1100})
 	if err != nil {
@@ -105,7 +106,7 @@ func stripFence(s string) string {
 }
 
 const proposalPrompt = `Sos el detector de condiciones ambiguas de una búsqueda de alquileres en CABA. El plan adjunto es tentativo: puede omitir condiciones o contener valores inventados. Mirá TODA la conversación, con prioridad al último mensaje; known_qualification ya está declarada y no se vuelve a preguntar. Proponé la menor cantidad de preguntas necesarias antes de buscar. Preguntá sólo si la respuesta puede cambiar filtros, orden o elegibilidad del buscador actual. No preguntes por cualidades que puedan evaluarse con evidencia de avisos, ni por meras explicaciones. No supongas respuestas. Jev no genera opciones: vos sí.
-Devolvé sólo JSON {"questions":[{"source":"frase textual del usuario","prompt":"pregunta breve en español que menciona la frase","kind":"search|qualification|unsupported","fact":"guarantee|income_band|caucion_quoted si aplica","multi":false,"choices":[{"id":"identificador","label":"texto","effects":[{"field":"rooms_exact|min_bedrooms|required_attribute|preferred_attribute|excluded_attribute|qualification.guarantee|qualification.income_band|qualification.caucion_quoted","value":"valor","branch":0,"clear":["min_rooms","max_rooms"]}]}]}]}. source debe ser una subcadena literal del mensaje. Cada opción cambia el plan de forma concreta. Para atributos usá value="type=value". branch es opcional, índice de rama desde cero; omitilo cuando aplica a todas. clear es opcional y nombra sólo campos tentativos que interpretaron mal ESTA frase; no borres condiciones independientes. No uses amenity=any. Dos amenities elegidos como requisito son ambos obligatorios (multi=true). Para condición dura que el buscador no soporta, kind=unsupported y choices vacío. Para calificación voluntaria insuficiente, kind=qualification y fact obligatorio. No generes una pregunta por gusto o por una palabra vaga si el resultado no puede cambiar. Si no hace falta, {"questions":[]}.`
+Devolvé sólo JSON {"questions":[{"source":"frase textual del usuario","prompt":"pregunta breve en español que menciona la frase","kind":"search|qualification|unsupported","fact":"` + factsMark + ` si aplica","multi":false,"choices":[{"id":"identificador","label":"texto","effects":[{"field":"rooms_exact|min_bedrooms|required_attribute|preferred_attribute|excluded_attribute|` + fieldsMark + `","value":"valor","branch":0,"clear":["min_rooms","max_rooms"]}]}]}]}. source debe ser una subcadena literal del mensaje. Cada opción cambia el plan de forma concreta. Para atributos usá value="type=value". branch es opcional, índice de rama desde cero; omitilo cuando aplica a todas. clear es opcional y nombra sólo campos tentativos que interpretaron mal ESTA frase; no borres condiciones independientes. No uses amenity=any. Dos amenities elegidos como requisito son ambos obligatorios (multi=true). Para condición dura que el buscador no soporta, kind=unsupported y choices vacío. Para calificación voluntaria insuficiente, kind=qualification y fact obligatorio. No generes una pregunta por gusto o por una palabra vaga si el resultado no puede cambiar. Si no hace falta, {"questions":[]}.`
 
 var amenityLabels = map[string]string{"pileta": "Pileta", "gimnasio": "Gimnasio", "laundry": "Laundry", "coworking": "Coworking", "sum": "SUM",
 	"seguridad": "Seguridad", "parrilla": "Parrilla", "ascensor": "Ascensor", "cochera": "Cochera", "solarium": "Solárium", "terraza_comun": "Terraza común"}
@@ -123,7 +124,7 @@ func UnnamedAmenities(planErr error) (Question, bool) {
 
 // Validate checks the public question and every possible typed effect. Source
 // matching proves provenance, while labeled evaluations judge semantic fit.
-func Validate(q Question, turns []string) error {
+func Validate(q Question, turns []string, catalog eligibility.Catalog) error {
 	if q.Source == "" || q.Prompt == "" || !strings.Contains(strings.ToLower(strings.Join(turns, "\n")), strings.ToLower(q.Source)) {
 		return errors.New("question has no cited source")
 	}
@@ -137,7 +138,7 @@ func Validate(q Question, turns []string) error {
 	if q.Kind != "search" && q.Kind != "qualification" || len(q.Choices) < 2 || len(q.Choices) > 12 {
 		return errors.New("invalid question shape")
 	}
-	if q.Kind == "qualification" && !slices.Contains([]string{"guarantee", "income_band", "caucion_quoted"}, q.Fact) {
+	if q.Kind == "qualification" && (!catalog.Admissible(q.Fact) || len(catalog[q.Fact].Choices) == 0) {
 		return errors.New("unknown qualification fact")
 	}
 	seen := map[string]bool{}
@@ -147,7 +148,7 @@ func Validate(q Question, turns []string) error {
 		}
 		seen[c.ID] = true
 		for _, effect := range c.Effects {
-			if err := ValidateEffect(effect); err != nil {
+			if err := ValidateEffect(effect, catalog); err != nil {
 				return err
 			}
 			if q.Kind == "qualification" && effect.Field != "qualification."+q.Fact || q.Kind == "search" && strings.HasPrefix(effect.Field, "qualification.") {
@@ -158,7 +159,9 @@ func Validate(q Question, turns []string) error {
 	return nil
 }
 
-func ValidateEffect(e Effect) error {
+// ValidateEffect checks one effect. A qualification effect sets a value the
+// catalog offers for an admissible fact, exactly as the form would.
+func ValidateEffect(e Effect, catalog eligibility.Catalog) error {
 	for _, field := range e.Clear {
 		if !slices.Contains([]string{"min_rooms", "max_rooms", "min_bedrooms"}, field) || strings.HasPrefix(e.Field, "qualification.") {
 			return errors.New("unsupported field replacement")
@@ -183,27 +186,21 @@ func ValidateEffect(e Effect) error {
 		if f, err := strconv.ParseFloat(e.Value, 64); err != nil || f <= 0 {
 			return errors.New("invalid price")
 		}
-	case "qualification.guarantee":
-		if !slices.Contains([]string{"propietaria", "caucion"}, e.Value) {
-			return errors.New("unsupported guarantee")
-		}
-	case "qualification.income_band":
-		if !slices.Contains([]string{"0-1000000", "1000000-2000000", "2000000-3000000", "3000000-"}, e.Value) {
-			return errors.New("unsupported income band")
-		}
-	case "qualification.caucion_quoted":
-		if e.Value != "yes" && e.Value != "no" {
-			return errors.New("unsupported quote state")
-		}
 	default:
-		return fmt.Errorf("unsupported effect field %q", e.Field)
+		fact, ok := strings.CutPrefix(e.Field, "qualification.")
+		if !ok {
+			return fmt.Errorf("unsupported effect field %q", e.Field)
+		}
+		if err := eligibility.ValidateQualification(catalog, eligibility.Qualification{fact: {e.Value}}); err != nil {
+			return fmt.Errorf("unsupported qualification: %w", err)
+		}
 	}
 	return nil
 }
 
 // Apply returns a fresh plan. A selected option replaces a conflicting draft
 // value, including an invalid one the model wrote, without replanning text.
-func Apply(plan intake.Plan, effects []Effect) (intake.Plan, error) {
+func Apply(plan intake.Plan, effects []Effect, catalog eligibility.Catalog) (intake.Plan, error) {
 	plan.Branches = slices.Clone(plan.Branches)
 	plan.Qualification = cloneQualification(plan.Qualification)
 	for i := range plan.Branches {
@@ -213,7 +210,7 @@ func Apply(plan intake.Plan, effects []Effect) (intake.Plan, error) {
 		b.ExcludedAttributes = slices.Clone(b.ExcludedAttributes)
 	}
 	for _, e := range effects {
-		if err := ValidateEffect(e); err != nil {
+		if err := ValidateEffect(e, catalog); err != nil {
 			return intake.Plan{}, err
 		}
 		if e.Branch != nil && (*e.Branch < 0 || *e.Branch >= len(plan.Branches) || strings.HasPrefix(e.Field, "qualification.")) {
@@ -285,4 +282,32 @@ func cloneQualification(q eligibility.Qualification) eligibility.Qualification {
 		out[k] = slices.Clone(values)
 	}
 	return out
+}
+
+const (
+	factsMark  = "{{facts}}"
+	fieldsMark = "{{qualification_fields}}"
+)
+
+// proposalPromptFor names the catalog's facts, effect fields and values, so
+// the model proposes exactly what the form offers.
+func proposalPromptFor(catalog eligibility.Catalog) string {
+	names := slices.Sorted(maps.Keys(catalog))
+	var facts, fields, values []string
+	for _, name := range names {
+		fact := catalog[name]
+		if !fact.Admissible || len(fact.Choices) == 0 {
+			continue
+		}
+		facts = append(facts, name)
+		fields = append(fields, "qualification."+name)
+		var vs []string
+		for _, choice := range fact.Choices {
+			vs = append(vs, choice.Value)
+		}
+		values = append(values, name+": "+strings.Join(vs, "|"))
+	}
+	prompt := strings.Replace(proposalPrompt, factsMark, strings.Join(facts, "|"), 1)
+	prompt = strings.Replace(prompt, fieldsMark, strings.Join(fields, "|"), 1)
+	return prompt + " Valores de calificación válidos: " + strings.Join(values, "; ") + "."
 }

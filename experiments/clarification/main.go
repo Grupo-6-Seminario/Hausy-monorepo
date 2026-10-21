@@ -15,6 +15,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
 type labeledCase struct {
@@ -53,6 +54,7 @@ func main() {
 	}
 	client := local.NewClient(envOr("LOCAL_LLM_URL", "http://127.0.0.1:8000"), os.Getenv("LOCAL_LLM_TOKEN"), envOr("LOCAL_LLM_MODEL", "Qwen3.5-9B-4bit"))
 	planner := intake.Planner{Primary: intake.Qwen{Client: client}}
+	catalog := readCatalog()
 	proposer := clarification.Model{Client: client}
 	var results []result
 	for _, c := range file.Cases {
@@ -61,14 +63,14 @@ func main() {
 		}
 		r := result{ID: c.ID, Expected: c.Kind}
 		started := time.Now()
-		plan, planErr := planner.Plan(context.Background(), c.Turns, intake.Plan{})
+		plan, planErr := planner.Plan(context.Background(), c.Turns, intake.Plan{}, catalog)
 		r.PlannerMS = time.Since(started).Milliseconds()
 		problem := ""
 		if planErr != nil {
 			problem = planErr.Error()
 		}
 		started = time.Now()
-		questions, err := proposer.Propose(context.Background(), c.Turns, plan, problem, c.Known)
+		questions, err := proposer.Propose(context.Background(), c.Turns, plan, problem, c.Known, catalog)
 		r.ProposalMS = time.Since(started).Milliseconds()
 		if err != nil {
 			r.Error = "proposal_error"
@@ -78,7 +80,7 @@ func main() {
 			}
 			r.Actual = "none"
 			for _, question := range questions {
-				if clarification.Validate(question, c.Turns) != nil {
+				if clarification.Validate(question, c.Turns, catalog) != nil {
 					continue
 				}
 				r.Actual = question.Kind
@@ -106,3 +108,19 @@ func envOr(key, fallback string) string {
 	return fallback
 }
 func fail(err error) { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+
+// readCatalog reads the qualification catalog the app serves, so the spike
+// declares against the same facts and choices.
+func readCatalog() eligibility.Catalog {
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, envOr("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"))
+	if err != nil {
+		fail(err)
+	}
+	defer store.Close()
+	catalog, err := store.Facts(ctx)
+	if err != nil {
+		fail(err)
+	}
+	return catalog
+}

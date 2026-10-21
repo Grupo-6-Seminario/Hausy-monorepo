@@ -2,6 +2,7 @@ package buyer_test
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -12,12 +13,13 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
 )
 
 type roomClarifier struct{}
 
-func (roomClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification) ([]clarification.Question, error) {
+func (roomClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
 	return []clarification.Question{{
 		Source: "dos habitaciones", Prompt: "Cuando dijiste «dos habitaciones», ¿a qué te referías?", Kind: "search",
 		Choices: []clarification.Choice{
@@ -31,7 +33,7 @@ type equivalentChoices struct{}
 
 type invalidAmenitySource struct{}
 
-func (invalidAmenitySource) Plan(context.Context, []string) (intake.Plan, error) {
+func (invalidAmenitySource) Plan(context.Context, []string, eligibility.Catalog) (intake.Plan, error) {
 	plan := palermoPlan("relevance")
 	plan.Branches[0].RequiredAttributes = []search.AttributeFilter{{Type: "amenity", Value: "any"}}
 	return plan, nil
@@ -45,7 +47,7 @@ func (badAnswerClarifier) Normalize(context.Context, clarification.Question, str
 	return []clarification.Effect{{Field: "min_bedrooms", Value: "many"}}, nil
 }
 
-func (amenityClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification) ([]clarification.Question, error) {
+func (amenityClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
 	return []clarification.Question{{Source: "con amenities", Prompt: "Cuando dijiste «con amenities», ¿cuáles necesitás?", Kind: "search", Multi: true, Choices: []clarification.Choice{
 		{ID: "pileta", Label: "Pileta", Effects: []clarification.Effect{{Field: "required_attribute", Value: "amenity=pileta"}}},
 		{ID: "gimnasio", Label: "Gimnasio", Effects: []clarification.Effect{{Field: "required_attribute", Value: "amenity=gimnasio"}}},
@@ -86,7 +88,7 @@ func (amenityInventory) Candidates(_ context.Context, q search.Query) ([]eligibi
 	return out, nil
 }
 
-func (equivalentChoices) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification) ([]clarification.Question, error) {
+func (equivalentChoices) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
 	return []clarification.Question{{Source: "dos habitaciones", Prompt: "¿Cuál?", Kind: "search", Choices: []clarification.Choice{
 		{ID: "a", Label: "Opción A", Effects: []clarification.Effect{{Field: "rooms_exact", Value: "2"}}},
 		{ID: "b", Label: "Opción B", Effects: []clarification.Effect{{Field: "rooms_exact", Value: "2"}}},
@@ -185,7 +187,7 @@ func TestUnresolvedRequiredAmenityBecomesAQuestionAndMultipleAnswersAreRequired(
 // an untyped value and a single choice, so validation rejected it.
 type everyAmenitySource struct{}
 
-func (everyAmenitySource) Plan(context.Context, []string) (intake.Plan, error) {
+func (everyAmenitySource) Plan(context.Context, []string, eligibility.Catalog) (intake.Plan, error) {
 	plan := palermoPlan("relevance")
 	for _, value := range []string{"pileta", "gimnasio", "laundry", "coworking", "sum", "seguridad", "parrilla", "ascensor", "cochera", "solarium", "terraza_comun"} {
 		plan.Branches[0].RequiredAttributes = append(plan.Branches[0].RequiredAttributes, search.AttributeFilter{Type: "amenity", Value: value})
@@ -195,7 +197,7 @@ func (everyAmenitySource) Plan(context.Context, []string) (intake.Plan, error) {
 
 type malformedAmenityClarifier struct{}
 
-func (malformedAmenityClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification) ([]clarification.Question, error) {
+func (malformedAmenityClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
 	return []clarification.Question{{Source: "amenities", Prompt: "¿Qué amenidades específicas son obligatorias?", Kind: "search", Fact: "required_attributes", Multi: true, Choices: []clarification.Choice{
 		{ID: "pileta", Label: "Pileta", Effects: []clarification.Effect{{Field: "required_attributes", Value: "pileta", Branch: intPtr(0), Clear: []string{"required_attributes"}}}},
 	}}}, nil
@@ -232,7 +234,7 @@ func TestChosenAmenitiesSurviveTheNextTurnsRereading(t *testing.T) {
 
 type silentClarifier struct{}
 
-func (silentClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification) ([]clarification.Question, error) {
+func (silentClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
 	return nil, nil
 }
 
@@ -415,5 +417,33 @@ func TestAnEmptyBarrioIsNotAnUnsupportedCondition(t *testing.T) {
 	resp, err := agent.HandleMessage(context.Background(), "chat", "Que tenga todos los chiches del edificio, en Núñez", nil, buyer.Events{})
 	if err != nil || resp.Clarification != nil || len(resp.Listings) != 0 {
 		t.Fatalf("an empty barrio should reach the zero-results flow, not stop: %+v %v", resp.Clarification, err)
+	}
+}
+
+type unreachableModel struct{}
+
+func (unreachableModel) Chat(context.Context, llm.ChatRequest) (*llm.ChatResponse, error) {
+	return nil, errors.New("dial tcp 127.0.0.1:8000: connect: connection refused")
+}
+
+type unreachableClarifier struct{}
+
+func (unreachableClarifier) Propose(context.Context, []string, intake.Plan, string, eligibility.Qualification, eligibility.Catalog) ([]clarification.Question, error) {
+	return nil, errors.New("dial tcp 127.0.0.1:8000: connect: connection refused")
+}
+
+// Seen end to end: with the model down, every search stopped with "No puedo
+// aplicar con seguridad una condición de tu búsqueda", blaming the searcher
+// for an outage. No plan came back, so there is no condition to question.
+func TestAModelOutageIsAnErrorNotAnUnsupportedCondition(t *testing.T) {
+	agent := buyer.NewAgent(intake.Planner{Primary: intake.Qwen{Client: unreachableModel{}}}, roomInventory{}, &fakeWriter{},
+		buyer.WithClarifier(unreachableClarifier{}))
+
+	resp, err := agent.HandleMessage(context.Background(), "chat", "2 ambientes en Palermo hasta 800000", nil, buyer.Events{})
+	if err == nil {
+		t.Fatalf("a model outage must fail the turn, not ask the searcher to edit: %+v", resp.Clarification)
+	}
+	if agent.PendingClarification("chat") != nil {
+		t.Fatal("a model outage must not leave a question blocking the next turn")
 	}
 }

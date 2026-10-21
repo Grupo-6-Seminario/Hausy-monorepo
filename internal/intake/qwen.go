@@ -1,10 +1,11 @@
 package intake
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -19,13 +20,13 @@ import (
 // default planner and Jev's fallback.
 type Qwen struct{ Client llm.Client }
 
-func (q Qwen) Plan(ctx context.Context, turns []string) (Plan, error) {
+func (q Qwen) Plan(ctx context.Context, turns []string, catalog eligibility.Catalog) (Plan, error) {
 	var user strings.Builder
 	for i, t := range turns {
 		fmt.Fprintf(&user, "Mensaje %d del usuario: %s\n", i+1, t)
 	}
 	resp, err := q.Client.Chat(ctx, llm.ChatRequest{
-		Messages:    []llm.Message{{Role: "system", Content: qwenPrompt}, {Role: "user", Content: user.String()}},
+		Messages:    []llm.Message{{Role: "system", Content: strings.Replace(qwenPrompt, qualificationShapeMark, qualificationShape(catalog), 1)}, {Role: "user", Content: user.String()}},
 		Temperature: 0,
 		MaxTokens:   800,
 	})
@@ -43,7 +44,7 @@ func (q Qwen) Plan(ctx context.Context, turns []string) (Plan, error) {
 		repair(&plan.Branches[i])
 		// Seen live (experiments/clarification, 2026-09-25): a stated guarantee
 		// as a required listing attribute. It is the searcher's qualification;
-		// declaredOnly below keeps it only if the user said it.
+		// eligibility.Declared below keeps it only if the user said it.
 		b := &plan.Branches[i]
 		b.RequiredAttributes = slices.DeleteFunc(b.RequiredAttributes, func(f search.AttributeFilter) bool {
 			if f.Type != "guarantee" {
@@ -56,7 +57,7 @@ func (q Qwen) Plan(ctx context.Context, turns []string) (Plan, error) {
 			return true
 		})
 	}
-	plan.Qualification = declaredOnly(plan.Qualification, strings.Join(turns, "\n"))
+	plan.Qualification = eligibility.Declared(catalog, plan.Qualification, strings.Join(turns, "\n"))
 	return plan, nil
 }
 
@@ -87,45 +88,6 @@ func decodeQwenPlan(content []byte, plan *Plan) error {
 		return err
 	}
 	return json.Unmarshal(normalized, plan)
-}
-
-var (
-	incomeCue       = regexp.MustCompile(`(?i)\bgan(o|amos)\b|ingreso|sueldo|\bcobr|facturo`)
-	incomeAmountCue = regexp.MustCompile(`(?i)\d|mill[oó]n|palo|luca`)
-	quoteCue        = regexp.MustCompile(`(?i)cotiz|cotic`)
-)
-
-// declaredOnly keeps the qualification facts the user actually stated. The
-// model was seen inventing an income band; a declared fact changes eligibility.
-func declaredOnly(q eligibility.Qualification, text string) eligibility.Qualification {
-	out := eligibility.Qualification{}
-	for _, in := range eligibility.Instruments {
-		if slices.Contains(q["guarantee"], in.Name) && in.Pattern.MatchString(text) {
-			out["guarantee"] = append(out["guarantee"], in.Name)
-		}
-	}
-	if len(q["income_band"]) > 0 && hasDeclaredIncomeAmount(text) {
-		out["income_band"] = q["income_band"][:1]
-	}
-	if len(q["caucion_quoted"]) > 0 && quoteCue.MatchString(text) {
-		out["caucion_quoted"] = q["caucion_quoted"][:1]
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
-}
-
-func hasDeclaredIncomeAmount(text string) bool {
-	for _, clause := range strings.FieldsFunc(text, func(r rune) bool { return r == '.' || r == ';' || r == '?' || r == '!' || r == '\n' }) {
-		for _, at := range incomeCue.FindAllStringIndex(clause, -1) {
-			end := min(len(clause), at[1]+48)
-			if incomeAmountCue.MatchString(clause[at[1]:end]) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // repair undoes what the local model was seen doing (experiments/intake,
@@ -181,7 +143,7 @@ Devolvé sólo JSON válido, sin texto ni explicaciones, con esta forma:
    "preferred_attributes": [{"type": "natural_light", "value": "high"}],
    "excluded_attributes": [{"type": "exposure", "value": "interno"}]}],
  (otros campos numéricos posibles: min_price, max_expenses_ars, max_rooms, min_bedrooms, min_bathrooms, min_total_area_m2)
- "qualification": {"guarantee": ["propietaria|caucion"], "income_band": ["0-1000000|1000000-2000000|2000000-3000000|3000000-"]}}
+ "qualification": ` + qualificationShapeMark + `}
 
 Reglas:
 - Describí la búsqueda que el usuario quiere después del ÚLTIMO mensaje: los mensajes nuevos reemplazan o retiran lo anterior.
@@ -189,7 +151,7 @@ Reglas:
 - Todo precio lleva currency. "800 mil", "500 lucas" = pesos; "1 palo" = 1000000.
 - required: lo exige ("necesito", "sí o sí", "que tenga"). preferred: lo prefiere o es negociable. excluded: no lo quiere ("sin", "que no sea", "olvidate de X").
 - Usá una sola rama con todos los barrios, salvo que el usuario ate requisitos distintos a barrios distintos: ahí, una rama por grupo de barrios.
-- qualification: sólo lo que el usuario dice que TIENE (su garantía, sus ingresos mensuales).
+- qualification: sólo lo que el usuario dice que TIENE (su garantía, sus mascotas, sus ingresos mensuales). Si dice que no tiene garantía o mascotas, usá "none".
 - Si el último mensaje pregunta por una propiedad ya mostrada, intent = "ask_about_listing".
 
 Atributos válidos (type: values):
@@ -206,4 +168,28 @@ func vocabularyLines() string {
 		fmt.Fprintf(&b, "- %s: %s\n", t, strings.Join(listing.Vocabulary[t], ", "))
 	}
 	return b.String()
+}
+
+// qualificationShapeMark is where the prompt lists the catalog's facts.
+const qualificationShapeMark = "{{qualification}}"
+
+// qualificationShape is the prompt's qualification object, built from the
+// catalog so the model offers exactly the values the form offers.
+func qualificationShape(catalog eligibility.Catalog) string {
+	names := slices.SortedFunc(maps.Keys(catalog), func(a, b string) int {
+		return cmp.Or(cmp.Compare(catalog[a].Position, catalog[b].Position), strings.Compare(a, b))
+	})
+	var fields []string
+	for _, name := range names {
+		fact := catalog[name]
+		if !fact.Admissible || len(fact.Choices) == 0 {
+			continue
+		}
+		values := make([]string, 0, len(fact.Choices))
+		for _, c := range fact.Choices {
+			values = append(values, c.Value)
+		}
+		fields = append(fields, fmt.Sprintf("%q: [%q]", name, strings.Join(values, "|")))
+	}
+	return "{" + strings.Join(fields, ", ") + "}"
 }

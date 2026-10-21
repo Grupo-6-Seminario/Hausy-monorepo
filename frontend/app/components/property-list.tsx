@@ -9,6 +9,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import { type FactsState, useEligibilityFacts } from '@/lib/eligibility-facts';
 import type { EligibilityState, Listing, Relaxation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -22,10 +23,15 @@ const sections: EligibilityState[] = [
   'unknown',
 ];
 
-const instrumentLabel: Record<string, string> = {
-  propietaria: 'garantía propietaria',
-  caucion: 'seguro de caución',
-};
+// instrumentLabel names a relaxation's value as the catalog does; before the
+// catalog loads, or for a value it lacks, the raw value stands in.
+function instrumentLabel(facts: FactsState, fact: string, value: string) {
+  if (facts.kind !== 'ready') return value;
+  const choice = facts.facts
+    .find((f) => f.name === fact)
+    ?.choices.find((c) => c.value === value);
+  return choice ? choice.label.toLowerCase() : value;
+}
 
 interface PropertyListProps {
   listings?: Listing[];
@@ -45,6 +51,7 @@ export function PropertyList({
   className,
   children,
 }: PropertyListProps) {
+  const facts = useEligibilityFacts();
   if (isLoading) {
     return (
       <section
@@ -176,7 +183,8 @@ export function PropertyList({
           key={`${relaxation.fact}-${relaxation.value}`}
           className="relaxation-line"
         >
-          Si conseguís {instrumentLabel[relaxation.value] ?? relaxation.value},
+          Si conseguís{' '}
+          {instrumentLabel(facts, relaxation.fact, relaxation.value)},
           vuelven {relaxation.count}{' '}
           {relaxation.count === 1 ? 'propiedad' : 'propiedades'}.
         </p>

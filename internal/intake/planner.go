@@ -34,9 +34,10 @@ type Plan struct {
 }
 
 // Source fills a plan from the conversation's user turns. Jev and the local
-// model are the two adapters.
+// model are the two adapters. catalog is the qualification facts and choices
+// the searcher may declare, read for this turn.
 type Source interface {
-	Plan(ctx context.Context, turns []string) (Plan, error)
+	Plan(ctx context.Context, turns []string, catalog eligibility.Catalog) (Plan, error)
 }
 
 // Planner runs Primary within Budget and falls back when it is slow, fails,
@@ -47,14 +48,14 @@ type Planner struct {
 	Budget            time.Duration
 }
 
-func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan, error) {
+func (p Planner) Plan(ctx context.Context, turns []string, previous Plan, catalog eligibility.Catalog) (Plan, error) {
 	primaryCtx := ctx
 	if p.Budget > 0 {
 		var cancel context.CancelFunc
 		primaryCtx, cancel = context.WithTimeout(ctx, p.Budget)
 		defer cancel()
 	}
-	plan, err := p.try(primaryCtx, p.Primary, turns, previous)
+	plan, err := p.try(primaryCtx, p.Primary, turns, previous, catalog)
 	if err == nil || errors.As(err, new(*Unresolved)) {
 		plan.PlannedBy = "primary"
 		return plan, err
@@ -64,7 +65,7 @@ func (p Planner) Plan(ctx context.Context, turns []string, previous Plan) (Plan,
 	}
 	logging.FromContext(ctx).LogAttrs(ctx, slog.LevelWarn, "planner_fallback",
 		slog.String("error_class", logging.ErrorClass(err)))
-	fallback, ferr := p.try(ctx, p.Fallback, turns, previous)
+	fallback, ferr := p.try(ctx, p.Fallback, turns, previous, catalog)
 	if ferr != nil && !errors.As(ferr, new(*Unresolved)) {
 		if len(plan.Branches) > 0 {
 			return plan, errors.Join(err, ferr)
@@ -83,13 +84,20 @@ type Unresolved struct{ Phrase string }
 
 func (u *Unresolved) Error() string { return "intake: unresolved request «" + u.Phrase + "»" }
 
-func (p Planner) try(ctx context.Context, source Source, turns []string, previous Plan) (Plan, error) {
+func (p Planner) try(ctx context.Context, source Source, turns []string, previous Plan, catalog eligibility.Catalog) (Plan, error) {
 	if source == nil {
 		return Plan{}, errors.New("intake: no planner configured")
 	}
-	plan, err := source.Plan(ctx, turns)
+	plan, err := source.Plan(ctx, turns, catalog)
 	if err != nil {
 		return Plan{}, err
+	}
+	// What the chat declares meets the form's rules: a fact the catalog
+	// refuses, or a contradictory set ("no pets" and "a dog"), is dropped.
+	for fact, values := range plan.Qualification {
+		if eligibility.ValidateQualification(catalog, eligibility.Qualification{fact: values}) != nil {
+			delete(plan.Qualification, fact)
+		}
 	}
 	return resolve(plan, previous, turns)
 }

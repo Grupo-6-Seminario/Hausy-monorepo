@@ -18,28 +18,28 @@ func rent(amount float64) listing.Money { return listing.Money{Amount: &amount, 
 
 // The searcher is told why they can apply, in the listing's own words.
 func TestEligibleVerdictNamesTheRequirementTheSearcherClears(t *testing.T) {
-	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, catalog)
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{onlyPropietaria}, catalog)
 	if got.State != eligibility.Eligible || len(got.Met) != 1 || got.Met[0].Evidence != "Garantía propietaria" {
 		t.Fatalf("want eligible naming the cleared requirement, got %+v", got)
 	}
 }
 
 func TestHardGuaranteeTheSearcherLacksIsIneligible(t *testing.T) {
-	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"caucion"}}, rent(800000), []eligibility.Rule{onlyPropietaria}, catalog)
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"caucion"}}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{onlyPropietaria}, catalog)
 	if got.State != eligibility.Ineligible || len(got.Conditions) != 1 || got.Conditions[0].Reason != "not_met" {
 		t.Fatalf("want ineligible naming the rule, got %+v", got)
 	}
 }
 
 func TestUndeclaredFactIsUnknownNeverEligible(t *testing.T) {
-	got := eligibility.Assess(eligibility.Qualification{}, rent(800000), []eligibility.Rule{onlyPropietaria}, catalog)
+	got := eligibility.Assess(eligibility.Qualification{}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{onlyPropietaria}, catalog)
 	if got.State != eligibility.Unknown || len(got.Conditions) != 1 || got.Conditions[0].Reason != "missing" {
 		t.Fatalf("want unknown naming the missing fact, got %+v", got)
 	}
 }
 
 func TestNoPublishedRulesIsUnknown(t *testing.T) {
-	if got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, rent(800000), nil, catalog); got.State != eligibility.Unknown {
+	if got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, listing.Listing{Price: rent(800000)}, nil, catalog); got.State != eligibility.Unknown {
 		t.Fatalf("want unknown, got %+v", got)
 	}
 }
@@ -49,7 +49,7 @@ var ownerDecides = eligibility.Rule{Fact: "guarantee", Operator: "one_of", Value
 
 func TestDiscretionaryRuleIsConditionalWithTheConditionNamed(t *testing.T) {
 	for _, declared := range [][]string{{"caucion"}, {"recibos_garante"}} {
-		got := eligibility.Assess(eligibility.Qualification{"guarantee": declared}, rent(800000), []eligibility.Rule{ownerDecides}, catalog)
+		got := eligibility.Assess(eligibility.Qualification{"guarantee": declared}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{ownerDecides}, catalog)
 		if got.State != eligibility.ConditionallyEligible || len(got.Conditions) != 1 || got.Conditions[0].Reason != "discretionary" || got.Conditions[0].Rule.Evidence != ownerDecides.Evidence {
 			t.Fatalf("%v: want conditionally eligible naming the owner's condition, got %+v", declared, got)
 		}
@@ -72,7 +72,7 @@ func TestIncomeMultipleAgainstADeclaredBand(t *testing.T) {
 		{"2000000-3000000", rent(800000), eligibility.ConditionallyEligible, "near_line"},
 		{"3000000-", listing.Money{Amount: &usd, Currency: "USD"}, eligibility.Unknown, "unverifiable"},
 	} {
-		got := eligibility.Assess(eligibility.Qualification{"income_band": {tc.band}}, tc.rent, []eligibility.Rule{threeTimes}, catalog)
+		got := eligibility.Assess(eligibility.Qualification{"income_band": {tc.band}}, listing.Listing{Price: tc.rent}, []eligibility.Rule{threeTimes}, catalog)
 		if got.State != tc.want || (tc.reason != "" && (len(got.Conditions) != 1 || got.Conditions[0].Reason != tc.reason)) {
 			t.Errorf("band %s rent %v: want %s/%s, got %+v", tc.band, tc.rent.Currency, tc.want, tc.reason, got)
 		}
@@ -81,7 +81,7 @@ func TestIncomeMultipleAgainstADeclaredBand(t *testing.T) {
 
 func TestRulesOnInadmissibleFactsAreIgnoredAndReported(t *testing.T) {
 	age := eligibility.Rule{Fact: "age", Operator: "one_of", Values: []string{"20+"}, Hardness: "hard"}
-	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}, "age": {"19"}}, rent(800000), []eligibility.Rule{onlyPropietaria, age}, catalog)
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}, "age": {"19"}}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{onlyPropietaria, age}, catalog)
 	if got.State != eligibility.Eligible || len(got.Ignored) != 1 || got.Ignored[0].Fact != "age" {
 		t.Fatalf("an inadmissible rule must not decide eligibility, got %+v", got)
 	}
@@ -113,7 +113,7 @@ func TestUnknownOperatorIsUnverifiableNeverEligible(t *testing.T) {
 		between := eligibility.Rule{Fact: "guarantee", Operator: "between", Values: []string{"propietaria"}, Hardness: hardness}
 		// Undeclared too: asking the searcher for the fact would not make the rule readable.
 		for _, q := range []eligibility.Qualification{{"guarantee": {"propietaria"}}, {}} {
-			got := eligibility.Assess(q, rent(800000), []eligibility.Rule{between}, catalog)
+			got := eligibility.Assess(q, listing.Listing{Price: rent(800000)}, []eligibility.Rule{between}, catalog)
 			if got.State != eligibility.Unknown || len(got.Conditions) != 1 || got.Conditions[0].Reason != "unverifiable" {
 				t.Errorf("%s %v: want unknown/unverifiable, got %+v", hardness, q, got)
 			}
@@ -127,7 +127,7 @@ func TestUnknownOperatorIsUnverifiableNeverEligible(t *testing.T) {
 func TestDiscretionaryIncomeOnADollarRentIsUnverifiable(t *testing.T) {
 	usd := 700.0
 	threeTimes := eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "discretionary"}
-	got := eligibility.Assess(eligibility.Qualification{"income_band": {"3000000-"}}, listing.Money{Amount: &usd, Currency: "USD"}, []eligibility.Rule{threeTimes}, catalog)
+	got := eligibility.Assess(eligibility.Qualification{"income_band": {"3000000-"}}, listing.Listing{Price: listing.Money{Amount: &usd, Currency: "USD"}}, []eligibility.Rule{threeTimes}, catalog)
 	if got.State != eligibility.Unknown || len(got.Conditions) != 1 || got.Conditions[0].Reason != "unverifiable" {
 		t.Fatalf("want unknown/unverifiable, got %+v", got)
 	}
@@ -138,8 +138,12 @@ func TestValidateRefusesRulesTheEvaluatorCannotRead(t *testing.T) {
 		rule eligibility.Rule
 		want string
 	}{
-		{eligibility.Rule{Fact: "guarantee", Operator: "one_of", Hardness: "hard"}, ""},
-		{eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Hardness: "discretionary"}, ""},
+		{eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"}, ""},
+		{eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "discretionary"}, ""},
+		// Spec 006, error 5: an empty list admits nobody, so the listing would
+		// be hidden from every searcher.
+		{eligibility.Rule{Fact: "guarantee", Operator: "one_of", Hardness: "hard"}, `eligibility rule on "guarantee" admits no values`},
+		{eligibility.Rule{Fact: "pets", Operator: "subset_of", Values: []string{}, Hardness: "hard"}, `eligibility rule on "pets" admits no values`},
 		{eligibility.Rule{Fact: "guarantee", Operator: "between", Hardness: "hard"}, `unknown eligibility operator "between"`},
 		{eligibility.Rule{Fact: "guarantee", Operator: "one_of", Hardness: "soft"}, `unknown eligibility hardness "soft"`},
 	} {
@@ -232,7 +236,7 @@ func TestPublishedRulesAdmitWhatTheListingAdmits(t *testing.T) {
 		{"yes", "Solamente perros y gatos", []string{"none", "dog", "cat"}, "hard"},
 	} {
 		attributes := []listing.Attribute{{Type: "pets_allowed", Value: tc.allowed, Provenance: listing.Stated, Evidence: tc.evidence}}
-		got := eligibility.PublishedRules(attributes, petsCatalog)
+		got := eligibility.PublishedRules(listing.Listing{Attributes: attributes}, petsCatalog)
 		want := []eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: tc.values, Hardness: tc.hardness, Visibility: "public", Source: "parsed", Evidence: tc.evidence}}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("%q:\n got %+v\nwant %+v", tc.evidence, got, want)
@@ -248,7 +252,7 @@ func TestPublishedRulesIgnoreWhatDemandsNothing(t *testing.T) {
 		{Type: "pets_allowed", Value: "no", Provenance: listing.Stated, Evidence: "Inmueble no accesible para personas con discapacidad física LEY 5115"},
 		{Type: "pets_allowed", Value: "no", Provenance: listing.Inferred, Evidence: "No se aceptan mascotas"},
 	} {
-		if got := eligibility.PublishedRules([]listing.Attribute{a}, petsCatalog); len(got) != 0 {
+		if got := eligibility.PublishedRules(listing.Listing{Attributes: []listing.Attribute{a}}, petsCatalog); len(got) != 0 {
 			t.Errorf("%q: want no rule, got %+v", a.Evidence, got)
 		}
 	}
@@ -274,7 +278,7 @@ func TestPetsRuleNeedsEveryDeclaredValueAdmitted(t *testing.T) {
 		if tc.pets != nil {
 			q["pets"] = tc.pets
 		}
-		if got := eligibility.Assess(q, rent(800000), []eligibility.Rule{tc.rule}, petsCatalog); got.State != tc.want {
+		if got := eligibility.Assess(q, listing.Listing{Price: rent(800000)}, []eligibility.Rule{tc.rule}, petsCatalog); got.State != tc.want {
 			t.Errorf("%s: want %s, got %+v", tc.name, tc.want, got)
 		}
 	}
@@ -291,7 +295,7 @@ func TestDiscretionaryPetsRuleClearsASearcherWithoutPets(t *testing.T) {
 		{[]string{"none"}, eligibility.Eligible},
 		{[]string{"dog"}, eligibility.ConditionallyEligible},
 	} {
-		if got := eligibility.Assess(eligibility.Qualification{"pets": tc.pets}, rent(800000), []eligibility.Rule{bigPets}, petsCatalog); got.State != tc.want {
+		if got := eligibility.Assess(eligibility.Qualification{"pets": tc.pets}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{bigPets}, petsCatalog); got.State != tc.want {
 			t.Errorf("%v: want %s, got %+v", tc.pets, tc.want, got)
 		}
 	}
@@ -300,7 +304,7 @@ func TestDiscretionaryPetsRuleClearsASearcherWithoutPets(t *testing.T) {
 // Spec case 14.
 func TestUndocumentedIncomeFailsARuleThatRequiresIt(t *testing.T) {
 	documented := eligibility.Rule{Fact: "income_documented", Operator: "one_of", Values: []string{"yes"}, Hardness: "hard"}
-	got := eligibility.Assess(eligibility.Qualification{"income_documented": {"no"}}, rent(800000), []eligibility.Rule{documented}, eligibility.Catalog{"income_documented": {Admissible: true}})
+	got := eligibility.Assess(eligibility.Qualification{"income_documented": {"no"}}, listing.Listing{Price: rent(800000)}, []eligibility.Rule{documented}, eligibility.Catalog{"income_documented": {Admissible: true}})
 	if got.State != eligibility.Ineligible {
 		t.Fatalf("want ineligible, got %+v", got)
 	}
@@ -311,7 +315,7 @@ func TestUndocumentedIncomeFailsARuleThatRequiresIt(t *testing.T) {
 func TestDeclaringNoGuaranteeIsIneligibleAndRelaxable(t *testing.T) {
 	onlyCaucion := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "hard"}
 	q := eligibility.Qualification{"guarantee": {"none"}}
-	if got := eligibility.Assess(q, rent(800000), []eligibility.Rule{onlyCaucion}, catalog); got.State != eligibility.Ineligible {
+	if got := eligibility.Assess(q, listing.Listing{Price: rent(800000)}, []eligibility.Rule{onlyCaucion}, catalog); got.State != eligibility.Ineligible {
 		t.Fatalf("want ineligible, got %+v", got)
 	}
 	candidates := []eligibility.Candidate{{Listing: listing.Listing{URL: "a", Price: rent(800000)}, Rules: []eligibility.Rule{onlyCaucion}}}
@@ -345,7 +349,7 @@ func TestTheVerdictWeighsEveryRuleOfAListing(t *testing.T) {
 		{"meets everything with two guarantees", eligibility.Qualification{"guarantee": {"propietaria", "caucion"}, "income_band": {"3000000-"}},
 			[]eligibility.Rule{hardCaucion, threeTimes}, eligibility.Eligible, map[string]eligibility.Reason{}, []string{"guarantee", "income_band"}},
 	} {
-		got := eligibility.Assess(tc.q, rent(800000), tc.rules, catalog)
+		got := eligibility.Assess(tc.q, listing.Listing{Price: rent(800000)}, tc.rules, catalog)
 		conditions := map[string]eligibility.Reason{}
 		for _, c := range got.Conditions {
 			conditions[c.Rule.Fact] = c.Reason
@@ -357,5 +361,92 @@ func TestTheVerdictWeighsEveryRuleOfAListing(t *testing.T) {
 		if got.State != tc.state || !reflect.DeepEqual(conditions, tc.conditions) || !reflect.DeepEqual(met, tc.met) {
 			t.Errorf("%s:\n got %s %v met %v\nwant %s %v met %v", tc.name, got.State, conditions, met, tc.state, tc.conditions, tc.met)
 		}
+	}
+}
+
+// Spec 006, error 1: the parser can leave pets_allowed unset on a listing whose
+// description refuses pets. An explicit refusal there is read the same way as
+// a stated attribute, and the refusing clause is the evidence.
+func TestPublishedRulesReadARefusalTheParserMissed(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		description string
+		attributes  []listing.Attribute
+		want        []eligibility.Rule
+	}{
+		// Listing 59530580, as committed: no pets_allowed attribute.
+		{"sin mascota", "Requisitos: seguro de caución. Sin mascota. Expensas $450.000", nil,
+			[]eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: []string{"none"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: "Sin mascota"}}},
+		{"one species", "Luminoso. No se aceptan gatos.", nil,
+			[]eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: []string{"none", "dog", "other"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: "No se aceptan gatos"}}},
+		{"size limit", "Departamento al frente. No apto mascotas grandes; consultar.", nil,
+			[]eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: []string{"none"}, Hardness: "discretionary", Visibility: "public", Source: "parsed", Evidence: "No apto mascotas grandes"}}},
+		{"no refusal", "Ideal para vos y tu mascota. Balcón al frente.", nil, nil},
+		// A stated attribute already decides; the description adds nothing.
+		{"stated attribute wins", "Sin mascotas.",
+			[]listing.Attribute{{Type: "pets_allowed", Value: "no", Provenance: listing.Stated, Evidence: "No se permite perro"}},
+			[]eligibility.Rule{{Fact: "pets", Operator: "subset_of", Values: []string{"none", "cat", "other"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: "No se permite perro"}}},
+	} {
+		got := eligibility.PublishedRules(listing.Listing{Description: tc.description, Attributes: tc.attributes}, petsCatalog)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s:\n got %+v\nwant %+v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// Spec 006, error 2: "tripliquen el valor del alquiler y expensas" multiplies
+// rent plus expensas. Listing 59966540: ARS 650,000 rent and ARS 176,000
+// expensas, so 3x is 2,478,000 instead of 1,950,000.
+func TestIncomeMultipleOverRentAndExpensas(t *testing.T) {
+	overTotal := eligibility.Rule{Fact: "income_band", Operator: "income_multiple_with_expenses", Values: []string{"3"}, Hardness: "hard"}
+	overRent := eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard"}
+	ars := func(amount float64) listing.Money { return listing.Money{Amount: &amount, Currency: "ARS"} }
+	usd := 300.0
+	monserrat := listing.Listing{Price: ars(650000), Expenses: ars(176000)}
+	for _, tc := range []struct {
+		name   string
+		band   string
+		item   listing.Listing
+		rule   eligibility.Rule
+		state  eligibility.State
+		reason eligibility.Reason
+	}{
+		{"rent only: the band covers 3x rent", "2000000-3000000", monserrat, overRent, eligibility.Eligible, ""},
+		{"with expensas: the same band straddles 3x the total", "2000000-3000000", monserrat, overTotal, eligibility.ConditionallyEligible, "near_line"},
+		{"with expensas: a band below 3x the total", "1000000-2000000", monserrat, overTotal, eligibility.Ineligible, "not_met"},
+		{"with expensas: a band above 3x the total", "3000000-", monserrat, overTotal, eligibility.Eligible, ""},
+		{"no expensas published", "3000000-", listing.Listing{Price: ars(650000)}, overTotal, eligibility.Unknown, "unverifiable"},
+		{"expensas not in pesos", "3000000-", listing.Listing{Price: ars(650000), Expenses: listing.Money{Amount: &usd, Currency: "USD"}}, overTotal, eligibility.Unknown, "unverifiable"},
+	} {
+		got := eligibility.Assess(eligibility.Qualification{"income_band": {tc.band}}, tc.item, []eligibility.Rule{tc.rule}, catalog)
+		if got.State != tc.state || tc.reason != "" && (len(got.Conditions) != 1 || got.Conditions[0].Reason != tc.reason) {
+			t.Errorf("%s: want %s/%s, got %+v", tc.name, tc.state, tc.reason, got)
+		}
+	}
+}
+
+// The committed rules carry the multiple; whether it covers expensas is in
+// their evidence, read once wherever rules are built.
+func TestIncomeRulesThatNameExpensasCoverThem(t *testing.T) {
+	read := func(evidence string) eligibility.Operator {
+		rules := eligibility.IncomeBase([]eligibility.Rule{{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard", Evidence: evidence}})
+		return rules[0].Operator
+	}
+	if got := read("Ingresos comprobables, recibos de sueldo que tripliquen el valor del alquiler y expensas"); got != "income_multiple_with_expenses" {
+		t.Errorf("a rule naming expensas: got %s", got)
+	}
+	if got := read("Ingresos comprobables que tripliquen el valor del alquiler mensual."); got != "income_multiple" {
+		t.Errorf("a rent-only rule: got %s", got)
+	}
+}
+
+// Spec 006, error 4: a relaxation carries the catalog's label for its value.
+func TestRelaxationsCarryTheCatalogLabel(t *testing.T) {
+	labelled := eligibility.Catalog{"guarantee": {Admissible: true, Choices: []eligibility.Choice{{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"}}}}
+	slips := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"recibos_garante"}, Hardness: "hard"}
+	got := eligibility.Relaxations(eligibility.Qualification{"guarantee": {"propietaria"}}, []eligibility.Candidate{{Listing: listing.Listing{URL: "a"}, Rules: []eligibility.Rule{slips}}}, labelled)
+	want := []eligibility.Relaxation{{Fact: "guarantee", Value: "recibos_garante", Label: "Recibos de sueldo de un garante", Count: 1}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }

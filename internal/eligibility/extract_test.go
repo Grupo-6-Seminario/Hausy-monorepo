@@ -76,6 +76,10 @@ func TestExtractReadsTheIncomeMultipleAndLetsJevConfirmIt(t *testing.T) {
 	if income.Fact != "income_band" || income.Operator != "income_multiple" || !slices.Equal(income.Values, []string{"3"}) || income.Evidence != "Ingresos que tripliquen el valor del alquiler" {
 		t.Fatalf("got %+v", income)
 	}
+	expensas := "Requisitos:\nGarantía propietaria\nRecibos de sueldo que tripliquen el valor del alquiler y expensas"
+	if rules, err := eligibility.Extract(context.Background(), f.evaluate, expensas); err != nil || len(rules) != 2 || rules[1].Operator != "income_multiple_with_expenses" {
+		t.Fatalf("a multiple over rent and expensas: got %+v, %v", rules, err)
+	}
 	f.answers["income_multiple"] = jev.Answer{Type: "boolean", Probability: 0.1}
 	if rules, _ := eligibility.Extract(context.Background(), f.evaluate, text); len(rules) != 1 {
 		t.Fatalf("an unconfirmed multiple must not become a rule, got %+v", rules)

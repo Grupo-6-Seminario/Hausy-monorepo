@@ -20,7 +20,7 @@ import (
 
 // Planner turns the conversation into a plan; intake.Planner fits.
 type Planner interface {
-	Plan(ctx context.Context, turns []string, previous intake.Plan) (intake.Plan, error)
+	Plan(ctx context.Context, turns []string, previous intake.Plan, catalog eligibility.Catalog) (intake.Plan, error)
 }
 
 // Inventory is the read side the pipeline needs; postgres.Store fits.
@@ -117,29 +117,39 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 	a.mu.Unlock()
 
+	// One catalog read serves the turn: the planner and the clarifier declare
+	// against it, and the ranking assesses against it. Read per turn, a reload
+	// or migration is seen without a restart.
+	catalog, err := p.inventory.Facts(ctx)
+	if err != nil {
+		logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
+			slog.String("error_class", logging.ErrorClass(err)))
+		return nil, err
+	}
 	var plan intake.Plan
-	var err error
 	planStarted := time.Now()
 	if resumed != nil {
 		plan = resumed.plan
 	} else {
-		plan, err = p.planner.Plan(ctx, turns, previous)
+		plan, err = p.planner.Plan(ctx, turns, previous, catalog)
 		if plan.PlannedBy != "" {
 			plannerName = plan.PlannedBy
 		}
 		if err == nil && plan.Intent != "ask_about_listing" && len(confirmed) > 0 {
-			plan, confirmed = preserveConfirmed(plan, confirmed, message)
+			plan, confirmed = preserveConfirmed(plan, confirmed, message, catalog)
 			a.mu.Lock()
 			sess.confirmed = confirmed
 			a.mu.Unlock()
 		}
-		if err != nil && p.clarifier == nil {
+		// Without a branch the planner never read the request (the model is
+		// down or answered garbage), so there is no condition to question.
+		if err != nil && (p.clarifier == nil || len(plan.Branches) == 0) {
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_plan", slog.String("outcome", "error"),
 				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(planStarted).Milliseconds()))
 			return nil, fmt.Errorf("buyer: plan: %w", err)
 		}
 		if p.clarifier != nil && (plan.Intent == "new_search" || plan.Intent == "refine" || err != nil) {
-			question, blocked, qerr := a.prepareClarification(ctx, sess, turns, plan, declared, err)
+			question, blocked, qerr := a.prepareClarification(ctx, sess, turns, plan, declared, err, catalog)
 			if qerr != nil {
 				return nil, qerr
 			}
@@ -186,12 +196,6 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		results = sess.results
 		a.mu.RUnlock()
 	} else {
-		catalog, err := p.inventory.Facts(ctx)
-		if err != nil {
-			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
-				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
-			return nil, err
-		}
 		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, catalog)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
@@ -290,7 +294,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 			}
 			seen[c.Listing.URL] = true
 			all = append(all, c)
-			verdict := eligibility.Assess(q, c.Listing.Price, c.Rules, catalog)
+			verdict := eligibility.Assess(q, c.Listing, c.Rules, catalog)
 			if verdict.State == eligibility.Ineligible {
 				hidden++
 				continue

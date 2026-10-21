@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { withFacts } from '@/lib/eligibility-facts.fixture';
 import type { Listing } from '@/lib/types';
 import { PropertyList } from './property-list';
+
+afterEach(() => vi.unstubAllGlobals());
 
 const mockListings: Listing[] = [
   {
@@ -99,7 +102,6 @@ describe('PropertyList eligibility sections', () => {
             { state: 'unknown' },
           ),
         ]}
-        relaxations={[{ fact: 'guarantee', value: 'caucion', count: 2 }]}
       />,
     );
 
@@ -116,10 +118,33 @@ describe('PropertyList eligibility sections', () => {
     expect(
       screen.getByText('Ordenadas por si podés alquilarlas'),
     ).toBeVisible();
-    expect(
-      screen.getByText(/Si conseguís seguro de caución, vuelven 2 propiedades/),
-    ).toBeVisible();
   });
+});
+
+// Spec 006, error 4: the zero-results line names each instrument as the
+// catalog does, including the guarantor's pay slips.
+it('names each instrument in the zero-results line from the catalog', async () => {
+  vi.stubGlobal(
+    'fetch',
+    withFacts(() => Promise.reject(new Error('unreachable'))),
+  );
+  render(
+    <PropertyList
+      listings={[mockListings[0]]}
+      relaxations={[
+        { fact: 'guarantee', value: 'caucion', count: 2 },
+        { fact: 'guarantee', value: 'recibos_garante', count: 1 },
+      ]}
+    />,
+  );
+  expect(
+    await screen.findByText(/Si conseguís seguro de caución, vuelven 2 propiedades/),
+  ).toBeVisible();
+  expect(
+    screen.getByText(
+      /Si conseguís recibos de sueldo de un garante, vuelven 1 propiedad\./,
+    ),
+  ).toBeVisible();
 });
 
 it('separates evidenced light matches from alternatives without labeling every card', () => {
