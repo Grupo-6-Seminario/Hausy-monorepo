@@ -86,18 +86,18 @@ describe('AgencyDashboard', () => {
     await screen.findByRole('heading', { name: 'Tu catálogo' });
 
     await user.click(screen.getByRole('button', { name: 'Agregar propiedad' }));
-    await user.type(
-      screen.getByLabelText('URL de la publicación'),
+    // Long values are pasted: typing them key by key re-renders the form on
+    // every key and pushed this test past the 5 s timeout under a full run.
+    await user.click(screen.getByLabelText('URL de la publicación'));
+    await user.paste(
       'https://www.zonaprop.com.ar/propiedades/palermo-303.html',
     );
     await user.type(screen.getByLabelText('Dirección'), 'Soler al 4200');
     await user.type(screen.getByLabelText('Barrio'), 'palermo');
     await user.type(screen.getByLabelText('Precio'), '950');
     await user.selectOptions(screen.getByLabelText('Moneda'), 'USD');
-    await user.type(
-      screen.getByLabelText('Descripción'),
-      'Departamento con balcón al frente.',
-    );
+    await user.click(screen.getByLabelText('Descripción'));
+    await user.paste('Departamento con balcón al frente.');
     await user.click(screen.getByRole('button', { name: 'Guardar propiedad' }));
 
     expect(await screen.findByText('Soler al 4200')).toBeVisible();
