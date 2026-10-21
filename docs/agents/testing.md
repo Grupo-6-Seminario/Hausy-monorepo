@@ -25,6 +25,8 @@ Use current manifests and [SETUP](../SETUP.md) to verify commands. These are the
 
 Database tests truncate their target. A `_test` suffix is required, but also confirm the target is disposable. Skipped tests need explicit reporting. Run only checks relevant to changed behavior, plus the domain's completion baseline. Repeat or broaden checks only for new changes, failures, or unresolved risks.
 
+CI on pull requests repeats the Go, frontend, E2E, and agent-instruction checks as a backstop. Local verification and the done predicate still apply.
+
 ## Review
 
 Apply `deslop` to the task diff against its actual base, normally the merge-base with `dev`, including uncommitted changes. Preserve behavior and useful short comments.
