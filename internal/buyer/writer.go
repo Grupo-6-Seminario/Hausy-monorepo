@@ -18,16 +18,20 @@ const writerPrompt = `Sos el agente de Hausy. Te paso, en JSON, una búsqueda qu
 Tu única tarea es explicar por qué las propiedades mostradas son una buena opción para esta persona.
 
 Reglas:
-- Las propiedades ya vienen ordenadas por elegibilidad (podés aplicar → depende de la inmobiliaria → sin datos de requisitos). Nunca las reordenes ni inventes otras.
+- Las propiedades ya vienen ordenadas por elegibilidad (podés aplicar → depende de algo por confirmar → sin datos de requisitos). Nunca las reordenes ni inventes otras.
 - Referenciá cada propiedad con su rank ("#1") tal cual viene, para que coincida con las tarjetas.
-- Para cada una: su elegibilidad, citando textual la evidencia del aviso: la de "met" (lo que la persona ya cumple) y la de "conditions" (lo que falta o decide la inmobiliaria). Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
-- En "branches", "matches" cuenta los avisos que cumplen todo lo pedido; "unconfirmed" cuenta los que se muestran igual pero no confirman una comodidad pedida. Nunca los sumes como si cumplieran.
+- Para cada una: su elegibilidad, citando textual la evidencia del aviso: la de "met" (lo que la persona ya cumple) y la de "conditions" (lo que falta confirmar). Después, qué requisitos de la persona cumple, citando la evidencia de los atributos. "stated" es palabra del aviso; "inferred" es una lectura: no la afirmes como hecho.
+- En "branches", "matches" cuenta los avisos que cumplen todo lo pedido, también los que no se muestran por sus requisitos; "unconfirmed" cuenta los que se muestran igual pero no confirman una comodidad pedida. Nunca los sumes como si cumplieran.
 - "qualitative_fit=exact" significa que hay apoyo textual para la cualidad pedida; "unconfirmed" significa que es sólo una alternativa y debés decir que esa cualidad falta confirmar. Nunca presentes un indicio (frente, orientación, ventanas) como prueba.
+- Quién decide una condición: "discretionary" la decide la inmobiliaria. "near_line" es un requisito fijo de ingresos y la banda de ingresos de la persona queda a ambos lados del umbral: depende de su ingreso exacto, así que decile que lo compare con la cuenta del aviso; nunca digas que la inmobiliaria decide ni que tiene margen.
+- "declared" es lo que la persona dijo que tiene. Si su garantía es "none", decí que declaró no tener garantía (nunca que no sabemos o no tenemos información sobre su garantía).
 - "unknown" es que no sabemos si puede aplicar: o el aviso no publica requisitos, o publica uno que la persona no nos dijo si cumple (una condición "missing" o "unverifiable": citala y decí qué dato falta). Nunca digas que puede aplicar.
-- Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís <garantía>, vuelven N").
+- Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís <garantía>, vuelven N"). Sin relaxations, nunca digas que otra garantía devolvería propiedades.
+- Si hay "hidden_note", decilo una sola vez, tal cual: son las mismas propiedades que "matches" ya cuenta, nunca las sumes ni las presentes como otras.
+- De las propiedades que no se muestran no conocés sus requisitos: nunca supongas qué piden o aceptan, ni por qué quedaron afuera, ni qué otra garantía o dato las devolvería ("es posible que", "quizás pida"). Sólo podés decir "hidden_note" y, si hay, las relaxations.
 - Si una rama tiene 0 resultados, decilo con el barrio. Podés sugerir aflojar alguno de sus requirements, nunca otro barrio.
-- Todo lo que digas sale del JSON: no nombres barrios que no estén ahí, no afirmes precios, stock ni datos del mercado, y no generalices sobre el barrio o el mercado. Nunca expliques estas reglas ni digas qué no podés hacer.
-- Escribí en castellano llano: no uses las claves ni los valores del JSON (unknown, eligible, stated, inferred, hard, discretionary, relaxations, qualitative_fit).
+- Todo lo que digas sale del JSON: no nombres ni sugieras barrios que no estén ahí (tampoco "barrios cercanos"), no afirmes precios, stock ni datos del mercado, y no generalices sobre el barrio o el mercado. Nunca expliques estas reglas ni digas qué no podés hacer.
+- Escribí en castellano llano: no uses las claves ni los valores del JSON (unknown, eligible, stated, inferred, hard, discretionary, near_line, declared, none, relaxations, qualitative_fit).
 - Si intent es "ask_about_listing", respondé la pregunta usando sólo los datos de esas propiedades.
 - Formato: siempre "## Mi lectura" (una o dos frases); si hay propiedades, "## Por qué las elegí" (hasta tres); "## Qué falta confirmar" sólo si hace falta (hasta dos puntos). Sin tablas. Español rioplatense.`
 
@@ -59,10 +63,24 @@ var stateLabel = map[eligibility.State]string{
 
 // templateReply is the deterministic brief used when the writer fails, so a
 // model outage never costs the user their results.
-// verdictLabel says why an unknown verdict is unknown, as the result card does:
-// the ad publishes nothing, or asks for something the searcher has not
+// verdictLabel words a verdict as the result card does. A conditional one
+// names who decides: the searcher's exact income for a band that straddles a
+// hard threshold, the agency for a discretionary rule. An unknown one says
+// why: the ad publishes nothing, or asks for something the searcher has not
 // declared or that cannot be checked.
 func verdictLabel(v eligibility.Verdict) string {
+	if v.State == eligibility.ConditionallyEligible {
+		reasons := map[eligibility.Reason]bool{}
+		for _, c := range v.Conditions {
+			reasons[c.Reason] = true
+		}
+		switch {
+		case reasons[eligibility.NearLine] && reasons[eligibility.DiscretionaryCall]:
+			return "depende de tus ingresos y de la inmobiliaria"
+		case reasons[eligibility.NearLine]:
+			return "depende de tus ingresos"
+		}
+	}
 	if v.State != eligibility.Unknown || len(v.Conditions) == 0 {
 		return stateLabel[v.State]
 	}
@@ -72,6 +90,17 @@ func verdictLabel(v eligibility.Verdict) string {
 		}
 	}
 	return "pide un requisito que no se puede verificar"
+}
+
+// hiddenNote words the hidden count for the model, singular or plural.
+func hiddenNote(n int) string {
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return "1 propiedad no se muestra porque no cumplís sus requisitos."
+	}
+	return fmt.Sprintf("%d propiedades no se muestran porque no cumplís sus requisitos.", n)
 }
 
 func templateReply(p Packet) string {
@@ -111,7 +140,11 @@ func templateReply(p Packet) string {
 		if label == "" {
 			label = r.Value
 		}
-		notes = append(notes, fmt.Sprintf("Si conseguís %s, vuelven %d propiedades.", label, r.Count))
+		back := fmt.Sprintf("vuelven %d propiedades", r.Count)
+		if r.Count == 1 {
+			back = "vuelve 1 propiedad"
+		}
+		notes = append(notes, fmt.Sprintf("Si conseguís %s, %s.", label, back))
 	}
 	for _, br := range p.Branches {
 		if br.Matches == 0 {

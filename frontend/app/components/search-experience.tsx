@@ -84,6 +84,7 @@ export function SearchExperience() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [relaxations, setRelaxations] = useState<Relaxation[]>([]);
+  const [hiddenIneligible, setHiddenIneligible] = useState(0);
   // The micro-interview opens with the page and folds away once a search runs.
   const [qualificationOpen, setQualificationOpen] = useState(true);
   const [qualification, setQualification] = useState<Qualification>({});
@@ -193,6 +194,7 @@ export function SearchExperience() {
             setListings(partial.listings || []);
             setRequirements(partial.requirements || []);
             setRelaxations(partial.relaxations || []);
+            setHiddenIneligible(partial.hidden_ineligible ?? 0);
             setHasSearched(true);
           },
           onReply: (delta) => setPendingReply((text) => text + delta),
@@ -218,6 +220,7 @@ export function SearchExperience() {
         window.sessionStorage.removeItem(pendingStorageKey);
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
+        setHiddenIneligible(payload.hidden_ineligible ?? 0);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
@@ -275,6 +278,7 @@ export function SearchExperience() {
           setListings(partial.listings || []);
           setRequirements(partial.requirements || []);
           setRelaxations(partial.relaxations || []);
+          setHiddenIneligible(partial.hidden_ineligible ?? 0);
           setHasSearched(true);
         },
         onReply: (delta) => setPendingReply((text) => text + delta),
@@ -302,6 +306,7 @@ export function SearchExperience() {
         setListings(payload.listings || []);
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
+        setHiddenIneligible(payload.hidden_ineligible ?? 0);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((current) => [...current, { id: ++turnIDRef.current, query: original.request || original.source, reply: payload.reply || '' }]);
@@ -389,6 +394,7 @@ export function SearchExperience() {
     setListings([]);
     setRequirements([]);
     setRelaxations([]);
+    setHiddenIneligible(0);
     setRecommendedRanks([]);
     setHasSearched(false);
     setPendingQuery('');
@@ -700,6 +706,7 @@ export function SearchExperience() {
             <PropertyList
               listings={listings}
               relaxations={relaxations}
+              hiddenIneligible={hiddenIneligible}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             >

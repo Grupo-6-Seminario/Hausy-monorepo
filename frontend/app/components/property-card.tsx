@@ -92,6 +92,22 @@ function unknownReason(
   return { text: 'Requisito no verificable', missing: false };
 }
 
+// A conditional verdict names who decides (CONTEXT.md, Conditionally
+// eligible): the agency for a discretionary rule, the searcher's exact income
+// for a band that straddles a hard threshold.
+function badgeLabel(eligibility: Eligibility) {
+  const conditions = eligibility.conditions ?? [];
+  if (
+    eligibility.state !== 'conditionally_eligible' ||
+    !conditions.some((condition) => condition.reason === 'near_line')
+  ) {
+    return eligibilityLabel[eligibility.state];
+  }
+  return conditions.some((condition) => condition.reason === 'discretionary')
+    ? 'Depende de tus ingresos y de la inmobiliaria'
+    : 'Depende de tus ingresos';
+}
+
 export function PropertyCard({
   listing,
   isRecommended = false,
@@ -179,7 +195,7 @@ export function PropertyCard({
             <span className="eligibility-mark" aria-hidden="true">
               {eligibilityMark[eligibility.state]}
             </span>
-            {eligibilityLabel[eligibility.state]}
+            {badgeLabel(eligibility)}
           </span>
         ) : null}
         {isRecommended ? (

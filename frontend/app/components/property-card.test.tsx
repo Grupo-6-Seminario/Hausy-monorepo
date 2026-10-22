@@ -403,6 +403,31 @@ describe('PropertyCard eligibility', () => {
     expect(badge.closest('article')).not.toBeNull();
     expect(condition.closest('article')).toBe(badge.closest('article'));
   });
+
+  // Seen in the spec 006 verification: a hard income rule whose band straddles
+  // the threshold was labeled as the agency's decision; it is the searcher's
+  // exact income that decides.
+  it.each([
+    [['near_line'], 'Depende de tus ingresos'],
+    [['near_line', 'discretionary'], 'Depende de tus ingresos y de la inmobiliaria'],
+  ])('names who decides a conditional verdict: %j', (reasons, label) => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'conditionally_eligible',
+            conditions: reasons.map((reason) => ({
+              reason,
+              rule: { fact: 'income_band', evidence: 'tripliquen el alquiler' },
+            })),
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(label)).toBeVisible();
+    expect(screen.queryByText('Depende de la inmobiliaria')).toBeNull();
+  });
 });
 
 describe('PropertyCard qualities', () => {

@@ -412,10 +412,10 @@ test('eligibility sections, the zero-results line and the declared qualification
   await page.getByRole('search').getByRole('button').click();
 
   await expect(
-    page.getByRole('heading', { name: 'Calificás' }),
+    page.getByRole('heading', { name: 'Calificás', exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Depende de la inmobiliaria' }),
+    page.getByRole('heading', { name: 'Calificás con condiciones' }),
   ).toBeVisible();
   await expect(
     page.getByText(/ver cuáles permite la propietaria/),
@@ -430,6 +430,57 @@ test('eligibility sections, the zero-results line and the declared qualification
   await expectNoOverflow(page);
   await page.screenshot({
     path: info.outputPath('eligibility.png'),
+    animations: 'disabled',
+    fullPage: true,
+  });
+  expect(errors).toEqual([]);
+});
+
+// Seen in the spec 006 verification: when every match was hidden by
+// eligibility, the empty screen said nothing about them or how to bring them back.
+test('an empty result names the listings eligibility hid and what would bring them back', async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/api/agent', (route) =>
+    route.fulfill({
+      json: {
+        reply: '## Mi lectura\nNo hay propiedades que puedas alquilar hoy.',
+        listings: [],
+        relaxations: [
+          {
+            fact: 'guarantee',
+            value: 'caucion',
+            label: 'Seguro de caución',
+            count: 1,
+          },
+        ],
+        hidden_ineligible: 1,
+      },
+    }),
+  );
+  await page.route('**/api/eligibility/facts', (route) =>
+    route.fulfill({ json: { facts: factsFixture } }),
+  );
+
+  await openSearch(page);
+  await page.getByLabel('No tengo').check();
+  await page.getByRole('button', { name: 'Usar estos datos' }).click();
+  await page.getByRole('textbox').fill('3 ambientes en Palermo hasta 1000 dólares');
+  await page.getByRole('search').getByRole('button').click();
+
+  await expect(
+    page.getByText(
+      'Hay 1 propiedad que no te mostramos porque no cumplís sus requisitos.',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Si conseguís seguro de caución, vuelve 1 propiedad.'),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: info.outputPath('empty-hidden.png'),
     animations: 'disabled',
     fullPage: true,
   });
