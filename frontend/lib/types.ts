@@ -94,6 +94,7 @@ export interface AgentResponse {
   listings?: Listing[];
   requirements?: Requirement[];
   relaxations?: Relaxation[];
+  hidden_ineligible?: number;
   error?: string;
   clarification?: ClarificationQuestion;
   clarification_hint?: string;

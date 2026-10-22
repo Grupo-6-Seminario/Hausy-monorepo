@@ -23,6 +23,13 @@ const sections: EligibilityState[] = [
   'unknown',
 ];
 
+// A section groups conditional cards whose badges name different deciders
+// (the agency, or the searcher's exact income), so its title names neither.
+const sectionTitle: Record<EligibilityState, string> = {
+  ...eligibilityLabel,
+  conditionally_eligible: 'Calificás con condiciones',
+};
+
 // instrumentLabel names a relaxation's value as the catalog does; before the
 // catalog loads, or for a value it lacks, the raw value stands in.
 function instrumentLabel(facts: FactsState, fact: string, value: string) {
@@ -33,9 +40,26 @@ function instrumentLabel(facts: FactsState, fact: string, value: string) {
   return choice ? choice.label.toLowerCase() : value;
 }
 
+function relaxationLines(facts: FactsState, relaxations: Relaxation[]) {
+  return relaxations.map((relaxation) => (
+    <p
+      key={`${relaxation.fact}-${relaxation.value}`}
+      className="relaxation-line"
+    >
+      Si conseguís {instrumentLabel(facts, relaxation.fact, relaxation.value)},{' '}
+      {relaxation.count === 1
+        ? 'vuelve 1 propiedad'
+        : `vuelven ${relaxation.count} propiedades`}
+      .
+    </p>
+  ));
+}
+
 interface PropertyListProps {
   listings?: Listing[];
   relaxations?: Relaxation[];
+  // Listings the search matched but hid because the searcher does not qualify.
+  hiddenIneligible?: number;
   recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
@@ -46,6 +70,7 @@ interface PropertyListProps {
 export function PropertyList({
   listings = [],
   relaxations = [],
+  hiddenIneligible = 0,
   recommendedRanks = [],
   isLoading = false,
   className,
@@ -115,14 +140,37 @@ export function PropertyList({
             <EmptyMedia variant="icon">
               <Home aria-hidden="true" />
             </EmptyMedia>
-            <EmptyTitle>
-              No encontramos propiedades que coincidan exactamente
-            </EmptyTitle>
-            <EmptyDescription>
-              Contale a Hausy qué requisito podrías flexibilizar o pedile
-              explorar barrios cercanos.
-            </EmptyDescription>
+            {hiddenIneligible > 0 ? (
+              <>
+                <EmptyTitle>Ninguna coincide con tu situación</EmptyTitle>
+                <EmptyDescription>
+                  Hay {hiddenIneligible}{' '}
+                  {hiddenIneligible === 1
+                    ? 'propiedad que no te mostramos'
+                    : 'propiedades que no te mostramos'}{' '}
+                  porque no cumplís sus requisitos.
+                </EmptyDescription>
+              </>
+            ) : (
+              <>
+                <EmptyTitle>
+                  No encontramos propiedades que coincidan exactamente
+                </EmptyTitle>
+                <EmptyDescription>
+                  Contale a Hausy qué podés flexibilizar: el presupuesto, los
+                  ambientes o algún requisito.
+                </EmptyDescription>
+              </>
+            )}
           </EmptyHeader>
+          {relaxations.length > 0 ? (
+            relaxationLines(facts, relaxations)
+          ) : hiddenIneligible > 0 ? (
+            <EmptyDescription>
+              Revisá tu situación o contale a Hausy qué requisito podés
+              flexibilizar.
+            </EmptyDescription>
+          ) : null}
         </Empty>
       </section>
     );
@@ -178,17 +226,7 @@ export function PropertyList({
           })}
         </>
       ) : renderByEligibility(listings, recommendedRanks, false)}
-      {relaxations.map((relaxation) => (
-        <p
-          key={`${relaxation.fact}-${relaxation.value}`}
-          className="relaxation-line"
-        >
-          Si conseguís{' '}
-          {instrumentLabel(facts, relaxation.fact, relaxation.value)},
-          vuelven {relaxation.count}{' '}
-          {relaxation.count === 1 ? 'propiedad' : 'propiedades'}.
-        </p>
-      ))}
+      {relaxationLines(facts, relaxations)}
     </section>
   );
 }
@@ -199,7 +237,7 @@ function renderByEligibility(listings: Listing[], recommendedRanks: number[], ne
     const inSection = listings.filter((listing) => listing.eligibility?.state === state);
     if (inSection.length === 0) return null;
     return <div key={state} className="eligibility-section" data-state={state}>
-      {nested ? <h4>{eligibilityLabel[state]}</h4> : <h3>{eligibilityLabel[state]}</h3>}
+      {nested ? <h4>{sectionTitle[state]}</h4> : <h3>{sectionTitle[state]}</h3>}
       {renderCards(inSection, recommendedRanks)}
     </div>;
   });

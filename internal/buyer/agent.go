@@ -42,6 +42,10 @@ type TurnResponse struct {
 	Relaxations       []eligibility.Relaxation `json:"relaxations,omitempty"`
 	Clarification     *clarification.Question  `json:"clarification,omitempty"`
 	ClarificationHint string                   `json:"clarification_hint,omitempty"`
+
+	// HiddenIneligible counts the matches hidden because the searcher does
+	// not qualify, so an empty screen can say they exist.
+	HiddenIneligible int `json:"hidden_ineligible,omitempty"`
 }
 
 // Result is a shown listing with its eligibility for this searcher.
@@ -86,6 +90,8 @@ type session struct {
 	turns           []string
 	plan            intake.Plan
 	results         []Result
+	relaxations     []eligibility.Relaxation
+	hidden          int
 	pending         *pendingClarification
 	inFlight        bool
 	resolvedSources map[string]bool

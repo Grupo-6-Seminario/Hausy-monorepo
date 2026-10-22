@@ -107,7 +107,7 @@ func TestATurnReportsItsRankingBeforeStreamingTheReply(t *testing.T) {
 	q := eligibility.Qualification{"guarantee": {"propietaria"}}
 	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), streamingWriter{deltas: []string{"#1 ", "es la mejor"}})
 	resp, err := agent.HandleMessage(context.Background(), "s", "Alquiler en Palermo", q, events)
-	if err != nil || strings.Join(log, ",") != "results,reply:#1 ,reply:es la mejor" || len(early.Listings) != 3 || early.Reply != "" || resp.Reply != "#1 es la mejor" {
+	if err != nil || strings.Join(log, ",") != "results,reply:#1 ,reply:es la mejor" || len(early.Listings) != 3 || early.Reply != "" || early.HiddenIneligible != 1 || resp.Reply != "#1 es la mejor" {
 		t.Fatalf("got events %v, early %+v, reply %q, %v", log, early, resp.Reply, err)
 	}
 
@@ -154,7 +154,7 @@ func TestTheZeroResultsLineNamesTheInstrumentFromTheCatalog(t *testing.T) {
 	q := eligibility.Qualification{"guarantee": {"propietaria"}}
 
 	template := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{}), "Alquiler en Palermo", q)
-	if !strings.Contains(template.Reply, "Si conseguís recibos de sueldo de un garante, vuelven 1 propiedades.") {
+	if !strings.Contains(template.Reply, "Si conseguís recibos de sueldo de un garante, vuelve 1 propiedad.") {
 		t.Errorf("template reply:\n%s", template.Reply)
 	}
 
@@ -163,5 +163,63 @@ func TestTheZeroResultsLineNamesTheInstrumentFromTheCatalog(t *testing.T) {
 	packet := model.last.Messages[len(model.last.Messages)-1].Content
 	if !strings.Contains(packet, "Recibos de sueldo de un garante") {
 		t.Errorf("the model's packet must carry the label, got:\n%s", packet)
+	}
+}
+
+// Seen in the spec 006 verification: a band that straddles a hard income
+// threshold was explained as the agency's decision. The searcher's exact
+// income decides it, and only a discretionary rule is the agency's call.
+func TestTemplateNamesWhoDecidesAConditionalVerdict(t *testing.T) {
+	triple := []eligibility.Rule{{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard", Evidence: "ingresos que tripliquen el alquiler"}}
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {
+		candidate("income", "palermo", 500000, triple),
+		candidate("owner", "palermo", 600000, ownerDecides),
+	}}}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{})
+	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"caucion"}, "income_band": {"1000000-2000000"}})
+
+	lines := map[string]string{}
+	for _, line := range strings.Split(resp.Reply, "\n") {
+		for _, evidence := range []string{triple[0].Evidence, ownerDecides[0].Evidence} {
+			if strings.Contains(line, evidence) {
+				lines[evidence] = line
+			}
+		}
+	}
+	if l := lines[triple[0].Evidence]; !strings.Contains(l, "depende de tus ingresos") || strings.Contains(l, "inmobiliaria") {
+		t.Errorf("a near-line income rule depends on the searcher's income, got %q", l)
+	}
+	if l := lines[ownerDecides[0].Evidence]; !strings.Contains(l, "depende de la inmobiliaria") {
+		t.Errorf("a discretionary rule is the agency's call, got %q", l)
+	}
+}
+
+// Seen in the spec 006 verification: a searcher who declared no guarantee was
+// told "no tenemos información sobre tu garantía". The model never saw what
+// the searcher declared, from the form or the chat.
+func TestTheModelSeesWhatTheSearcherDeclared(t *testing.T) {
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {candidate("caucion", "palermo", 700000, caucionOnly)}}}
+	model := &recordingLLM{}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, buyer.LocalWriter{Client: model})
+	turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"none"}})
+
+	packet := model.last.Messages[len(model.last.Messages)-1].Content
+	if !strings.Contains(packet, `"declared":{"guarantee":["none"]}`) {
+		t.Fatalf("the model's packet must carry the declared qualification, got:\n%s", packet)
+	}
+}
+
+// Seen live: with one listing hidden, the reply counted it twice ("encontré
+// 1 departamento" and "hay además 1 propiedad oculta"). The model gets the
+// hidden count once, as a sentence it can say as is.
+func TestTheModelLearnsTheHiddenCountOnce(t *testing.T) {
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {candidate("caucion", "palermo", 700000, caucionOnly)}}}
+	model := &recordingLLM{}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, buyer.LocalWriter{Client: model})
+	turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
+
+	packet := model.last.Messages[len(model.last.Messages)-1].Content
+	if !strings.Contains(packet, `"hidden_note":"1 propiedad no se muestra porque no cumplís sus requisitos."`) || strings.Contains(packet, "hidden_ineligible") {
+		t.Fatalf("want the hidden count once, as a sentence, got:\n%s", packet)
 	}
 }

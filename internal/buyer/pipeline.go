@@ -43,8 +43,14 @@ type Packet struct {
 	Requirements []Requirement            `json:"requirements"`
 	Branches     []BranchReport           `json:"branches"`
 	Shown        []Result                 `json:"shown"`
-	Hidden       int                      `json:"hidden_ineligible"`
+	Hidden       int                      `json:"-"`
 	Relaxations  []eligibility.Relaxation `json:"relaxations,omitempty"`
+	// Declared is what the searcher said they have, from the form and the
+	// chat: the verdicts were assessed against it.
+	Declared eligibility.Qualification `json:"declared,omitempty"`
+	// HiddenNote is the hidden count as the one sentence the model may say:
+	// given as a number beside "matches", it was counted twice.
+	HiddenNote string `json:"hidden_note,omitempty"`
 }
 
 // BranchReport keeps an empty branch visible ("Caballito: 0 avisos").
@@ -186,14 +192,15 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 	q := mergeQualification(declared, plan.Qualification)
 
-	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort}
+	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort, Declared: q}
 	var results []Result
 	var relaxations []eligibility.Relaxation
 	searchStarted := time.Now()
 	if len(plan.Branches) == 0 {
-		// Nothing to search (a greeting): keep what is already on screen.
+		// Nothing to search (a greeting): keep what is already on screen,
+		// including what eligibility hid and what would bring it back.
 		a.mu.RLock()
-		results = sess.results
+		results, relaxations, packet.Hidden = sess.results, sess.relaxations, sess.hidden
 		a.mu.RUnlock()
 	} else {
 		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, catalog)
@@ -208,6 +215,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		packet.Requirements = slices.CompactFunc(sortedRequirements(packet.Requirements), func(a, b Requirement) bool { return a == b })
 	}
 	shown, hidden = len(results), packet.Hidden
+	packet.HiddenNote = hiddenNote(packet.Hidden)
 	searchOutcome := "success"
 	if len(plan.Branches) == 0 {
 		searchOutcome = "skipped"
@@ -222,7 +230,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 
 	if events.Results != nil {
-		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations})
+		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden})
 	}
 	writerStarted := time.Now()
 	reply, err := p.writer.Write(ctx, packet, events.Reply)
@@ -241,9 +249,10 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 
 	a.mu.Lock()
 	sess.turns, sess.plan, sess.results = turns, plan, results
+	sess.relaxations, sess.hidden = relaxations, packet.Hidden
 	a.mu.Unlock()
 	turnOutcome = "success"
-	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations}, nil
+	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden}, nil
 }
 
 type scored struct {

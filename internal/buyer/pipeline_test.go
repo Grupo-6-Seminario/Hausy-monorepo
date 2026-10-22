@@ -284,9 +284,13 @@ func TestResultsAreOrderedByEligibilityWithIneligibleHidden(t *testing.T) {
 	if len(resp.Relaxations) != 1 || resp.Relaxations[0] != (eligibility.Relaxation{Fact: "guarantee", Value: "caucion", Label: "Seguro de caución", Count: 1}) {
 		t.Fatalf("want 'si conseguís caución, vuelve 1', got %+v", resp.Relaxations)
 	}
-	// The reply learns how many were hidden, so it can say so.
+	// The reply learns how many were hidden, so it can say so, and so does the
+	// results screen, which has nothing else to show when every match was hidden.
 	if len(writer.packets) != 1 || writer.packets[0].Hidden != 1 {
 		t.Fatalf("want 1 hidden ineligible listing in the writer packet, got %+v", writer.packets)
+	}
+	if resp.HiddenIneligible != 1 {
+		t.Fatalf("want 1 hidden ineligible listing in the response, got %d", resp.HiddenIneligible)
 	}
 }
 
@@ -426,5 +430,20 @@ func TestResultsCarryOnlyTheQualitiesTheSearcherAskedFor(t *testing.T) {
 	}
 	if !slices.Equal(cards, want) {
 		t.Fatalf("got %q\nwant %q", cards, want)
+	}
+}
+
+// Seen in review: a turn with nothing to search (a greeting) kept the shown
+// listings but dropped the hidden count and the relaxations, so an empty
+// screen lost the only lines that explained it.
+func TestATurnWithNothingToSearchKeepsWhatEligibilityHid(t *testing.T) {
+	greeting := intake.Plan{Intent: "other"}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), greeting}}, fourStates(), &fakeWriter{})
+	q := eligibility.Qualification{"guarantee": {"propietaria"}}
+	first := turn(t, agent, "Alquiler en Palermo", q)
+	second := turn(t, agent, "gracias", q)
+	if second.HiddenIneligible != first.HiddenIneligible || !slices.Equal(second.Relaxations, first.Relaxations) || len(first.Relaxations) == 0 {
+		t.Fatalf("want the first turn's hidden %d and relaxations %+v kept, got %d and %+v",
+			first.HiddenIneligible, first.Relaxations, second.HiddenIneligible, second.Relaxations)
 	}
 }

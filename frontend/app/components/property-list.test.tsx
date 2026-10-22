@@ -62,6 +62,56 @@ describe('PropertyList', () => {
     expect(
       screen.getByText(/no encontramos propiedades que coincidan exactamente/i),
     ).toBeVisible();
+    // The writer never suggests another neighborhood; the screen must not either.
+    expect(
+      screen.getByText(/el presupuesto, los ambientes o algún requisito/),
+    ).toBeVisible();
+    expect(screen.queryByText(/barrios/)).toBeNull();
+    expect(screen.queryByText(/no te mostramos/)).toBeNull();
+  });
+
+  // Seen in the spec 006 verification: a search whose only listing asked for
+  // caución showed the plain empty state, without the line that brings it back.
+  it('names the listings eligibility hid and how to bring them back when none is shown', async () => {
+    vi.stubGlobal(
+      'fetch',
+      withFacts(() => Promise.reject(new Error('unreachable'))),
+    );
+    render(
+      <PropertyList
+        listings={[]}
+        hiddenIneligible={1}
+        relaxations={[{ fact: 'guarantee', value: 'caucion', count: 1 }]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'Hay 1 propiedad que no te mostramos porque no cumplís sus requisitos.',
+      ),
+    ).toBeVisible();
+    expect(
+      await screen.findByText(
+        'Si conseguís seguro de caución, vuelve 1 propiedad.',
+      ),
+    ).toBeVisible();
+  });
+
+  // A dog or an income below the line hides listings that no guarantee brings
+  // back: the screen still needs a way forward.
+  it('offers a next step when hidden listings have no relaxation', () => {
+    render(<PropertyList listings={[]} hiddenIneligible={2} />);
+
+    expect(
+      screen.getByText(
+        'Hay 2 propiedades que no te mostramos porque no cumplís sus requisitos.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Revisá tu situación o contale a Hausy qué requisito podés flexibilizar.',
+      ),
+    ).toBeVisible();
   });
 
   it('renders a loading skeleton when isLoading is true', () => {
@@ -110,7 +160,7 @@ describe('PropertyList eligibility sections', () => {
       .map((h) => h.textContent);
     expect(headings).toEqual([
       'Calificás',
-      'Depende de la inmobiliaria',
+      'Calificás con condiciones',
       'A confirmar',
     ]);
     expect(screen.getByText(/ver cuáles permite la propietaria/)).toBeVisible();
@@ -142,7 +192,7 @@ it('names each instrument in the zero-results line from the catalog', async () =
   ).toBeVisible();
   expect(
     screen.getByText(
-      /Si conseguís recibos de sueldo de un garante, vuelven 1 propiedad\./,
+      /Si conseguís recibos de sueldo de un garante, vuelve 1 propiedad\./,
     ),
   ).toBeVisible();
 });
