@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { withFacts } from '@/lib/eligibility-facts.fixture';
@@ -215,4 +216,55 @@ it('keeps a branch without a qualitative requirement visible beside another bran
   ]} />);
   expect(screen.getByText(/Humboldt 1900/i)).toBeVisible();
   expect(screen.getByText(/Cabildo 2000/i)).toBeVisible();
+});
+
+it('gives each card the reason for its verdict from what the searcher declared', async () => {
+  vi.stubGlobal(
+    'fetch',
+    withFacts(() => Promise.reject(new Error('unreachable'))),
+  );
+  render(
+    <PropertyList
+      listings={[
+        {
+          ...mockListings[0],
+          rank: 1,
+          eligibility: {
+            state: 'eligible',
+            met: [{ fact: 'guarantee', values: ['caucion'] }],
+          },
+        },
+      ]}
+      declared={{ guarantee: ['caucion'] }}
+    />,
+  );
+  expect(
+    await screen.findByText('Cumplís lo que pide: seguro de caución.'),
+  ).toBeVisible();
+});
+
+// Each section title can explain itself in one sentence, on demand.
+it('explains what each eligibility section means when asked', async () => {
+  const user = userEvent.setup();
+  render(
+    <PropertyList
+      listings={[
+        { ...mockListings[0], rank: 1, eligibility: { state: 'eligible' } },
+        {
+          ...mockListings[1],
+          rank: 2,
+          eligibility: { state: 'conditionally_eligible' },
+        },
+      ]}
+    />,
+  );
+  const meaning =
+    'Cumplís lo publicado, pero una parte depende de la inmobiliaria o de tu ingreso exacto.';
+  expect(screen.getByText(meaning)).not.toBeVisible();
+  const [, conditional] = screen.getAllByText('¿Qué significa?');
+  await user.click(conditional);
+  expect(screen.getByText(meaning)).toBeVisible();
+  expect(
+    screen.getByText('Cumplís todo lo que el aviso publica como requisito.'),
+  ).not.toBeVisible();
 });

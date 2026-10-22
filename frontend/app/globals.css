@@ -1279,11 +1279,25 @@
 }
 
 .property-card-header,
+.eligibility-reason,
 .property-summary,
 .property-metrics,
 .card-block,
 .property-card-footer {
   padding-inline: 1.625rem;
+}
+
+/* Why the badge says what it says, in this listing's numbers. */
+.eligibility-reason {
+  max-width: 70ch;
+  margin: 0.5rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.eligibility-reason + .eligibility-reason {
+  margin-top: 0.25rem;
 }
 
 .property-card-header {
@@ -2852,6 +2866,7 @@
   }
 
   .property-card-header,
+  .eligibility-reason,
   .property-summary,
   .property-metrics,
   .card-block,
@@ -3005,6 +3020,55 @@
 
 .eligibility-section h4 {
   font-size: 1.25rem;
+}
+
+/* The title and its "¿Qué significa?" share a row; the answer opens beneath
+   the question, so the title never moves. */
+.eligibility-section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.eligibility-section-title :is(h3, h4) {
+  margin: 0;
+}
+
+.section-meaning {
+  flex: 1 1 14rem;
+}
+
+.section-meaning summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  border-radius: 4px;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  list-style: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.section-meaning summary::-webkit-details-marker {
+  display: none;
+}
+
+.section-meaning summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.section-meaning p {
+  max-width: 60ch;
+  margin: 0.25rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 /* Badge text always names the state; color and the mark only reinforce it. */

@@ -85,6 +85,10 @@ export function SearchExperience() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [relaxations, setRelaxations] = useState<Relaxation[]>([]);
   const [hiddenIneligible, setHiddenIneligible] = useState(0);
+  // The qualification the shown verdicts were assessed against: the form can
+  // change before the next search, and the cards must not follow it.
+  const [searchedQualification, setSearchedQualification] =
+    useState<Qualification>({});
   // The micro-interview opens with the page and folds away once a search runs.
   const [qualificationOpen, setQualificationOpen] = useState(true);
   const [qualification, setQualification] = useState<Qualification>({});
@@ -176,6 +180,7 @@ export function SearchExperience() {
           setPendingReply('');
           setQuery('');
         });
+        const sent = qualificationRef.current;
         const response = await fetch('/api/agent', {
           method: 'POST',
           headers: {
@@ -185,7 +190,7 @@ export function SearchExperience() {
           body: JSON.stringify({
             session_id: sessionRef.current,
             message: normalizedQuery,
-            qualification: qualificationRef.current,
+            qualification: sent,
           }),
           signal: controller.signal,
         });
@@ -195,6 +200,7 @@ export function SearchExperience() {
             setRequirements(partial.requirements || []);
             setRelaxations(partial.relaxations || []);
             setHiddenIneligible(partial.hidden_ineligible ?? 0);
+            setSearchedQualification(sent);
             setHasSearched(true);
           },
           onReply: (delta) => setPendingReply((text) => text + delta),
@@ -221,6 +227,7 @@ export function SearchExperience() {
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
+        setSearchedQualification(sent);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
@@ -268,10 +275,11 @@ export function SearchExperience() {
     setState('loading');
     setError('');
     try {
+      const sent = qualificationRef.current;
       const response = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
-        body: JSON.stringify({ session_id: sessionRef.current, answer, qualification: qualificationRef.current }),
+        body: JSON.stringify({ session_id: sessionRef.current, answer, qualification: sent }),
       });
       const payload = await readTurn(response, {
         onResults(partial) {
@@ -279,6 +287,7 @@ export function SearchExperience() {
           setRequirements(partial.requirements || []);
           setRelaxations(partial.relaxations || []);
           setHiddenIneligible(partial.hidden_ineligible ?? 0);
+          setSearchedQualification(sent);
           setHasSearched(true);
         },
         onReply: (delta) => setPendingReply((text) => text + delta),
@@ -307,6 +316,7 @@ export function SearchExperience() {
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
+        setSearchedQualification(sent);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((current) => [...current, { id: ++turnIDRef.current, query: original.request || original.source, reply: payload.reply || '' }]);
@@ -395,6 +405,7 @@ export function SearchExperience() {
     setRequirements([]);
     setRelaxations([]);
     setHiddenIneligible(0);
+    setSearchedQualification({});
     setRecommendedRanks([]);
     setHasSearched(false);
     setPendingQuery('');
@@ -707,6 +718,7 @@ export function SearchExperience() {
               listings={listings}
               relaxations={relaxations}
               hiddenIneligible={hiddenIneligible}
+              declared={searchedQualification}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             >

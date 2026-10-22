@@ -263,6 +263,9 @@ func (r Rule) Validate() error {
 type Condition struct {
 	Rule   Rule   `json:"rule"`
 	Reason Reason `json:"reason"`
+	// Threshold is the monthly income (ARS) a near-the-line band was compared
+	// with, so a reader can name it without recomputing it.
+	Threshold *float64 `json:"threshold,omitempty"`
 }
 
 type Verdict struct {
@@ -293,7 +296,13 @@ func Assess(q Qualification, item listing.Listing, rules []Rule, catalog Catalog
 			met = true
 			v.Met = append(v.Met, r)
 		default:
-			v.Conditions = append(v.Conditions, Condition{Rule: r, Reason: reason})
+			c := Condition{Rule: r, Reason: reason}
+			if reason == NearLine {
+				if threshold, ok := incomeThreshold(item, r); ok {
+					c.Threshold = &threshold
+				}
+			}
+			v.Conditions = append(v.Conditions, c)
 		}
 	}
 	switch {
@@ -320,10 +329,8 @@ func comparison(op Operator) func(declared []string, item listing.Listing, r Rul
 		return oneOf
 	case SubsetOf:
 		return subsetOf
-	case IncomeMultiple:
+	case IncomeMultiple, IncomeMultipleWithExpenses:
 		return incomeMultiple
-	case IncomeMultipleWithExpenses:
-		return incomeMultipleWithExpenses
 	}
 	return nil
 }
@@ -370,31 +377,15 @@ func subsetOf(declared []string, _ listing.Listing, r Rule) Reason {
 }
 
 // incomeMultiple compares a declared band "min-max" (monthly ARS; "min-" is
-// open-ended) with multiple × rent. A band straddling the threshold is the
-// "near the line" case of idea.md §4.
+// open-ended) with the rule's threshold. A band straddling it is the "near the
+// line" case of idea.md §4.
 func incomeMultiple(declared []string, item listing.Listing, r Rule) Reason {
-	return incomeAgainst(declared, r, item.Price)
-}
-
-// incomeMultipleWithExpenses is incomeMultiple over rent plus expensas. A
-// listing that publishes no expensas, or not in pesos, cannot be checked.
-func incomeMultipleWithExpenses(declared []string, item listing.Listing, r Rule) Reason {
-	if item.Expenses.Amount == nil || item.Expenses.Currency != "ARS" || item.Price.Amount == nil {
-		return Unverifiable
-	}
-	total := *item.Price.Amount + *item.Expenses.Amount
-	return incomeAgainst(declared, r, listing.Money{Amount: &total, Currency: item.Price.Currency})
-}
-
-func incomeAgainst(declared []string, r Rule, base listing.Money) Reason {
-	multiple, err := strconv.ParseFloat(firstOr(r.Values, ""), 64)
-	lo, hi, ok := strings.Cut(declared[0], "-")
+	threshold, ok := incomeThreshold(item, r)
+	lo, hi, cut := strings.Cut(declared[0], "-")
 	min, errMin := strconv.ParseFloat(lo, 64)
-	// Income bands are pesos; a rent in another currency has no rate to compare.
-	if err != nil || !ok || errMin != nil || base.Amount == nil || base.Currency != "ARS" {
+	if !ok || !cut || errMin != nil {
 		return Unverifiable
 	}
-	threshold := multiple * *base.Amount
 	if min >= threshold {
 		return Met
 	}
@@ -402,6 +393,27 @@ func incomeAgainst(declared []string, r Rule, base listing.Money) Reason {
 		return NotMet
 	}
 	return NearLine
+}
+
+// incomeThreshold is the monthly income an income rule asks for: multiple ×
+// rent, or × rent plus expensas. Income bands are pesos, so a rent or
+// expensas in another currency, or missing, has no threshold.
+func incomeThreshold(item listing.Listing, r Rule) (float64, bool) {
+	if r.Operator != IncomeMultiple && r.Operator != IncomeMultipleWithExpenses {
+		return 0, false
+	}
+	multiple, err := strconv.ParseFloat(firstOr(r.Values, ""), 64)
+	if err != nil || item.Price.Amount == nil || item.Price.Currency != "ARS" {
+		return 0, false
+	}
+	base := *item.Price.Amount
+	if r.Operator == IncomeMultipleWithExpenses {
+		if item.Expenses.Amount == nil || item.Expenses.Currency != "ARS" {
+			return 0, false
+		}
+		base += *item.Expenses.Amount
+	}
+	return multiple * base, true
 }
 
 func firstOr(values []string, fallback string) string {

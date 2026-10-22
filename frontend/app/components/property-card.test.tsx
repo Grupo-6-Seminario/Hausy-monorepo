@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { factsFixture } from '@/lib/eligibility-facts.fixture';
 import type { Listing } from '@/lib/types';
 import { PropertyCard } from './property-card';
 
@@ -487,5 +488,119 @@ describe('PropertyCard qualities', () => {
 
     expect(screen.queryByRole('region', { name: 'Coincide con lo que pediste' })).toBeNull();
     expect(screen.queryByText(/luz natural/i)).toBeNull();
+  });
+});
+
+describe('PropertyCard eligibility reason', () => {
+  // The badge says who decides; the line under it says why, with this
+  // listing's numbers. The threshold is the engine's, never recomputed here.
+  it.each([
+    [
+      '2000000-3000000',
+      'Pide ingresos de $2.478.000. Tu banda llega a $3.000.000: depende de tu monto exacto.',
+    ],
+    [
+      '3000000-',
+      'Pide ingresos de $2.478.000. Tu banda empieza en $3.000.000: depende de tu monto exacto.',
+    ],
+  ])('names the income asked for and the band near it: %s', (band, line) => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'conditionally_eligible',
+            conditions: [
+              {
+                reason: 'near_line',
+                threshold: 2478000,
+                rule: { fact: 'income_band', values: ['3'] },
+              },
+            ],
+          },
+        }}
+        situation={{ facts: factsFixture, declared: { income_band: [band] } }}
+      />,
+    );
+    expect(screen.getByText(line)).toBeVisible();
+  });
+
+  it('says the agency decides, naming the fact in the catalog words', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'conditionally_eligible',
+            conditions: [
+              { reason: 'near_line', threshold: 2478000, rule: { fact: 'income_band' } },
+              { reason: 'discretionary', rule: { fact: 'guarantee', values: ['caucion'] } },
+              { reason: 'discretionary', rule: { fact: 'pets', values: ['none'] } },
+            ],
+          },
+        }}
+        situation={{
+          facts: factsFixture,
+          declared: { income_band: ['2000000-3000000'], guarantee: ['caucion'], pets: ['dog'] },
+        }}
+      />,
+    );
+    const lines = screen
+      .getAllByText(/^(Pide ingresos|La inmobiliaria)/)
+      .map((line) => line.textContent);
+    expect(lines).toEqual([
+      'Pide ingresos de $2.478.000. Tu banda llega a $3.000.000: depende de tu monto exacto.',
+      'La inmobiliaria decide caso por caso si acepta tu garantía.',
+      'La inmobiliaria decide caso por caso si acepta tus mascotas.',
+    ]);
+  });
+
+  it('names what the searcher clears, income band in full', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'eligible',
+            met: [
+              { fact: 'guarantee', values: ['propietaria', 'caucion'] },
+              { fact: 'pets', values: ['none'] },
+              { fact: 'income_band', values: ['3'] },
+            ],
+          },
+        }}
+        situation={{
+          facts: factsFixture,
+          declared: { guarantee: ['caucion'], pets: ['none'], income_band: ['2000000-3000000'] },
+        }}
+      />,
+    );
+    expect(
+      screen.getByText(
+        'Cumplís lo que pide: seguro de caución, sin mascotas, tus ingresos de $2.000.000 a $3.000.000.',
+      ),
+    ).toBeVisible();
+  });
+
+  // A missing fact outranks a discretionary rule: the verdict is unknown, so
+  // the agency line must not appear on an "A confirmar" card.
+  it('adds no line to an unknown verdict, which keeps its own reason', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'unknown',
+            conditions: [
+              { reason: 'missing', rule: { fact: 'guarantee', values: ['caucion'] } },
+              { reason: 'discretionary', rule: { fact: 'pets', values: ['none'] } },
+            ],
+          },
+        }}
+        situation={{ facts: factsFixture, declared: { pets: ['dog'] } }}
+      />,
+    );
+    expect(screen.queryByText(/^(Pide ingresos|La inmobiliaria|Cumplís)/)).toBeNull();
+    expect(screen.getByText('Publica requisitos · completá tus datos')).toBeVisible();
   });
 });

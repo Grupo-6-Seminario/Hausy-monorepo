@@ -10,24 +10,33 @@ import {
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type FactsState, useEligibilityFacts } from '@/lib/eligibility-facts';
-import type { EligibilityState, Listing, Relaxation } from '@/lib/types';
+import type {
+  EligibilityState,
+  Listing,
+  Qualification,
+  Relaxation,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { eligibilityLabel, PropertyCard } from './property-card';
+import { eligibilityLabel, PropertyCard, type Situation } from './property-card';
 
 // Eligibility order is the product's order (CONTEXT.md, Eligibility);
 // ineligible listings never reach the list.
-const sections: EligibilityState[] = [
-  'eligible',
-  'conditionally_eligible',
-  'unknown',
-];
+const sections = ['eligible', 'conditionally_eligible', 'unknown'] as const;
 
 // A section groups conditional cards whose badges name different deciders
 // (the agency, or the searcher's exact income), so its title names neither.
 const sectionTitle: Record<EligibilityState, string> = {
   ...eligibilityLabel,
   conditionally_eligible: 'Calificás con condiciones',
+};
+
+// What each section means, one sentence a searcher can open beside its title.
+const sectionMeaning: Record<(typeof sections)[number], string> = {
+  eligible: 'Cumplís todo lo que el aviso publica como requisito.',
+  conditionally_eligible:
+    'Cumplís lo publicado, pero una parte depende de la inmobiliaria o de tu ingreso exacto.',
+  unknown: 'El aviso no publica requisitos o pide algo que no nos dijiste.',
 };
 
 // instrumentLabel names a relaxation's value as the catalog does; before the
@@ -60,6 +69,8 @@ interface PropertyListProps {
   relaxations?: Relaxation[];
   // Listings the search matched but hid because the searcher does not qualify.
   hiddenIneligible?: number;
+  // What the searcher declared, so each card can say why its verdict holds.
+  declared?: Qualification;
   recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
@@ -71,12 +82,17 @@ export function PropertyList({
   listings = [],
   relaxations = [],
   hiddenIneligible = 0,
+  declared,
   recommendedRanks = [],
   isLoading = false,
   className,
   children,
 }: PropertyListProps) {
   const facts = useEligibilityFacts();
+  const situation: Situation | undefined =
+    facts.kind === 'ready' && declared
+      ? { facts: facts.facts, declared }
+      : undefined;
   if (isLoading) {
     return (
       <section
@@ -221,29 +237,35 @@ export function PropertyList({
             if (group.length === 0) return null;
             return <div key={fit} className="qualitative-section">
               <h3>{fit === 'exact' ? 'Coincidencias con evidencia' : 'Otras opciones por confirmar'}</h3>
-              {renderByEligibility(group, recommendedRanks, true)}
+              {renderByEligibility(group, recommendedRanks, true, situation)}
             </div>;
           })}
         </>
-      ) : renderByEligibility(listings, recommendedRanks, false)}
+      ) : renderByEligibility(listings, recommendedRanks, false, situation)}
       {relaxationLines(facts, relaxations)}
     </section>
   );
 }
 
-function renderByEligibility(listings: Listing[], recommendedRanks: number[], nested: boolean) {
-  if (!listings.some((listing) => listing.eligibility)) return renderCards(listings, recommendedRanks);
+function renderByEligibility(listings: Listing[], recommendedRanks: number[], nested: boolean, situation?: Situation) {
+  if (!listings.some((listing) => listing.eligibility)) return renderCards(listings, recommendedRanks, situation);
   return sections.map((state) => {
     const inSection = listings.filter((listing) => listing.eligibility?.state === state);
     if (inSection.length === 0) return null;
     return <div key={state} className="eligibility-section" data-state={state}>
-      {nested ? <h4>{sectionTitle[state]}</h4> : <h3>{sectionTitle[state]}</h3>}
-      {renderCards(inSection, recommendedRanks)}
+      <div className="eligibility-section-title">
+        {nested ? <h4>{sectionTitle[state]}</h4> : <h3>{sectionTitle[state]}</h3>}
+        <details className="section-meaning">
+          <summary>¿Qué significa?</summary>
+          <p>{sectionMeaning[state]}</p>
+        </details>
+      </div>
+      {renderCards(inSection, recommendedRanks, situation)}
     </div>;
   });
 }
 
-function renderCards(listings: Listing[], recommendedRanks: number[]) {
+function renderCards(listings: Listing[], recommendedRanks: number[], situation?: Situation) {
   return (
     <ol start={listings[0]?.rank ?? 1}>
       {listings.map((listing, index) => {
@@ -255,6 +277,7 @@ function renderCards(listings: Listing[], recommendedRanks: number[]) {
             <PropertyCard
               isRecommended={recommendedRanks.includes(rank)}
               listing={rankedListing}
+              situation={situation}
             />
           </li>
         );
