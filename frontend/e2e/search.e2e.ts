@@ -373,7 +373,14 @@ test('eligibility sections, the zero-results line and the declared qualification
       json: {
         reply: '## Mi lectura\n**#1 Humboldt 1900** acepta tu garantía.',
         listings: [
-          { ...listing, rank: 1, eligibility: { state: 'eligible' } },
+          {
+            ...listing,
+            rank: 1,
+            eligibility: {
+              state: 'eligible',
+              met: [{ fact: 'guarantee', values: ['propietaria'] }],
+            },
+          },
           {
             ...listing,
             id: 102,
@@ -394,6 +401,27 @@ test('eligibility sections, the zero-results line and the declared qualification
               ],
             },
           },
+          {
+            ...listing,
+            id: 103,
+            rank: 3,
+            url: 'https://www.zonaprop.com.ar/103',
+            address: 'Venezuela 400',
+            eligibility: {
+              state: 'conditionally_eligible',
+              conditions: [
+                {
+                  reason: 'near_line',
+                  threshold: 2478000,
+                  rule: {
+                    fact: 'income_band',
+                    evidence:
+                      'Recibos de sueldo que tripliquen el valor del alquiler y expensas',
+                  },
+                },
+              ],
+            },
+          },
         ],
         relaxations: [{ fact: 'guarantee', value: 'caucion', count: 14 }],
       },
@@ -407,6 +435,9 @@ test('eligibility sections, the zero-results line and the declared qualification
   await openSearch(page);
   // The micro-interview opens with the page.
   await page.getByLabel('Garantía propietaria').check();
+  await page
+    .getByLabel('Ingresos mensuales')
+    .selectOption({ label: '$2.000.000 a $3.000.000' });
   await page.getByRole('button', { name: 'Usar estos datos' }).click();
   await page.getByRole('textbox').fill('Alquiler en Palermo');
   await page.getByRole('search').getByRole('button').click();
@@ -420,19 +451,61 @@ test('eligibility sections, the zero-results line and the declared qualification
   await expect(
     page.getByText(/ver cuáles permite la propietaria/),
   ).toBeVisible();
+  // Under each badge, the reason for it in this listing's numbers.
+  await expect(
+    page.getByText('Cumplís lo que pide: garantía propietaria.'),
+  ).toBeVisible();
+  await expect(
+    page.getByText('La inmobiliaria decide caso por caso si acepta tu garantía.'),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Pide ingresos de $2.478.000. Tu banda llega a $3.000.000: depende de tu monto exacto.',
+    ),
+  ).toBeVisible();
+  const meaning = page.getByText(
+    'Cumplís lo publicado, pero una parte depende de la inmobiliaria o de tu ingreso exacto.',
+  );
+  await expect(meaning).toBeHidden();
+  await page.getByText('¿Qué significa?').nth(1).click();
+  await expect(meaning).toBeVisible();
+  // The keyboard opens it too.
+  await page.getByText('¿Qué significa?').first().focus();
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByText('Cumplís todo lo que el aviso publica como requisito.'),
+  ).toBeVisible();
   await expect(
     page.getByText('Si conseguís seguro de caución, vuelven 14 propiedades.'),
   ).toBeVisible();
   await expect(
-    page.getByText('garantía propietaria', { exact: true }),
+    page.getByText('garantía propietaria · $2.000.000 a $3.000.000', {
+      exact: true,
+    }),
   ).toBeVisible();
-  expect(bodies.at(-1)?.qualification).toEqual({ guarantee: ['propietaria'] });
+  expect(bodies.at(-1)?.qualification).toEqual({
+    guarantee: ['propietaria'],
+    income_band: ['2000000-3000000'],
+  });
   await expectNoOverflow(page);
   await page.screenshot({
     path: info.outputPath('eligibility.png'),
     animations: 'disabled',
     fullPage: true,
   });
+
+  // Found in review: editing the form without searching again changed the
+  // reason under a verdict the new answers were never assessed against.
+  await page.getByRole('button', { name: 'Editar' }).click();
+  await page
+    .getByLabel('Ingresos mensuales')
+    .selectOption({ label: '$1.000.000 a $2.000.000' });
+  await page.getByRole('button', { name: 'Usar estos datos' }).click();
+  await expect(
+    page.getByText(
+      'Pide ingresos de $2.478.000. Tu banda llega a $3.000.000: depende de tu monto exacto.',
+    ),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
 

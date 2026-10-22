@@ -1,8 +1,11 @@
 package eligibility_test
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
@@ -448,5 +451,36 @@ func TestRelaxationsCarryTheCatalogLabel(t *testing.T) {
 	want := []eligibility.Relaxation{{Fact: "guarantee", Value: "recibos_garante", Label: "Recibos de sueldo de un garante", Count: 1}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
+
+// A near-the-line verdict names the income it was compared with, so the card
+// can say "Pide ingresos de $X" without recomputing the engine's threshold.
+func TestANearLineConditionCarriesTheThresholdItWasComparedWith(t *testing.T) {
+	ars := func(amount float64) listing.Money { return listing.Money{Amount: &amount, Currency: "ARS"} }
+	overTotal := eligibility.Rule{Fact: "income_band", Operator: "income_multiple_with_expenses", Values: []string{"3"}, Hardness: "hard"}
+	overRent := eligibility.Rule{Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard"}
+	ownerDecides := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"caucion"}, Hardness: "discretionary"}
+	for _, tc := range []struct {
+		name  string
+		item  listing.Listing
+		rules []eligibility.Rule
+		want  float64
+	}{
+		{"rent plus expensas (59966540)", listing.Listing{Price: ars(650000), Expenses: ars(176000)}, []eligibility.Rule{overTotal}, 2478000},
+		{"rent only", listing.Listing{Price: ars(800000)}, []eligibility.Rule{overRent}, 2400000},
+	} {
+		got := eligibility.Assess(eligibility.Qualification{"income_band": {"2000000-3000000"}}, tc.item, tc.rules, catalog)
+		if len(got.Conditions) != 1 || got.Conditions[0].Threshold == nil || *got.Conditions[0].Threshold != tc.want {
+			t.Errorf("%s: want threshold %v, got %+v", tc.name, tc.want, got.Conditions)
+		}
+		// The response field the frontend reads.
+		if b, _ := json.Marshal(got.Conditions); !strings.Contains(string(b), fmt.Sprintf(`"threshold":%.0f`, tc.want)) {
+			t.Errorf("%s: the condition must serialize its threshold, got %s", tc.name, b)
+		}
+	}
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"caucion"}}, listing.Listing{Price: ars(800000)}, []eligibility.Rule{ownerDecides}, catalog)
+	if len(got.Conditions) != 1 || got.Conditions[0].Threshold != nil {
+		t.Errorf("only an income comparison has a threshold, got %+v", got.Conditions)
 	}
 }

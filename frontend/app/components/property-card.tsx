@@ -4,13 +4,29 @@ import { ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 
 import { recordContactIntent, stableListingID } from '@/lib/contact-intent';
-import type { Eligibility, EligibilityState, Listing, ListingAttribute } from '@/lib/types';
+import type { EligibilityFact } from '@/lib/eligibility-facts';
+import type {
+  Eligibility,
+  EligibilityRule,
+  EligibilityState,
+  Listing,
+  ListingAttribute,
+  Qualification,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+// What the searcher declared and the catalog that names it: the card's
+// eligibility reason needs both.
+export interface Situation {
+  facts: EligibilityFact[];
+  declared: Qualification;
+}
 
 interface PropertyCardProps {
   listing: Listing;
   isRecommended?: boolean;
   className?: string;
+  situation?: Situation;
 }
 
 function formatMoney(amount?: number | null, currency?: string | null): string {
@@ -108,10 +124,85 @@ function badgeLabel(eligibility: Eligibility) {
     : 'Depende de tus ingresos';
 }
 
+// Pesos written as the catalog's bands are ("$3.000.000").
+function pesos(amount: number): string {
+  const digits = new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 0,
+  }).format(amount);
+  return `$${digits}`;
+}
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+// The article each fact takes in "si acepta tu garantía"; the noun is the
+// catalog's label. A fact without one is named generically.
+const factArticle: Record<string, string> = { guarantee: 'tu', pets: 'tus' };
+
+// metPhrase names what the searcher declared that clears a rule, in the
+// catalog's words.
+function metPhrase(
+  rule: EligibilityRule,
+  { facts, declared }: Situation,
+): string | null {
+  const fact = facts.find((f) => f.name === rule.fact);
+  const values = declared[rule.fact] ?? [];
+  if (!fact || values.length === 0) return null;
+  if (rule.fact === 'income_band') {
+    const band = fact.choices.find((c) => c.value === values[0]);
+    return band ? `tus ingresos de ${lowerFirst(band.label)}` : null;
+  }
+  if (rule.fact === 'pets' && values.includes('none')) return 'sin mascotas';
+  const labels = fact.choices
+    .filter((c) => values.includes(c.value) && (rule.values ?? []).includes(c.value))
+    .map((c) => c.label.toLowerCase());
+  return labels.length > 0 ? labels.join(', ') : null;
+}
+
+// The line under the badge: why this verdict, with this listing's numbers.
+// The income threshold is the engine's; "A confirmar" keeps its own reason.
+function reasonLines(eligibility: Eligibility, situation?: Situation): string[] {
+  if (!situation) return [];
+  if (eligibility.state === 'eligible') {
+    const met = (eligibility.met ?? [])
+      .map((rule) => metPhrase(rule, situation))
+      .filter((phrase) => phrase !== null);
+    return met.length > 0 ? [`Cumplís lo que pide: ${met.join(', ')}.`] : [];
+  }
+  if (eligibility.state !== 'conditionally_eligible') return [];
+  const conditions = eligibility.conditions ?? [];
+  const lines: string[] = [];
+  const nearLine = conditions.find((c) => c.reason === 'near_line');
+  const band = situation.declared.income_band?.[0];
+  if (nearLine?.threshold != null && band) {
+    const [min, max] = band.split('-');
+    const reach = max
+      ? `Tu banda llega a ${pesos(Number(max))}`
+      : `Tu banda empieza en ${pesos(Number(min))}`;
+    lines.push(
+      `Pide ingresos de ${pesos(nearLine.threshold)}. ${reach}: depende de tu monto exacto.`,
+    );
+  }
+  for (const condition of conditions) {
+    if (condition.reason !== 'discretionary') continue;
+    const fact = situation.facts.find((f) => f.name === condition.rule.fact);
+    const article = factArticle[condition.rule.fact];
+    lines.push(
+      fact && article
+        ? `La inmobiliaria decide caso por caso si acepta ${article} ${fact.label.toLowerCase()}.`
+        : 'La inmobiliaria decide caso por caso este requisito.',
+    );
+  }
+  // One line per fact, even if two rules on it are the agency's call.
+  return [...new Set(lines)];
+}
+
 export function PropertyCard({
   listing,
   isRecommended = false,
   className,
+  situation,
 }: PropertyCardProps) {
   const {
     rank,
@@ -203,6 +294,13 @@ export function PropertyCard({
         ) : null}
         {rank != null ? <span className="listing-rank">#{rank}</span> : null}
       </header>
+      {eligibility
+        ? reasonLines(eligibility, situation).map((line) => (
+            <p key={line} className="eligibility-reason">
+              {line}
+            </p>
+          ))
+        : null}
 
       <div className="property-summary">
         <div>

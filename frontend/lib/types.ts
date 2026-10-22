@@ -18,19 +18,25 @@ export type EligibilityState =
   | 'unknown'
   | 'ineligible';
 
+export interface EligibilityRule {
+  fact: string;
+  values?: string[];
+  hardness?: string;
+  evidence?: string;
+}
+
 export interface EligibilityCondition {
   reason: string;
-  rule: {
-    fact: string;
-    values?: string[];
-    hardness?: string;
-    evidence?: string;
-  };
+  rule: EligibilityRule;
+  // The monthly income (ARS) a near-the-line band was compared with.
+  threshold?: number;
 }
 
 export interface Eligibility {
   state: EligibilityState;
   conditions?: EligibilityCondition[];
+  // The requirements the searcher clears.
+  met?: EligibilityRule[];
 }
 
 // Zero-results line: declaring `value` for `fact` brings `count` listings back.
