@@ -57,8 +57,6 @@ var stateLabel = map[eligibility.State]string{
 	eligibility.Unknown:               "el aviso no publica requisitos",
 }
 
-var instrumentLabel = map[string]string{"propietaria": "garantía propietaria", "caucion": "seguro de caución"}
-
 // templateReply is the deterministic brief used when the writer fails, so a
 // model outage never costs the user their results.
 // verdictLabel says why an unknown verdict is unknown, as the result card does:
@@ -109,7 +107,7 @@ func templateReply(p Packet) string {
 	}
 	var notes []string
 	for _, r := range p.Relaxations {
-		label := instrumentLabel[r.Value]
+		label := strings.ToLower(r.Label)
 		if label == "" {
 			label = r.Value
 		}

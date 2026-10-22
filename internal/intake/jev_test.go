@@ -36,7 +36,7 @@ func pick(c string) jev.Answer { return jev.Answer{Type: "choice", Choice: c} }
 func yes() jev.Answer          { return jev.Answer{Type: "boolean", Probability: 0.95} }
 func planOf(t *testing.T, f *fakeJev, turns ...string) intake.Plan {
 	t.Helper()
-	p, err := intake.Jev{Evaluate: f.evaluate}.Plan(context.Background(), turns)
+	p, err := intake.Jev{Evaluate: f.evaluate}.Plan(context.Background(), turns, testCatalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestUnscopedNeighborhoodsShareOneBranch(t *testing.T) {
 
 func TestSortAndVolunteeredQualification(t *testing.T) {
 	f := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "hood_palermo": yes(), "sort": pick("price_asc"),
-		"has_propietaria": yes(), "num_0": pick("monthly_income"), "type_natural_light": pick("high/required")}}
+		"has_guarantee_propietaria": yes(), "num_0": pick("monthly_income"), "type_natural_light": pick("high/required")}}
 	p := planOf(t, f, "Buscame el departamento más barato de Palermo que tenga buena luz. Tengo garantía propietaria y gano 2,5 millones")
 	if p.Sort != "price_asc" || !slices.Equal(p.Qualification["guarantee"], []string{"propietaria"}) || !slices.Equal(p.Qualification["income_band"], []string{"2000000-3000000"}) {
 		t.Fatalf("got %+v", p)
@@ -130,5 +130,18 @@ func TestAGreetingHasNoSearchAndAFirstMessageIsNeverARefinement(t *testing.T) {
 	first := planOf(t, &fakeJev{answers: map[string]jev.Answer{"intent": pick("refine"), "hood_palermo": yes()}}, "Alquiler en Palermo")
 	if first.Intent != "new_search" {
 		t.Fatalf("a first message starts a search, got %q", first.Intent)
+	}
+}
+
+// Spec 006, error 3: Jev asks whether the searcher has each catalog value
+// their words mention, pets included.
+func TestJevDeclaresAPetTheSearcherHas(t *testing.T) {
+	f := &fakeJev{answers: map[string]jev.Answer{"intent": pick("new_search"), "hood_palermo": yes(), "has_pets_dog": yes()}}
+	p := planOf(t, f, "Busco en Palermo, tengo un perro")
+	if !slices.Equal(p.Qualification["pets"], []string{"dog"}) {
+		t.Fatalf("got %+v", p.Qualification)
+	}
+	if _, asked := f.questions["has_pets_cat"]; asked {
+		t.Fatal("a cat nobody mentioned must not be asked about")
 	}
 }

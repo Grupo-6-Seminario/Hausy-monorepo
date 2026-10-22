@@ -20,6 +20,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/bedrock"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/clarification"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
@@ -139,15 +140,16 @@ func detector(mode string) func(string) ([]string, string) {
 		client = local.NewClient(envOr("LOCAL_LLM_URL", "http://127.0.0.1:8000"), os.Getenv("LOCAL_LLM_TOKEN"), model)
 	}
 	proposer := clarification.Model{Client: client}
+	catalog := readCatalog()
 	return func(text string) ([]string, string) {
-		questions, err := proposer.Propose(ctx, []string{text}, intake.Plan{}, "", nil)
+		questions, err := proposer.Propose(ctx, []string{text}, intake.Plan{}, "", nil, catalog)
 		if err != nil {
 			return nil, "error: " + err.Error()
 		}
 		var found, reasons []string
 		invalid := 0
 		for _, q := range questions {
-			if err := clarification.Validate(q, []string{text}); err != nil {
+			if err := clarification.Validate(q, []string{text}, catalog); err != nil {
 				invalid++
 				reasons = append(reasons, err.Error())
 				continue
@@ -241,4 +243,20 @@ type silentWriter struct{}
 
 func (silentWriter) Write(context.Context, buyer.Packet, func(string)) (string, error) {
 	return "", nil
+}
+
+// readCatalog reads the qualification catalog the app serves, so the spike
+// declares against the same facts and choices.
+func readCatalog() eligibility.Catalog {
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, envOr("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"))
+	if err != nil {
+		fail(err)
+	}
+	defer store.Close()
+	catalog, err := store.Facts(ctx)
+	if err != nil {
+		fail(err)
+	}
+	return catalog
 }

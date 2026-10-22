@@ -123,3 +123,20 @@ func TestLoadEligibility_DerivesThePetsRuleFromAStatedRefusal(t *testing.T) {
 		}
 	}
 }
+
+// Spec 006, error 2: an income rule whose words name expensas is loaded as a
+// multiple over rent plus expensas; a rent-only one loads as it was.
+func TestLoadEligibility_ReadsWhetherAnIncomeRuleCoversExpensas(t *testing.T) {
+	input := `{"url":"expensas","rules":[{"fact":"income_band","operator":"income_multiple","values":["3"],"hardness":"hard","evidence":"recibos de sueldo que tripliquen el valor del alquiler y expensas"}]}
+{"url":"rent","rules":[{"fact":"income_band","operator":"income_multiple","values":["3"],"hardness":"hard","evidence":"Ingresos que tripliquen el valor del alquiler mensual."}]}`
+	sink := &fakeEligibilitySink{saved: map[string][]eligibility.Rule{}, listings: map[string]listing.Listing{"expensas": {}, "rent": {}}}
+	if _, err := pipeline.LoadEligibility(context.Background(), strings.NewReader(input), sink); err != nil {
+		t.Fatal(err)
+	}
+	if got := sink.saved["expensas"][0].Operator; got != "income_multiple_with_expenses" {
+		t.Errorf("rule naming expensas: got %s", got)
+	}
+	if got := sink.saved["rent"][0].Operator; got != "income_multiple" {
+		t.Errorf("rent-only rule: got %s", got)
+	}
+}

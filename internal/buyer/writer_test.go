@@ -135,3 +135,33 @@ func TestTemplateSaysAPublishedRequirementIsPublished(t *testing.T) {
 		}
 	}
 }
+
+// labelledStock is fourStates with the catalog's guarantee labels.
+type labelledStock struct{ stock }
+
+func (labelledStock) Facts(context.Context) (eligibility.Catalog, error) {
+	return eligibility.Catalog{"guarantee": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{
+		{Value: "propietaria", Label: "Garantía propietaria"},
+		{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"},
+	}}}, nil
+}
+
+// Spec 006, error 4: the zero-results line names the instrument as the
+// catalog does, in the template and in what the model is given.
+func TestTheZeroResultsLineNamesTheInstrumentFromTheCatalog(t *testing.T) {
+	slips := []eligibility.Rule{{Fact: "guarantee", Operator: "one_of", Values: []string{"recibos_garante"}, Hardness: "hard"}}
+	inventory := labelledStock{stock{byHood: map[string][]eligibility.Candidate{"palermo": {candidate("slips", "palermo", 700000, slips)}}}}
+	q := eligibility.Qualification{"guarantee": {"propietaria"}}
+
+	template := turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{}), "Alquiler en Palermo", q)
+	if !strings.Contains(template.Reply, "Si conseguís recibos de sueldo de un garante, vuelven 1 propiedades.") {
+		t.Errorf("template reply:\n%s", template.Reply)
+	}
+
+	model := &recordingLLM{}
+	turn(t, buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, buyer.LocalWriter{Client: model}), "Alquiler en Palermo", q)
+	packet := model.last.Messages[len(model.last.Messages)-1].Content
+	if !strings.Contains(packet, "Recibos de sueldo de un garante") {
+		t.Errorf("the model's packet must carry the label, got:\n%s", packet)
+	}
+}

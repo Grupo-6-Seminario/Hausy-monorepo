@@ -132,6 +132,23 @@ func TestFactsCarryTheFormCatalog(t *testing.T) {
 	}
 }
 
+// Spec 006, error 5: a rule with no values would hide the listing from every
+// searcher, so saving it fails and the error names the listing.
+func TestARuleWithNoValuesIsRefusedNamingTheListing(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	url := "https://ex.test/empty-rule"
+	if err := store.Save(ctx, listing.Listing{Source: "zonaprop", URL: url, Neighborhood: "palermo", Description: "Departamento.", Operation: "alquiler",
+		Price: listing.Money{Amount: float64Ptr(800000), Currency: "ARS"}, ScrapedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatal(err)
+	}
+	empty := eligibility.Rule{Fact: "pets", Operator: "subset_of", Hardness: "hard"}
+	err := store.SaveEligibility(ctx, url, []eligibility.Rule{empty})
+	if err == nil || !strings.Contains(err.Error(), url) || !strings.Contains(err.Error(), "admits no values") {
+		t.Fatalf("want the save refused naming %s, got %v", url, err)
+	}
+}
+
 // A rule nobody can evaluate is corrupt data. Saving it is refused, so a bad
 // eligibility file cannot break later searches; a row that still arrives by
 // other means fails loudly on read instead of reaching the evaluator.
@@ -213,7 +230,9 @@ func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
 		count  int
 		digest string
 	}{
-		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "c131194746704b6d1bbdaf43acc732de0f7d0560dcd1efdf817609b77c2355b9"},
+		// Re-captured for spec 006: listing 59530580 gains its "sin mascota" rule (error 1)
+		// and 59966540's income rule covers expensas (error 2).
+		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "29f77e46c027c5501168025e761e37255d9fed2a91c0076d7d025668d825f088"},
 		{"palermo and congreso up to 900k", func() ([]eligibility.Candidate, error) {
 			return store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice})
 		}, 92, "1eb78918ca32486b95fcb79e16631aaaee29d5f011e3e4c1bf8159cbaef7a816"},
@@ -238,6 +257,30 @@ func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
 		digest := hex.EncodeToString(rules.Sum(nil))
 		if len(got) != tc.count || digest != tc.digest {
 			t.Errorf("%s: got %d candidates, rules digest %s; want %d, %s", tc.name, len(got), digest, tc.count, tc.digest)
+		}
+	}
+}
+
+// Spec 006, error 3: every choice the form offers can be declared in the chat
+// too, so a value added to the catalog without a way to say it fails here
+// instead of being silently dropped from every chat.
+func TestEveryCatalogChoiceCanBeDeclaredInTheChat(t *testing.T) {
+	store := openTestStore(t)
+	facts, err := store.Facts(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, fact := range facts {
+		if !fact.Admissible {
+			continue
+		}
+		for _, c := range fact.Choices {
+			declarable := slices.ContainsFunc(eligibility.Declarables, func(d eligibility.Declarable) bool {
+				return d.Fact == name && (d.Value == c.Value || d.Value == "")
+			})
+			if !declarable {
+				t.Errorf("%s=%s has no Declarable", name, c.Value)
+			}
 		}
 	}
 }

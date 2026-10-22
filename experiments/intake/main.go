@@ -16,10 +16,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/jev"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/local"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/store/postgres"
 )
 
 type testCase struct {
@@ -73,6 +75,7 @@ func main() {
 	}
 	// The real wrapper, so turn rules (frozen plan, default rent) apply as in the app.
 	planner := intake.Planner{Primary: source}
+	catalog := readCatalog()
 
 	var results []outcome
 	for _, c := range file.Cases {
@@ -83,7 +86,7 @@ func main() {
 		var plan intake.Plan
 		for i := range c.Turns {
 			start := time.Now()
-			next, err := planner.Plan(context.Background(), c.Turns[:i+1], plan)
+			next, err := planner.Plan(context.Background(), c.Turns[:i+1], plan, catalog)
 			o.TurnMillis = append(o.TurnMillis, time.Since(start).Milliseconds())
 			if err != nil {
 				o.Error = err.Error()
@@ -207,4 +210,20 @@ func envOr(key, fallback string) string {
 func fail(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
+}
+
+// readCatalog reads the qualification catalog the app serves, so the spike
+// declares against the same facts and choices.
+func readCatalog() eligibility.Catalog {
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, envOr("DATABASE_URI", "postgresql://hausy:hausy@localhost:5432/hausy"))
+	if err != nil {
+		fail(err)
+	}
+	defer store.Close()
+	catalog, err := store.Facts(ctx)
+	if err != nil {
+		fail(err)
+	}
+	return catalog
 }

@@ -81,6 +81,10 @@ func (a *DefaultAgent) PendingClarification(sessionID string) *clarification.Que
 
 func (a *DefaultAgent) HandleClarification(ctx context.Context, sessionID string, answer ClarificationAnswer, declared eligibility.Qualification, events Events) (*TurnResponse, error) {
 	started := time.Now()
+	catalog, err := a.pipeline.inventory.Facts(ctx)
+	if err != nil {
+		return nil, err
+	}
 	a.mu.Lock()
 	sess := a.sessions[sessionID]
 	if sess == nil || sess.pending == nil || len(sess.pending.questions) == 0 || sess.pending.questions[0].ID != answer.QuestionID {
@@ -171,7 +175,7 @@ func (a *DefaultAgent) HandleClarification(ctx context.Context, sessionID string
 		}
 	}
 	if len(effects) > 0 {
-		plan, err := clarification.Apply(pending.plan, effects)
+		plan, err := clarification.Apply(pending.plan, effects, catalog)
 		if err != nil {
 			a.mu.Unlock()
 			return retryQuestion(q), nil
@@ -188,7 +192,7 @@ func (a *DefaultAgent) HandleClarification(ctx context.Context, sessionID string
 		next := pending.questions[0]
 		if next.Kind != "unsupported" {
 			a.mu.Unlock()
-			impact, unsupported, checkErr := a.questionImpact(ctx, pending.plan, declared, next)
+			impact, unsupported, checkErr := a.questionImpact(ctx, pending.plan, declared, next, catalog)
 			a.mu.Lock()
 			if sess.pending != pending {
 				a.mu.Unlock()
@@ -242,20 +246,20 @@ func effectTarget(e clarification.Effect) string {
 	return e.Field + "#" + strconv.Itoa(*e.Branch)
 }
 
-func (a *DefaultAgent) prepareClarification(ctx context.Context, sess *session, turns []string, plan intake.Plan, declared eligibility.Qualification, planErr error) (*clarification.Question, bool, error) {
+func (a *DefaultAgent) prepareClarification(ctx context.Context, sess *session, turns []string, plan intake.Plan, declared eligibility.Qualification, planErr error, catalog eligibility.Catalog) (*clarification.Question, bool, error) {
 	started := time.Now()
 	problem := ""
 	if planErr != nil {
 		problem = planErr.Error()
 	}
-	proposals, err := a.pipeline.clarifier.Propose(ctx, turns, plan, problem, mergeQualification(declared, plan.Qualification))
+	proposals, err := a.pipeline.clarifier.Propose(ctx, turns, plan, problem, mergeQualification(declared, plan.Qualification), catalog)
 	if err != nil {
 		proposals = nil
 	}
 	var candidates []clarification.Question
 	asksAmenities := false
 	for _, q := range proposals {
-		if clarification.Validate(q, turns) != nil || q.Kind == "qualification" && (sess.declinedFacts[q.Fact] || len(declared[q.Fact]) > 0) {
+		if clarification.Validate(q, turns, catalog) != nil || q.Kind == "qualification" && (sess.declinedFacts[q.Fact] || len(declared[q.Fact]) > 0) {
 			continue
 		}
 		for _, c := range q.Choices {
@@ -274,7 +278,7 @@ func (a *DefaultAgent) prepareClarification(ctx context.Context, sess *session, 
 			continue
 		}
 		if q.Kind != "unsupported" {
-			impact, unsupported, checkErr := a.questionImpact(ctx, plan, declared, q)
+			impact, unsupported, checkErr := a.questionImpact(ctx, plan, declared, q, catalog)
 			if checkErr != nil {
 				return nil, false, checkErr
 			}
@@ -374,13 +378,13 @@ func knownDroppedRequirement(latest string, plan intake.Plan) string {
 	return ""
 }
 
-func preserveConfirmed(plan intake.Plan, effects []clarification.Effect, latest string) (intake.Plan, []clarification.Effect) {
+func preserveConfirmed(plan intake.Plan, effects []clarification.Effect, latest string, catalog eligibility.Catalog) (intake.Plan, []clarification.Effect) {
 	var keep []clarification.Effect
 	for _, effect := range effects {
 		if explicitlyChanges(latest, effect) {
 			continue
 		}
-		updated, err := clarification.Apply(plan, []clarification.Effect{effect})
+		updated, err := clarification.Apply(plan, []clarification.Effect{effect}, catalog)
 		if err != nil {
 			continue
 		}
@@ -400,12 +404,9 @@ func explicitlyChanges(message string, effect clarification.Effect) bool {
 		return strings.Contains(text, strings.ReplaceAll(value, "_", " ")) || strings.Contains(text, typ) && (strings.Contains(text, "sin ") || strings.Contains(text, "olvidate") || strings.Contains(text, "ya no"))
 	case "currency", "max_price":
 		return strings.ContainsAny(text, "0123456789$") || strings.Contains(text, "peso") || strings.Contains(text, "dólar") || strings.Contains(text, "dolar") || strings.Contains(text, "usd")
-	case "qualification.guarantee":
-		return strings.Contains(text, "garantía") || strings.Contains(text, "garantia") || strings.Contains(text, "caución") || strings.Contains(text, "caucion")
-	case "qualification.income_band":
-		return strings.Contains(text, "ingreso") || strings.Contains(text, "sueldo") || strings.Contains(text, "gano ")
-	case "qualification.caucion_quoted":
-		return strings.Contains(text, "cotiz")
+	}
+	if fact, ok := strings.CutPrefix(effect.Field, "qualification."); ok {
+		return eligibility.Mentions(fact, text)
 	}
 	return false
 }
@@ -421,7 +422,7 @@ func withoutInvalidAttributes(plan intake.Plan) intake.Plan {
 	return plan
 }
 
-func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, declared eligibility.Qualification, q clarification.Question) (bool, bool, error) {
+func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, declared eligibility.Qualification, q clarification.Question, catalog eligibility.Catalog) (bool, bool, error) {
 	base := withoutInvalidAttributes(plan)
 	if len(base.Branches) == 0 {
 		return false, true, nil
@@ -467,10 +468,6 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 			}
 		}
 	}
-	catalog, err := a.pipeline.inventory.Facts(ctx)
-	if err != nil {
-		return false, false, err
-	}
 	baseline, _, _, _, err := preview.rank(ctx, base, mergeQualification(declared, base.Qualification), catalog)
 	if err != nil {
 		return false, false, err
@@ -482,7 +479,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 	var allEffects []clarification.Effect
 	for _, choice := range q.Choices {
 		allEffects = append(allEffects, choice.Effects...)
-		variant, err := clarification.Apply(base, choice.Effects)
+		variant, err := clarification.Apply(base, choice.Effects, catalog)
 		if err != nil {
 			continue
 		}
@@ -506,7 +503,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 		}
 	}
 	if q.Multi && len(allEffects) > 1 {
-		variant, err := clarification.Apply(base, allEffects)
+		variant, err := clarification.Apply(base, allEffects, catalog)
 		if err == nil {
 			shown, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), catalog)
 			if err != nil {

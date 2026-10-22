@@ -60,7 +60,7 @@ func BenchmarkAssess(b *testing.B) {
 	candidates := committedCandidates(b)
 	ineligible := 0
 	for _, c := range candidates {
-		if eligibility.Assess(searcher, c.Listing.Price, c.Rules, catalog).State == eligibility.Ineligible {
+		if eligibility.Assess(searcher, c.Listing, c.Rules, catalog).State == eligibility.Ineligible {
 			ineligible++
 		}
 	}
@@ -69,7 +69,7 @@ func BenchmarkAssess(b *testing.B) {
 	}
 	for b.Loop() {
 		for _, c := range candidates {
-			eligibility.Assess(searcher, c.Listing.Price, c.Rules, catalog)
+			eligibility.Assess(searcher, c.Listing, c.Rules, catalog)
 		}
 	}
 }

@@ -160,7 +160,7 @@ func TestPreferredLightRanksExplicitStatementAboveOrientationHint(t *testing.T) 
 	}
 }
 
-func (f *fakePlanner) Plan(_ context.Context, turns []string, previous intake.Plan) (intake.Plan, error) {
+func (f *fakePlanner) Plan(_ context.Context, turns []string, previous intake.Plan, _ eligibility.Catalog) (intake.Plan, error) {
 	f.turns, f.previous = append(f.turns, turns), append(f.previous, previous)
 	p := f.plans[0]
 	if len(f.plans) > 1 {
@@ -203,8 +203,16 @@ func TestRequiredLightStillShowsStoredProseAsUnconfirmedAlternative(t *testing.T
 	}
 }
 
+// Facts is the catalog's guarantee and income facts, with the labels the
+// zero-results line names (migration 0007).
 func (stock) Facts(context.Context) (eligibility.Catalog, error) {
-	return eligibility.Catalog{"guarantee": {Admissible: true}, "income_band": {Admissible: true}}, nil
+	return eligibility.Catalog{
+		"guarantee": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{
+			{Value: "propietaria", Label: "Garantía propietaria"},
+			{Value: "caucion", Label: "Seguro de caución"},
+		}},
+		"income_band": {Admissible: true},
+	}, nil
 }
 
 type fakeWriter struct{ packets []buyer.Packet }
@@ -273,7 +281,7 @@ func TestResultsAreOrderedByEligibilityWithIneligibleHidden(t *testing.T) {
 	if resp.Listings[1].Eligibility.State != eligibility.ConditionallyEligible || resp.Listings[1].Eligibility.Conditions[0].Rule.Evidence != "ver cuáles permite la propietaria" {
 		t.Fatalf("the condition must be named, got %+v", resp.Listings[1].Eligibility)
 	}
-	if len(resp.Relaxations) != 1 || resp.Relaxations[0] != (eligibility.Relaxation{Fact: "guarantee", Value: "caucion", Count: 1}) {
+	if len(resp.Relaxations) != 1 || resp.Relaxations[0] != (eligibility.Relaxation{Fact: "guarantee", Value: "caucion", Label: "Seguro de caución", Count: 1}) {
 		t.Fatalf("want 'si conseguís caución, vuelve 1', got %+v", resp.Relaxations)
 	}
 	// The reply learns how many were hidden, so it can say so.

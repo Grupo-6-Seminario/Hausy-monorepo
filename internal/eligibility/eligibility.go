@@ -33,6 +33,8 @@ const (
 	OneOf          Operator = "one_of"
 	SubsetOf       Operator = "subset_of"
 	IncomeMultiple Operator = "income_multiple"
+	// IncomeMultipleWithExpenses applies the multiple to rent plus expensas.
+	IncomeMultipleWithExpenses Operator = "income_multiple_with_expenses"
 )
 
 // Hardness says whether a rule is final or the owner decides case by case.
@@ -123,6 +125,22 @@ func ValidateQualification(c Catalog, q Qualification) error {
 	return nil
 }
 
+// Offers reports whether the catalog lists value among the choices of fact.
+func (c Catalog) Offers(fact, value string) bool {
+	return slices.ContainsFunc(c[fact].Choices, func(choice Choice) bool { return choice.Value == value })
+}
+
+// ChoiceLabel is the label the catalog gives value of fact, or "" when the
+// catalog does not offer it.
+func (c Catalog) ChoiceLabel(fact, value string) string {
+	for _, choice := range c[fact].Choices {
+		if choice.Value == value {
+			return choice.Label
+		}
+	}
+	return ""
+}
+
 // Admissible reports whether rules and qualifications may reference fact.
 func (c Catalog) Admissible(fact string) bool { return c[fact].Admissible }
 
@@ -161,41 +179,66 @@ var (
 // inferred attribute is the parser's reading, not the listing's, and derives
 // nothing; so does evidence that never names an animal, since the committed
 // parse holds two refusals that quote accessibility notes instead.
-func PublishedRules(attributes []listing.Attribute, catalog Catalog) []Rule {
+//
+// The parser can also leave pets_allowed unset on a listing whose description
+// refuses pets ("sin mascota"). Without a stated attribute that names an
+// animal, an explicit refusal in the description is read as one, and the
+// refusing clause is the evidence.
+func PublishedRules(item listing.Listing, catalog Catalog) []Rule {
+	var stated []listing.Attribute
+	for _, a := range item.Attributes {
+		if a.Type == "pets_allowed" && a.Provenance == listing.Stated && namesAnimal.MatchString(a.Evidence) {
+			stated = append(stated, a)
+		}
+	}
+	if len(stated) == 0 {
+		if clause := refusesPets.FindString(item.Description); clause != "" {
+			stated = []listing.Attribute{{Type: "pets_allowed", Value: "no", Provenance: listing.Stated, Evidence: strings.TrimSpace(clause)}}
+		}
+	}
 	var rules []Rule
-	for _, a := range attributes {
-		if a.Type != "pets_allowed" || a.Provenance != listing.Stated || !namesAnimal.MatchString(a.Evidence) {
-			continue
+	for _, a := range stated {
+		if r, ok := petsRule(a, catalog); ok {
+			rules = append(rules, r)
 		}
-		dog, cat := namesDog.MatchString(a.Evidence), namesCat.MatchString(a.Evidence)
-		hardness := Hard
-		if ownerDecides.MatchString(a.Evidence) {
-			hardness = Discretionary
-		}
-		only := onlyAnimals.FindString(a.Evidence)
-		onlyDog, onlyCat := namesDog.MatchString(only), namesCat.MatchString(only)
-		var admits func(choice string) bool
-		switch {
-		case onlyDog || onlyCat:
-			admits = func(c string) bool { return c == "none" || c == "dog" && onlyDog || c == "cat" && onlyCat }
-		case hardness == Discretionary:
-			admits = func(c string) bool { return c == "none" }
-		case a.Value != "no":
-			continue
-		case dog || cat:
-			admits = func(c string) bool { return !(c == "dog" && dog || c == "cat" && cat) }
-		default:
-			admits = func(c string) bool { return c == "none" }
-		}
-		var admitted []string
-		for _, choice := range catalog["pets"].Choices {
-			if admits(choice.Value) {
-				admitted = append(admitted, choice.Value)
-			}
-		}
-		rules = append(rules, Rule{Fact: "pets", Operator: SubsetOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence})
 	}
 	return rules
+}
+
+// refusesPets is an explicit refusal in a description, up to the end of its
+// clause so a size limit or "sólo gatos" after it still counts: "sin
+// mascota", "no se aceptan gatos", "no apto mascotas grandes".
+var refusesPets = regexp.MustCompile(`(?i)\b(?:sin|no\s+(?:se\s+)?(?:aceptan?|permiten?|admiten?)|no\s+(?:es\s+)?apt[oa]\s+(?:para\s+)?|prohibid[oa]s?\s+(?:las\s+|los\s+)?)\s*` + animal + `[^.;:\n]*`)
+
+// petsRule reads one stated pets_allowed attribute into its rule.
+func petsRule(a listing.Attribute, catalog Catalog) (Rule, bool) {
+	dog, cat := namesDog.MatchString(a.Evidence), namesCat.MatchString(a.Evidence)
+	hardness := Hard
+	if ownerDecides.MatchString(a.Evidence) {
+		hardness = Discretionary
+	}
+	only := onlyAnimals.FindString(a.Evidence)
+	onlyDog, onlyCat := namesDog.MatchString(only), namesCat.MatchString(only)
+	var admits func(choice string) bool
+	switch {
+	case onlyDog || onlyCat:
+		admits = func(c string) bool { return c == "none" || c == "dog" && onlyDog || c == "cat" && onlyCat }
+	case hardness == Discretionary:
+		admits = func(c string) bool { return c == "none" }
+	case a.Value != "no":
+		return Rule{}, false
+	case dog || cat:
+		admits = func(c string) bool { return !(c == "dog" && dog || c == "cat" && cat) }
+	default:
+		admits = func(c string) bool { return c == "none" }
+	}
+	var admitted []string
+	for _, choice := range catalog["pets"].Choices {
+		if admits(choice.Value) {
+			admitted = append(admitted, choice.Value)
+		}
+	}
+	return Rule{Fact: "pets", Operator: SubsetOf, Values: admitted, Hardness: hardness, Visibility: "public", Source: "parsed", Evidence: a.Evidence}, true
 }
 
 // Validate rejects a rule the evaluator cannot read: an operator missing from
@@ -206,6 +249,11 @@ func (r Rule) Validate() error {
 	}
 	if r.Hardness != Hard && r.Hardness != Discretionary {
 		return fmt.Errorf("unknown eligibility hardness %q", r.Hardness)
+	}
+	// An empty list admits nobody, so the listing would be hidden from every
+	// searcher.
+	if (r.Operator == OneOf || r.Operator == SubsetOf) && len(r.Values) == 0 {
+		return fmt.Errorf("eligibility rule on %q admits no values", r.Fact)
 	}
 	return nil
 }
@@ -231,7 +279,7 @@ type Verdict struct {
 // admissible are ignored. Precedence: a failed hard rule makes the property
 // ineligible; otherwise a missing fact makes it unknown; with no published
 // rules it is unknown too, because nothing says the searcher clears anything.
-func Assess(q Qualification, rent listing.Money, rules []Rule, catalog Catalog) Verdict {
+func Assess(q Qualification, item listing.Listing, rules []Rule, catalog Catalog) Verdict {
 	v := Verdict{State: Unknown}
 	met := false
 	for _, r := range rules {
@@ -239,7 +287,7 @@ func Assess(q Qualification, rent listing.Money, rules []Rule, catalog Catalog) 
 			v.Ignored = append(v.Ignored, r)
 			continue
 		}
-		reason := outcome(q, rent, r)
+		reason := outcome(q, item, r)
 		switch reason {
 		case Met:
 			met = true
@@ -266,7 +314,7 @@ func Assess(q Qualification, rent listing.Money, rules []Rule, catalog Catalog) 
 // evaluator does not know. A new operator is a new case here. A switch, not a
 // map: matching constant strings skips hashing on every rule, and a map
 // measured 6% slower on BenchmarkAssess.
-func comparison(op Operator) func(declared []string, rent listing.Money, r Rule) Reason {
+func comparison(op Operator) func(declared []string, item listing.Listing, r Rule) Reason {
 	switch op {
 	case OneOf:
 		return oneOf
@@ -274,11 +322,13 @@ func comparison(op Operator) func(declared []string, rent listing.Money, r Rule)
 		return subsetOf
 	case IncomeMultiple:
 		return incomeMultiple
+	case IncomeMultipleWithExpenses:
+		return incomeMultipleWithExpenses
 	}
 	return nil
 }
 
-func outcome(q Qualification, rent listing.Money, r Rule) Reason {
+func outcome(q Qualification, item listing.Listing, r Rule) Reason {
 	compare := comparison(r.Operator)
 	// Unverifiable even when discretionary or undeclared: neither the owner's
 	// discretion nor the searcher's answer makes a rule nobody can read.
@@ -289,7 +339,7 @@ func outcome(q Qualification, rent listing.Money, r Rule) Reason {
 	if len(declared) == 0 {
 		return Missing
 	}
-	reason := compare(declared, rent, r)
+	reason := compare(declared, item, r)
 	// The owner decides a discretionary rule case by case, so neither
 	// clearing nor failing it is final. A comparison nobody can make stays
 	// unverifiable: discretion cannot vouch for it. A searcher who declared
@@ -301,7 +351,7 @@ func outcome(q Qualification, rent listing.Money, r Rule) Reason {
 	return reason
 }
 
-func oneOf(declared []string, _ listing.Money, r Rule) Reason {
+func oneOf(declared []string, _ listing.Listing, r Rule) Reason {
 	if slices.ContainsFunc(declared, func(v string) bool { return slices.Contains(r.Values, v) }) {
 		return Met
 	}
@@ -310,7 +360,7 @@ func oneOf(declared []string, _ listing.Money, r Rule) Reason {
 
 // subsetOf needs every declared value admitted: a dog owner who also has a
 // cat fails "gatos no".
-func subsetOf(declared []string, _ listing.Money, r Rule) Reason {
+func subsetOf(declared []string, _ listing.Listing, r Rule) Reason {
 	for _, v := range declared {
 		if !slices.Contains(r.Values, v) {
 			return NotMet
@@ -322,15 +372,29 @@ func subsetOf(declared []string, _ listing.Money, r Rule) Reason {
 // incomeMultiple compares a declared band "min-max" (monthly ARS; "min-" is
 // open-ended) with multiple × rent. A band straddling the threshold is the
 // "near the line" case of idea.md §4.
-func incomeMultiple(declared []string, rent listing.Money, r Rule) Reason {
+func incomeMultiple(declared []string, item listing.Listing, r Rule) Reason {
+	return incomeAgainst(declared, r, item.Price)
+}
+
+// incomeMultipleWithExpenses is incomeMultiple over rent plus expensas. A
+// listing that publishes no expensas, or not in pesos, cannot be checked.
+func incomeMultipleWithExpenses(declared []string, item listing.Listing, r Rule) Reason {
+	if item.Expenses.Amount == nil || item.Expenses.Currency != "ARS" || item.Price.Amount == nil {
+		return Unverifiable
+	}
+	total := *item.Price.Amount + *item.Expenses.Amount
+	return incomeAgainst(declared, r, listing.Money{Amount: &total, Currency: item.Price.Currency})
+}
+
+func incomeAgainst(declared []string, r Rule, base listing.Money) Reason {
 	multiple, err := strconv.ParseFloat(firstOr(r.Values, ""), 64)
 	lo, hi, ok := strings.Cut(declared[0], "-")
 	min, errMin := strconv.ParseFloat(lo, 64)
 	// Income bands are pesos; a rent in another currency has no rate to compare.
-	if err != nil || !ok || errMin != nil || rent.Amount == nil || rent.Currency != "ARS" {
+	if err != nil || !ok || errMin != nil || base.Amount == nil || base.Currency != "ARS" {
 		return Unverifiable
 	}
-	threshold := multiple * *rent.Amount
+	threshold := multiple * *base.Amount
 	if min >= threshold {
 		return Met
 	}
@@ -362,6 +426,9 @@ type Candidate struct {
 type Relaxation struct {
 	Fact  string `json:"fact"`
 	Value string `json:"value"`
+	// Label is the catalog's name for Value, so every reader of the line
+	// names the instrument the same way.
+	Label string `json:"label,omitempty"`
 	Count int    `json:"count"`
 }
 
@@ -372,7 +439,7 @@ type Relaxation struct {
 func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Relaxation {
 	counts := map[[2]string]int{}
 	for _, c := range candidates {
-		if Assess(q, c.Listing.Price, c.Rules, catalog).State != Ineligible {
+		if Assess(q, c.Listing, c.Rules, catalog).State != Ineligible {
 			continue
 		}
 		tried := map[[2]string]bool{}
@@ -391,7 +458,7 @@ func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Rel
 					relaxed[k] = v
 				}
 				relaxed[r.Fact] = append(slices.Clone(q[r.Fact]), value)
-				if Assess(relaxed, c.Listing.Price, c.Rules, catalog).State != Ineligible {
+				if Assess(relaxed, c.Listing, c.Rules, catalog).State != Ineligible {
 					counts[key]++
 				}
 			}
@@ -399,7 +466,7 @@ func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Rel
 	}
 	out := make([]Relaxation, 0, len(counts))
 	for key, n := range counts {
-		out = append(out, Relaxation{Fact: key[0], Value: key[1], Count: n})
+		out = append(out, Relaxation{Fact: key[0], Value: key[1], Label: catalog.ChoiceLabel(key[0], key[1]), Count: n})
 	}
 	slices.SortFunc(out, func(a, b Relaxation) int {
 		if a.Count != b.Count {
@@ -408,4 +475,20 @@ func Relaxations(q Qualification, candidates []Candidate, catalog Catalog) []Rel
 		return strings.Compare(a.Fact+a.Value, b.Fact+b.Value)
 	})
 	return out
+}
+
+// namesExpensas is an income requirement that counts expensas with the rent:
+// "tripliquen el valor del alquiler y expensas".
+var namesExpensas = regexp.MustCompile(`(?i)\bexpensas\b`)
+
+// IncomeBase reads, from each income rule's own words, whether its multiple
+// covers rent plus expensas, wherever rules are built: at load for the
+// committed rules and in Extract for new ones.
+func IncomeBase(rules []Rule) []Rule {
+	for i, r := range rules {
+		if r.Operator == IncomeMultiple && namesExpensas.MatchString(r.Evidence) {
+			rules[i].Operator = IncomeMultipleWithExpenses
+		}
+	}
+	return rules
 }

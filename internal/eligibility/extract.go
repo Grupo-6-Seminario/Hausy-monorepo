@@ -118,5 +118,5 @@ func Extract(ctx context.Context, evaluate jev.Evaluator, description string) ([
 	if multiple != "" && answers["income_multiple"].Probability > 0.5 {
 		rules = append(rules, Rule{Fact: "income_band", Operator: IncomeMultiple, Values: []string{multiple}, Hardness: Hard, Visibility: "public", Source: "parsed", Evidence: incomeEvidence})
 	}
-	return rules, nil
+	return IncomeBase(rules), nil
 }

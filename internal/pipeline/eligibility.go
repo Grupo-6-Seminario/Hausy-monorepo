@@ -93,7 +93,7 @@ func LoadEligibility(ctx context.Context, input io.Reader, sink EligibilitySink)
 			report.fail(fmt.Errorf("%s: %w", record.URL, err))
 			continue
 		}
-		rules := append(record.Rules, eligibility.PublishedRules(item.Attributes, catalog)...)
+		rules := append(eligibility.IncomeBase(record.Rules), eligibility.PublishedRules(item, catalog)...)
 		if err := sink.SaveEligibility(ctx, record.URL, rules); err != nil {
 			report.fail(err)
 			continue

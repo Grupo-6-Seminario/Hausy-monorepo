@@ -2,9 +2,12 @@ package intake_test
 
 import (
 	"context"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/search"
@@ -22,7 +25,7 @@ func (f *fakeLLM) Chat(_ context.Context, req llm.ChatRequest) (*llm.ChatRespons
 
 func TestQwenFillsThePlanInOneCall(t *testing.T) {
 	f := &fakeLLM{reply: "```json\n" + `{"intent":"refine","sort":"price_asc","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","currency":"ARS","max_price":950000,"preferred_attributes":[{"type":"natural_light","value":"high"}]}],"qualification":{"guarantee":["caucion"]}}` + "\n```"}
-	p, err := intake.Qwen{Client: f}.Plan(context.Background(), []string{"Alquiler en Palermo hasta 800 mil", "mejor hasta 950 mil, con buena luz. Tengo caución"})
+	p, err := intake.Qwen{Client: f}.Plan(context.Background(), []string{"Alquiler en Palermo hasta 800 mil", "mejor hasta 950 mil, con buena luz. Tengo caución"}, testCatalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +39,7 @@ func TestQwenFillsThePlanInOneCall(t *testing.T) {
 }
 
 func TestQwenRejectsAReplyThatIsNotAPlan(t *testing.T) {
-	if _, err := (intake.Qwen{Client: &fakeLLM{reply: "Claro, busco en Palermo."}}).Plan(context.Background(), []string{"Palermo"}); err == nil {
+	if _, err := (intake.Qwen{Client: &fakeLLM{reply: "Claro, busco en Palermo."}}).Plan(context.Background(), []string{"Palermo"}, testCatalog); err == nil {
 		t.Fatal("prose must not pass as a plan")
 	}
 }
@@ -45,7 +48,7 @@ func TestQwenRejectsAReplyThatIsNotAPlan(t *testing.T) {
 // the prompt's JSON shape, zeros included, and writes amenities as types.
 func TestQwenTreatsZerosAsUnmentionedAndRepairsAmenityShorthand(t *testing.T) {
 	f := &fakeLLM{reply: `{"intent":"new_search","branches":[{"neighborhoods":["monserrat"],"operation":"alquiler","currency":"ARS","min_price":0,"max_price":700000,"max_expenses_ars":0,"min_rooms":2,"max_rooms":0,"min_bedrooms":0,"min_bathrooms":0,"min_total_area_m2":0,"required_attributes":[{"type":"cochera","value":""},{"type":"","value":""}],"excluded_attributes":[{"type":"amenity","value":"pileta"}]}]}`}
-	p, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"2 ambientes en Monserrat hasta 700 mil, con cochera, sin pileta"}, intake.Plan{})
+	p, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"2 ambientes en Monserrat hasta 700 mil, con cochera, sin pileta"}, intake.Plan{}, testCatalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +65,7 @@ func TestQwenTreatsZerosAsUnmentionedAndRepairsAmenityShorthand(t *testing.T) {
 // not a value, and the whole turn failed with a 502.
 func TestQwenDropsAnAttributeValueOutsideTheVocabulary(t *testing.T) {
 	f := &fakeLLM{reply: `{"intent":"refine","sort":"relevance","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","currency":"ARS","max_price":800000,"min_rooms":2,"required_attributes":[],"preferred_attributes":[{"type":"amenity","value":"any"}],"excluded_attributes":[{"type":"amenity","value":"any"}]}],"qualification":{"guarantee":[],"income_band":[]}}`}
-	p, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k", "sin amenities"}, intake.Plan{})
+	p, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k", "sin amenities"}, intake.Plan{}, testCatalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +82,7 @@ func TestQwenDropsAnAttributeValueOutsideTheVocabulary(t *testing.T) {
 // widen the search behind the user's back, so it must reach the caller.
 func TestQwenNeverDropsARequirementItCannotRead(t *testing.T) {
 	f := &fakeLLM{reply: `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","currency":"ARS","max_price":800000,"min_rooms":2,"required_attributes":[{"type":"amenity","value":"any"}]}]}`}
-	if p, err := (intake.Planner{Primary: intake.Qwen{Client: f}}).Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k"}, intake.Plan{}); err == nil {
+	if p, err := (intake.Planner{Primary: intake.Qwen{Client: f}}).Plan(context.Background(), []string{"dos ambientes en palermo, con amenities, hasta 800k"}, intake.Plan{}, testCatalog); err == nil {
 		t.Fatalf("a required amenity=any must not be dropped silently, got %+v", p)
 	}
 }
@@ -88,11 +91,11 @@ func TestQwenNeverDropsARequirementItCannotRead(t *testing.T) {
 // mentioned income. A declared fact changes eligibility, so it must be said.
 func TestQwenKeepsOnlyQualificationTheUserActuallyMentioned(t *testing.T) {
 	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"income_band":["0-1000000"],"guarantee":["propietaria"]}}`
-	silent, err := intake.Qwen{Client: &fakeLLM{reply: reply}}.Plan(context.Background(), []string{"Busco alquilar en Palermo hasta 800 mil pesos"})
+	silent, err := intake.Qwen{Client: &fakeLLM{reply: reply}}.Plan(context.Background(), []string{"Busco alquilar en Palermo hasta 800 mil pesos"}, testCatalog)
 	if err != nil || len(silent.Qualification) != 0 {
 		t.Fatalf("nothing was declared, got %v, %v", silent.Qualification, err)
 	}
-	said, _ := intake.Qwen{Client: &fakeLLM{reply: reply}}.Plan(context.Background(), []string{"Palermo. Tengo garantía propietaria y gano 900 mil"})
+	said, _ := intake.Qwen{Client: &fakeLLM{reply: reply}}.Plan(context.Background(), []string{"Palermo. Tengo garantía propietaria y gano 900 mil"}, testCatalog)
 	if len(said.Qualification["income_band"]) != 1 || len(said.Qualification["guarantee"]) != 1 {
 		t.Fatalf("declared facts must survive, got %v", said.Qualification)
 	}
@@ -102,7 +105,7 @@ func TestQwenKeepsOnlyQualificationTheUserActuallyMentioned(t *testing.T) {
 // the typed plan expects a list. The value is still explicit in the user's text.
 func TestQwenAcceptsASingleDeclaredIncomeBandString(t *testing.T) {
 	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"income_band":"1000000-2000000"}}`
-	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco en Palermo. Mis ingresos son entre 1 y 2 millones"})
+	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco en Palermo. Mis ingresos son entre 1 y 2 millones"}, testCatalog)
 	if err != nil || len(plan.Qualification["income_band"]) != 1 || plan.Qualification["income_band"][0] != "1000000-2000000" {
 		t.Fatalf("a declared single income band should remain usable: %+v %v", plan, err)
 	}
@@ -110,7 +113,7 @@ func TestQwenAcceptsASingleDeclaredIncomeBandString(t *testing.T) {
 
 func TestQwenDoesNotInferAnIncomeBandFromAQualitativeStatement(t *testing.T) {
 	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"income_band":["3000000-"]}}`
-	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco hasta 800 mil pesos en Palermo. Tengo ingresos estables"})
+	plan, err := (intake.Qwen{Client: &fakeLLM{reply: reply}}).Plan(context.Background(), []string{"Busco hasta 800 mil pesos en Palermo. Tengo ingresos estables"}, testCatalog)
 	if err != nil || len(plan.Qualification["income_band"]) != 0 {
 		t.Fatalf("the rent amount cannot become a declared income band: %+v %v", plan, err)
 	}
@@ -120,8 +123,57 @@ func TestQwenDoesNotInferAnIncomeBandFromAQualitativeStatement(t *testing.T) {
 // came back as a required listing attribute, which failed the whole plan.
 func TestQwenStatedGuaranteeIsQualificationNotAListingFilter(t *testing.T) {
 	reply := `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler","required_attributes":[{"type":"guarantee","value":"propietaria"}]}]}`
-	plan, err := intake.Planner{Primary: intake.Qwen{Client: &fakeLLM{reply: reply}}}.Plan(context.Background(), []string{"Busco alquilar en Palermo. Tengo garantía propietaria"}, intake.Plan{})
+	plan, err := intake.Planner{Primary: intake.Qwen{Client: &fakeLLM{reply: reply}}}.Plan(context.Background(), []string{"Busco alquilar en Palermo. Tengo garantía propietaria"}, intake.Plan{}, testCatalog)
 	if err != nil || len(plan.Branches[0].RequiredAttributes) != 0 || len(plan.Qualification["guarantee"]) != 1 || plan.Qualification["guarantee"][0] != "propietaria" {
 		t.Fatalf("a clear search with a stated guarantee must plan: %+v %v", plan, err)
+	}
+}
+
+// Spec 006, error 3: the model is offered exactly the catalog's values, and a
+// contradictory declaration ("no pets" and "a dog") is not kept.
+func TestQwenDeclaresAgainstTheCatalog(t *testing.T) {
+	f := &fakeLLM{reply: `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"pets":["none","dog"],"guarantee":["none"]}}`}
+	plan, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"Palermo. No tengo mascotas, tengo un perro. No tengo garantía"}, intake.Plan{}, testCatalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	system := f.last.Messages[0].Content
+	for _, want := range []string{`"pets": ["none|dog|cat|other"]`, `"guarantee": ["propietaria|caucion|recibos_garante|none"]`} {
+		if !strings.Contains(system, want) {
+			t.Errorf("the prompt must offer %s", want)
+		}
+	}
+	if _, ok := plan.Qualification["pets"]; ok || !slices.Equal(plan.Qualification["guarantee"], []string{"none"}) {
+		t.Errorf("want only guarantee none, got %v", plan.Qualification)
+	}
+	// A value the catalog no longer offers is dropped on its own; the offered
+	// one stays.
+	narrow := eligibility.Catalog{"guarantee": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{{Value: "caucion", Label: "Seguro de caución"}}}}
+	f.reply = `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":{"guarantee":["caucion","recibos_garante"]}}`
+	plan, err = intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{"Palermo. Tengo seguro de caución y garantía con recibo de sueldo"}, intake.Plan{}, narrow)
+	if err != nil || !slices.Equal(plan.Qualification["guarantee"], []string{"caucion"}) {
+		t.Errorf("want guarantee caucion, got %v, %v", plan.Qualification, err)
+	}
+}
+
+// "None" is often said once for several facts, and a guarantor's pay slips
+// are not the searcher documenting their own income.
+func TestQwenKeepsWhatThePhrasingSaysAndNothingMore(t *testing.T) {
+	for _, tc := range []struct {
+		message, reply string
+		want           eligibility.Qualification
+	}{
+		{"Palermo. No tengo garantía ni mascotas", `{"guarantee":["none"],"pets":["none"]}`,
+			eligibility.Qualification{"guarantee": {"none"}, "pets": {"none"}}},
+		{"Palermo. No cuento con garantía", `{"guarantee":["none"]}`,
+			eligibility.Qualification{"guarantee": {"none"}}},
+		{"Palermo. Tengo garante con recibo de sueldo", `{"guarantee":["recibos_garante"],"income_documented":["yes"]}`,
+			eligibility.Qualification{"guarantee": {"recibos_garante"}}},
+	} {
+		f := &fakeLLM{reply: `{"intent":"new_search","branches":[{"neighborhoods":["palermo"]}],"qualification":` + tc.reply + `}`}
+		plan, err := intake.Planner{Primary: intake.Qwen{Client: f}}.Plan(context.Background(), []string{tc.message}, intake.Plan{}, testCatalog)
+		if err != nil || !reflect.DeepEqual(plan.Qualification, tc.want) {
+			t.Errorf("%q: got %v, %v; want %v", tc.message, plan.Qualification, err, tc.want)
+		}
 	}
 }

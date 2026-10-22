@@ -75,7 +75,7 @@ type item struct {
 	apply    func(q *search.Query, a jev.Answer)
 }
 
-func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
+func (j Jev) Plan(ctx context.Context, turns []string, catalog eligibility.Catalog) (Plan, error) {
 	var conv []map[string]any
 	for i, t := range turns {
 		conv = append(conv, map[string]any{"turn": i + 1, "user": t})
@@ -108,11 +108,13 @@ func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
 		qs["spot_"+s.typ+"_"+s.value] = strengthQuestion(s.value, s.typ)
 	}
 	text := strings.Join(turns, "\n")
-	var instruments []string
-	for _, in := range eligibility.Instruments {
-		if in.Pattern.MatchString(text) {
-			instruments = append(instruments, in.Name)
-			qs["has_"+in.Name] = boolean("Does the user say they HAVE this rental guarantee: " + in.Description + "? False if they only ask about it or want listings that accept it.")
+	// One question per catalog value the searcher's words mention: whether
+	// they say they have it, not that they want listings that accept it.
+	var declarable []eligibility.Declarable
+	for _, d := range eligibility.Declarables {
+		if d.Value != "" && catalog.Admissible(d.Fact) && catalog.Offers(d.Fact, d.Value) && d.Says(text) {
+			declarable = append(declarable, d)
+			qs["has_"+d.Fact+"_"+d.Value] = boolean("Does the user say they HAVE " + d.Description + " (" + d.Fact + ")? False if they only ask about it or want listings that accept it.")
 		}
 	}
 
@@ -129,9 +131,9 @@ func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
 	if _, ok := sorts[plan.Sort]; !ok {
 		plan.Sort = "relevance"
 	}
-	for _, name := range instruments {
-		if a["has_"+name].Probability > 0.5 {
-			plan.Qualification["guarantee"] = append(plan.Qualification["guarantee"], name)
+	for _, d := range declarable {
+		if a["has_"+d.Fact+"_"+d.Value].Probability > 0.5 {
+			plan.Qualification[d.Fact] = append(plan.Qualification[d.Fact], d.Value)
 		}
 	}
 	var included []string
@@ -162,7 +164,9 @@ func (j Jev) Plan(ctx context.Context, turns []string) (Plan, error) {
 	for i, m := range numbers {
 		role := a[fmt.Sprintf("num_%d", i)].Choice
 		if role == "monthly_income" {
-			plan.Qualification["income_band"] = []string{incomeBand(m.Value)}
+			if band := incomeBand(catalog, m.Value); band != "" {
+				plan.Qualification["income_band"] = []string{band}
+			}
 			continue
 		}
 		if !applyNumber(&search.Query{}, role, m) {
@@ -320,15 +324,20 @@ func applyNumber(q *search.Query, role string, m mention) bool {
 	return true
 }
 
-// incomeBand maps a monthly ARS income onto the form's bands
-// (eligibility_facts.choices for income_band).
-func incomeBand(v float64) string {
-	for _, top := range []float64{1e6, 2e6, 3e6} {
-		if v < top {
-			return strconv.FormatFloat(top-1e6, 'f', 0, 64) + "-" + strconv.FormatFloat(top, 'f', 0, 64)
+// incomeBand maps a monthly ARS income onto the catalog's income bands
+// ("min-max", "min-" open-ended), or "" when no band holds it.
+func incomeBand(catalog eligibility.Catalog, v float64) string {
+	for _, c := range catalog["income_band"].Choices {
+		lo, hi, ok := strings.Cut(c.Value, "-")
+		low, err := strconv.ParseFloat(lo, 64)
+		if !ok || err != nil || v < low {
+			continue
+		}
+		if high, err := strconv.ParseFloat(hi, 64); hi == "" || err == nil && v < high {
+			return c.Value
 		}
 	}
-	return "3000000-"
+	return ""
 }
 
 func vocabularyTypes() []string {
