@@ -46,6 +46,9 @@ type TurnResponse struct {
 	// HiddenIneligible counts the matches hidden because the searcher does
 	// not qualify, so an empty screen can say they exist.
 	HiddenIneligible int `json:"hidden_ineligible,omitempty"`
+	// Ineligible are those listings, only when nothing else is shown, so the
+	// searcher can open them and see what each asks for (specs/009).
+	Ineligible []Result `json:"ineligible,omitempty"`
 }
 
 // Result is a shown listing with its eligibility for this searcher.
@@ -92,6 +95,7 @@ type session struct {
 	results         []Result
 	relaxations     []eligibility.Relaxation
 	hidden          int
+	ineligible      []Result
 	pending         *pendingClarification
 	inFlight        bool
 	resolvedSources map[string]bool

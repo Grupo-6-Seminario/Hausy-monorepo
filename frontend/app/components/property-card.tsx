@@ -7,6 +7,7 @@ import { recordContactIntent, stableListingID } from '@/lib/contact-intent';
 import type { EligibilityFact } from '@/lib/eligibility-facts';
 import type {
   Eligibility,
+  EligibilityCondition,
   EligibilityRule,
   EligibilityState,
   Listing,
@@ -82,7 +83,7 @@ export const eligibilityLabel: Record<EligibilityState, string> = {
   eligible: 'Calificás',
   conditionally_eligible: 'Depende de la inmobiliaria',
   unknown: 'A confirmar',
-  ineligible: 'No califica',
+  ineligible: 'No calificás',
 };
 
 // Text beside the label, never instead of it: the badge always names the state.
@@ -176,10 +177,54 @@ function metPhrase(
   return labels.length > 0 ? labels.join(', ') : null;
 }
 
+// unmetLine names one requirement the searcher does not meet, for a listing
+// shown only because nothing else was left (specs/009): what it asks for,
+// or what it does not take, in the catalog's words.
+function unmetLine(
+  condition: EligibilityCondition,
+  { facts, declared }: Situation,
+): string {
+  const { rule } = condition;
+  const choices = facts.find((f) => f.name === rule.fact)?.choices ?? [];
+  const label = (value: string) =>
+    choices.find((c) => c.value === value)?.label.toLowerCase() ?? value;
+  switch (rule.fact) {
+    case 'guarantee':
+      return rule.operator === 'none_of'
+        ? `No acepta ${(rule.values ?? []).map(label).join(' ni ')}`
+        : `Pide ${(rule.values ?? []).map(label).join(' o ')}`;
+    case 'pets': {
+      const refused = (declared.pets ?? []).filter(
+        (pet) => !(rule.values ?? []).includes(pet),
+      );
+      return refused.length === 0 || (rule.values ?? []).join() === 'none'
+        ? 'No acepta mascotas'
+        : `No acepta ${refused.map(label).join(' ni ')}`;
+    }
+    case 'income_band':
+      if (condition.threshold != null) {
+        return `Pide ingresos de ${pesos(condition.threshold)}`;
+      }
+      break;
+    default:
+      if (yesPhrases[rule.fact]) return `Pide ${yesPhrases[rule.fact]}`;
+  }
+  return `Pide: «${rule.evidence ?? rule.fact}»`;
+}
+
 // The line under the badge: why this verdict, with this listing's numbers.
 // The income threshold is the engine's; "A confirmar" keeps its own reason.
 function reasonLines(eligibility: Eligibility, situation?: Situation): string[] {
   if (!situation) return [];
+  if (eligibility.state === 'ineligible') {
+    return [
+      ...new Set(
+        (eligibility.conditions ?? [])
+          .filter((condition) => condition.reason === 'not_met')
+          .map((condition) => unmetLine(condition, situation)),
+      ),
+    ];
+  }
   if (eligibility.state === 'eligible') {
     const met = (eligibility.met ?? [])
       .map((rule) => metPhrase(rule, situation))

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -446,4 +447,77 @@ func TestATurnWithNothingToSearchKeepsWhatEligibilityHid(t *testing.T) {
 		t.Fatalf("want the first turn's hidden %d and relaxations %+v kept, got %d and %+v",
 			first.HiddenIneligible, first.Relaxations, second.HiddenIneligible, second.Relaxations)
 	}
+}
+
+// Spec 009: when nothing is left to show, the turn carries the listings the
+// searcher does not qualify for, fewest unmet requirements first, at most
+// ten; the streamed results carry them too.
+func TestAnEmptySearchCarriesTheListingsTheSearcherDoesNotQualifyFor(t *testing.T) {
+	income := []eligibility.Rule{caucionOnly[0], {Fact: "income_band", Operator: "income_multiple", Values: []string{"3"}, Hardness: "hard", Evidence: "tripliquen el alquiler"}}
+	var candidates []eligibility.Candidate
+	candidates = append(candidates, candidate("two-unmet", "palermo", 700000, income))
+	for i := range 11 {
+		candidates = append(candidates, candidate(fmt.Sprintf("one-unmet-%02d", i), "palermo", 500000+float64(i), caucionOnly))
+	}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, stock{byHood: map[string][]eligibility.Candidate{"palermo": candidates}}, &fakeWriter{})
+	var early buyer.TurnResponse
+	resp, err := agent.HandleMessage(context.Background(), "s", "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}, "income_band": {"0-1000000"}}, buyer.Events{
+		Results: func(r buyer.TurnResponse) { early = r },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Listings) != 0 || resp.HiddenIneligible != 12 || len(resp.Ineligible) != 10 {
+		t.Fatalf("want 0 shown, 12 hidden and 10 offered, got %d, %d, %d", len(resp.Listings), resp.HiddenIneligible, len(resp.Ineligible))
+	}
+	for _, r := range resp.Ineligible {
+		if r.Eligibility == nil || r.Eligibility.State != eligibility.Ineligible {
+			t.Fatalf("every offered listing must be ineligible, got %+v", r.Eligibility)
+		}
+		if r.URL == "two-unmet" {
+			t.Fatal("the listing with two unmet requirements must come after the ten with one")
+		}
+	}
+	if len(early.Ineligible) != 10 {
+		t.Fatalf("the streamed results must carry them too, got %d", len(early.Ineligible))
+	}
+}
+
+// Spec 009: a search with any visible result never sends what was hidden.
+func TestASearchWithResultsSendsNoIneligibleListings(t *testing.T) {
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, fourStates(), &fakeWriter{})
+	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
+	if len(resp.Listings) == 0 || resp.HiddenIneligible == 0 || resp.Ineligible != nil {
+		t.Fatalf("want results, a hidden count and no ineligible list, got %d, %d, %v", len(resp.Listings), resp.HiddenIneligible, resp.Ineligible)
+	}
+}
+
+// Found in review: among listings that miss as much, the offered ones follow
+// the search's usual order, which for relevance favours what the searcher
+// prefers; and a turn with nothing to search keeps them.
+func TestTheOfferedListingsFollowTheSearchOrderAndSurviveAGreeting(t *testing.T) {
+	plan := palermoPlan("relevance")
+	plan.Branches[0].PreferredAttributes = []search.AttributeFilter{{Type: "natural_light", Value: "high"}}
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {
+		candidate("a-plain", "palermo", 600000, caucionOnly),
+		candidate("b-bright", "palermo", 600000, caucionOnly, bright),
+	}}}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan, {Intent: "other"}}}, inventory, &fakeWriter{})
+	q := eligibility.Qualification{"guarantee": {"propietaria"}}
+	first := turn(t, agent, "Alquiler en Palermo, luminoso", q)
+	if len(first.Ineligible) != 2 || first.Ineligible[0].URL != "b-bright" {
+		t.Fatalf("want the bright listing first, got %v", ineligibleURLs(first))
+	}
+	second := turn(t, agent, "gracias", q)
+	if !slices.Equal(ineligibleURLs(second), ineligibleURLs(first)) {
+		t.Fatalf("a greeting must keep the offered listings, got %v", ineligibleURLs(second))
+	}
+}
+
+func ineligibleURLs(resp *buyer.TurnResponse) []string {
+	var out []string
+	for _, r := range resp.Ineligible {
+		out = append(out, r.URL)
+	}
+	return out
 }

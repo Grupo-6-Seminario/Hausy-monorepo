@@ -1,5 +1,5 @@
 import { Home } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   Empty,
@@ -49,6 +49,14 @@ function instrumentLabel(facts: FactsState, fact: string, value: string) {
   return choice ? choice.label.toLowerCase() : value;
 }
 
+// refusedLabel names the folded listings, in the singular when there is one.
+function refusedLabel(open: boolean, count: number) {
+  const verb = open ? 'Ocultar' : 'Ver';
+  return count === 1
+    ? `${verb} la propiedad que no acepta tu situación`
+    : `${verb} las ${count} propiedades que no aceptan tu situación`;
+}
+
 function relaxationLines(facts: FactsState, relaxations: Relaxation[]) {
   return relaxations.map((relaxation) => (
     <p
@@ -69,6 +77,9 @@ interface PropertyListProps {
   relaxations?: Relaxation[];
   // Listings the search matched but hid because the searcher does not qualify.
   hiddenIneligible?: number;
+  // The listings the searcher does not qualify for, sent only when nothing
+  // else is shown; they stay folded until asked for (specs/009).
+  ineligible?: Listing[];
   // What the searcher declared, so each card can say why its verdict holds.
   declared?: Qualification;
   recommendedRanks?: number[];
@@ -82,6 +93,7 @@ export function PropertyList({
   listings = [],
   relaxations = [],
   hiddenIneligible = 0,
+  ineligible = [],
   declared,
   recommendedRanks = [],
   isLoading = false,
@@ -89,6 +101,15 @@ export function PropertyList({
   children,
 }: PropertyListProps) {
   const facts = useEligibilityFacts();
+  // Open for the listings it was opened on, by URL: the streamed results and
+  // the final reply send them twice, while a new search folds it again.
+  const refusedKey = ineligible.map((listing) => listing.url).join(' ');
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const showRefused = ineligible.length > 0 && openFor === refusedKey;
+  const firstRefused = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (showRefused) firstRefused.current?.focus();
+  }, [showRefused]);
   const situation: Situation | undefined =
     facts.kind === 'ready' && declared
       ? { facts: facts.facts, declared }
@@ -188,6 +209,40 @@ export function PropertyList({
             </EmptyDescription>
           ) : null}
         </Empty>
+        {ineligible.length > 0 ? (
+          <div className="refused-listings">
+            <button
+              type="button"
+              className="refused-toggle"
+              aria-expanded={showRefused}
+              aria-controls="refused-listings"
+              onClick={() => setOpenFor(showRefused ? null : refusedKey)}
+            >
+              {refusedLabel(showRefused, hiddenIneligible || ineligible.length)}
+            </button>
+            {showRefused ? (
+              <div id="refused-listings">
+                <ol>
+                  {ineligible.map((listing, index) => (
+                    <li
+                      key={listing.url || listing.id || index}
+                      ref={index === 0 ? firstRefused : undefined}
+                      tabIndex={index === 0 ? -1 : undefined}
+                    >
+                      <PropertyCard listing={listing} situation={situation} />
+                    </li>
+                  ))}
+                </ol>
+                {hiddenIneligible > ineligible.length ? (
+                  <p className="refused-note">
+                    Te mostramos las {ineligible.length} a las que les falta
+                    menos.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
     );
   }

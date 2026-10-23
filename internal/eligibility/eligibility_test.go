@@ -663,3 +663,15 @@ func TestADiscretionaryRejectionStillNeverConfirmsAGuarantee(t *testing.T) {
 		t.Fatalf("want unknown/unconfirmed, got %+v", got)
 	}
 }
+
+// Spec 009: an unmet income rule names the income it asks for too, so the
+// card of a listing the searcher does not qualify for can say "Pide
+// ingresos de $X".
+func TestAnUnmetIncomeConditionCarriesItsThreshold(t *testing.T) {
+	ars := func(amount float64) listing.Money { return listing.Money{Amount: &amount, Currency: "ARS"} }
+	overTotal := eligibility.Rule{Fact: "income_band", Operator: "income_multiple_with_expenses", Values: []string{"3"}, Hardness: "hard"}
+	got := eligibility.Assess(eligibility.Qualification{"income_band": {"1000000-2000000"}}, listing.Listing{Price: ars(650000), Expenses: ars(176000)}, []eligibility.Rule{overTotal}, catalog)
+	if got.State != eligibility.Ineligible || len(got.Conditions) != 1 || got.Conditions[0].Threshold == nil || *got.Conditions[0].Threshold != 2478000 {
+		t.Fatalf("want not_met with threshold 2478000, got %+v", got)
+	}
+}

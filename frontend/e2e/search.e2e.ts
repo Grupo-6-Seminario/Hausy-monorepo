@@ -580,3 +580,97 @@ test('a marked answer in the qualification form can be cleared by clicking it', 
   await documented.click();
   await expect(documented).toBeChecked();
 });
+
+// Spec 009: when nothing is left, the listings the searcher does not
+// qualify for can be opened, by click or keyboard, each saying what it asks.
+test('an empty search opens the listings that do not accept the searcher', async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/api/agent', (route) =>
+    route.fulfill({
+      json: {
+        reply: '## Mi lectura\nNo hay propiedades que puedas alquilar hoy.',
+        listings: [],
+        hidden_ineligible: 1,
+        relaxations: [
+          {
+            fact: 'guarantee',
+            value: 'caucion',
+            label: 'Seguro de caución',
+            count: 1,
+          },
+        ],
+        ineligible: [
+          {
+            ...listing,
+            address: 'Alcorta 3000',
+            rank: 1,
+            eligibility: {
+              state: 'ineligible',
+              conditions: [
+                {
+                  reason: 'not_met',
+                  rule: {
+                    fact: 'guarantee',
+                    operator: 'one_of',
+                    values: ['caucion'],
+                    evidence: 'Requisitos: seguro de caución',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/eligibility/facts', (route) =>
+    route.fulfill({ json: { facts: factsFixture } }),
+  );
+
+  await openSearch(page);
+  await page.getByLabel('No tengo').check();
+  await page.getByRole('button', { name: 'Usar estos datos' }).click();
+  await page
+    .getByRole('textbox')
+    .fill('Departamento de 3 ambientes en Palermo hasta 1000 dólares');
+  await page.getByRole('search').getByRole('button').click();
+
+  // The label turns from "Ver…" to "Ocultar…"; the button stays the same.
+  const toggle = page.getByRole('button', {
+    name: /la propiedad que no acepta tu situación$/,
+  });
+  await expect(toggle).toHaveText('Ver la propiedad que no acepta tu situación');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByText('Alcorta 3000')).toHaveCount(0);
+  await page.screenshot({
+    path: info.outputPath('refused-folded.png'),
+    animations: 'disabled',
+    fullPage: true,
+  });
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  const card = page.getByRole('listitem').filter({ hasText: 'Alcorta 3000' });
+  await expect(card).toBeFocused();
+  await expect(card.getByText('No calificás')).toBeVisible();
+  await expect(card.getByText('Pide seguro de caución')).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: info.outputPath('refused-open.png'),
+    animations: 'disabled',
+    fullPage: true,
+  });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toBeFocused();
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  expect(errors).toEqual([]);
+});
