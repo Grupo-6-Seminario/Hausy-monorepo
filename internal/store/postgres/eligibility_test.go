@@ -237,7 +237,8 @@ func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
 		// Re-captured for spec 006: listing 59530580 gains its "sin mascota" rule (error 1)
 		// and 59966540's income rule covers expensas (error 2). Re-captured for spec 007:
 		// the income_documented rules are the only change (without them the old digests hold).
-		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "a28bcde6e2323e453a2dc5f95769c0c961b6ac9fb7815462665ba218a512b411"},
+		// Re-captured for spec 008: 59787969's caución rejection is the only change.
+		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "9a07191784c46af67a98004ac6e85974ae529687c33931b5e15b168017693467"},
 		{"palermo and congreso up to 900k", func() ([]eligibility.Candidate, error) {
 			return store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice})
 		}, 92, "ee6482b0fba7b507f23f87e342040f6fc9b7d563d4011ed16281d26342991f15"},
@@ -323,5 +324,31 @@ func TestLoadAsksForProofOfIncomeWhereTheListingDoes(t *testing.T) {
 	slices.Sort(got)
 	if !slices.Equal(got, want) {
 		t.Errorf("listings with the rule:\n got %v\nwant %v", got, want)
+	}
+}
+
+// Spec 008: after load, the one listing that names a guarantee it refuses
+// carries the rejection, with its clause; no other listing does
+// (specs/008-guarantee-rejections/clauses.md).
+func TestLoadReadsTheGuaranteesAListingRefuses(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	loadCommitted(t, store)
+	candidates, err := store.Candidates(ctx, search.Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, c := range candidates {
+		for _, r := range c.Rules {
+			if r.Operator != eligibility.NoneOf {
+				continue
+			}
+			got = append(got, fmt.Sprintf("%s %s %v %s %q", regexp.MustCompile(`(\d+)\.html$`).FindStringSubmatch(c.Listing.URL)[1], r.Fact, r.Values, r.Hardness, r.Evidence))
+		}
+	}
+	want := []string{`59787969 guarantee [caucion] hard "No se aceptan seguros de caución"`}
+	if !slices.Equal(got, want) {
+		t.Errorf("rejections:\n got %v\nwant %v", got, want)
 	}
 }

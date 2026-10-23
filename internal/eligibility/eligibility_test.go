@@ -540,3 +540,126 @@ func TestTheDocumentedIncomeRuleFollowsTheAnswer(t *testing.T) {
 		}
 	}
 }
+
+var guaranteeCatalog = eligibility.Catalog{"guarantee": {Admissible: true, Multiple: true, Choices: []eligibility.Choice{
+	{Value: "propietaria", Label: "Garantía propietaria"}, {Value: "caucion", Label: "Seguro de caución"},
+	{Value: "recibos_garante", Label: "Recibos de sueldo de un garante"}, {Value: "none", Label: "No tengo"},
+}}}
+
+// Spec 008: a listing that names a guarantee it does not accept gets a hard
+// none_of rule at load, with its own clause as evidence.
+func TestPublishedRulesReadARejectedGuarantee(t *testing.T) {
+	rejects := func(evidence string, values ...string) []eligibility.Rule {
+		return []eligibility.Rule{{Fact: "guarantee", Operator: "none_of", Values: values, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: evidence}}
+	}
+	for _, tc := range []struct {
+		name        string
+		description string
+		want        []eligibility.Rule
+	}{
+		{"59787969", "Las medidas y antigüedad son aproximadas* (No se aceptan seguros de caución) Para los casos de alquiler de vivienda…",
+			rejects("No se aceptan seguros de caución", "caucion")},
+		{"two instruments", "Requisitos: no trabajamos con seguros de caución ni recibos de sueldo de garantes.",
+			rejects("no trabajamos con seguros de caución ni recibos de sueldo de garantes", "caucion", "recibos_garante")},
+		// Found in review: the clause ran past a comma and refused what the
+		// listing goes on to accept.
+		{"an acceptance after a comma", "No se aceptan seguros de caución, solo garantía propietaria.",
+			rejects("No se aceptan seguros de caución", "caucion")},
+		{"another refusal before a comma", "No se aceptan contratos temporarios, garantía propietaria excluyente.", nil},
+		{"two refusing clauses", "No aceptamos caución. No se admiten recibos de sueldo de garantes.",
+			rejects("No aceptamos caución; No se admiten recibos de sueldo de garantes", "caucion", "recibos_garante")},
+		{"waiving a guarantee is no rejection (237)", "¡A metros del Subte y Metrobús! No requerimos garantía inmobiliaria.", nil},
+		// "Sin" says the listing does not require it, not that it refuses it.
+		{"sin means not required", "Alquiler sin garantía propietaria, con seguro de caución.", nil},
+		{"sin about something else", "Sin expensas extraordinarias. Garantía propietaria.", nil},
+	} {
+		got := eligibility.PublishedRules(listing.Listing{Description: tc.description}, guaranteeCatalog)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s:\n got %+v\nwant %+v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// Spec 008: a rejection fails a searcher whose guarantees are all rejected,
+// and never makes a listing eligible on its own: with no rule that accepts
+// the searcher's guarantee the listing stays unknown.
+func TestARejectionAloneNeverMakesAListingEligible(t *testing.T) {
+	rejectsCaucion := eligibility.Rule{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "hard", Evidence: "No se aceptan seguros de caución"}
+	for _, tc := range []struct {
+		declared []string
+		state    eligibility.State
+		reason   eligibility.Reason
+	}{
+		{[]string{"caucion"}, eligibility.Ineligible, "not_met"},
+		{[]string{"propietaria"}, eligibility.Unknown, "unconfirmed"},
+		{[]string{"caucion", "propietaria"}, eligibility.Unknown, "unconfirmed"},
+		{[]string{"none"}, eligibility.Unknown, "unconfirmed"},
+		{nil, eligibility.Unknown, "missing"},
+	} {
+		got := eligibility.Assess(eligibility.Qualification{"guarantee": tc.declared}, listing.Listing{}, []eligibility.Rule{rejectsCaucion}, guaranteeCatalog)
+		if got.State != tc.state || len(got.Conditions) != 1 || got.Conditions[0].Reason != tc.reason {
+			t.Errorf("%v: want %s/%s, got %+v", tc.declared, tc.state, tc.reason, got)
+		}
+	}
+}
+
+// Spec 008: with a rule that accepts the searcher's guarantee, the verdict is
+// that rule's; the rejection only fails a searcher it names.
+func TestARejectionCombinesWithAnAcceptance(t *testing.T) {
+	rules := []eligibility.Rule{
+		{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria"}, Hardness: "hard", Evidence: "Garantía propietaria"},
+		{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "hard", Evidence: "No se aceptan seguros de caución"},
+	}
+	for _, tc := range []struct {
+		declared   []string
+		state      eligibility.State
+		conditions int
+	}{
+		{[]string{"caucion"}, eligibility.Ineligible, 2},
+		{[]string{"propietaria"}, eligibility.Eligible, 0},
+		{[]string{"caucion", "propietaria"}, eligibility.Eligible, 0},
+		{[]string{"none"}, eligibility.Ineligible, 1},
+	} {
+		got := eligibility.Assess(eligibility.Qualification{"guarantee": tc.declared}, listing.Listing{}, rules, guaranteeCatalog)
+		if got.State != tc.state || len(got.Conditions) != tc.conditions {
+			t.Errorf("%v: want %s with %d conditions, got %+v", tc.declared, tc.state, tc.conditions, got)
+		}
+	}
+}
+
+// A rejection that names nothing would refuse nobody: invalid, like an
+// acceptance that admits nobody.
+func TestARejectionWithNoValuesIsInvalid(t *testing.T) {
+	if err := (eligibility.Rule{Fact: "guarantee", Operator: "none_of", Hardness: "hard"}).Validate(); err == nil {
+		t.Fatal("want an error for a none_of rule with no values")
+	}
+	if err := (eligibility.Rule{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "hard"}).Validate(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Spec 008: the zero-results line suggests only what a rule accepts; a
+// rejection on its own suggests nothing.
+func TestARejectionSuggestsOnlyWhatAnotherRuleAccepts(t *testing.T) {
+	rejectsCaucion := eligibility.Rule{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "hard"}
+	acceptsPropietaria := eligibility.Rule{Fact: "guarantee", Operator: "one_of", Values: []string{"propietaria"}, Hardness: "hard"}
+	q := eligibility.Qualification{"guarantee": {"caucion"}}
+	if got := eligibility.Relaxations(q, []eligibility.Candidate{{Rules: []eligibility.Rule{rejectsCaucion}}}, guaranteeCatalog); len(got) != 0 {
+		t.Errorf("a rejection alone suggested %+v", got)
+	}
+	got := eligibility.Relaxations(q, []eligibility.Candidate{{Rules: []eligibility.Rule{acceptsPropietaria, rejectsCaucion}}}, guaranteeCatalog)
+	if len(got) != 1 || got[0].Value != "propietaria" || got[0].Count != 1 {
+		t.Errorf("want propietaria brings 1 back, got %+v", got)
+	}
+}
+
+// Found in review: the owner's discretion over a refusal decides about the
+// refused guarantee, never about one the listing did not mention, so it must
+// not lift an unconfirmed guarantee to "conditionally eligible".
+func TestADiscretionaryRejectionStillNeverConfirmsAGuarantee(t *testing.T) {
+	maybeNoCaucion := eligibility.Rule{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "discretionary"}
+	got := eligibility.Assess(eligibility.Qualification{"guarantee": {"propietaria"}}, listing.Listing{}, []eligibility.Rule{maybeNoCaucion}, guaranteeCatalog)
+	if got.State != eligibility.Unknown || len(got.Conditions) != 1 || got.Conditions[0].Reason != "unconfirmed" {
+		t.Fatalf("want unknown/unconfirmed, got %+v", got)
+	}
+}

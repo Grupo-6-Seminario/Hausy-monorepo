@@ -36,6 +36,8 @@ const (
 	IncomeMultiple Operator = "income_multiple"
 	// IncomeMultipleWithExpenses applies the multiple to rent plus expensas.
 	IncomeMultipleWithExpenses Operator = "income_multiple_with_expenses"
+	// NoneOf names values the listing refuses; declaring only those fails it.
+	NoneOf Operator = "none_of"
 )
 
 // Hardness says whether a rule is final or the owner decides case by case.
@@ -56,6 +58,9 @@ const (
 	Unverifiable      Reason = "unverifiable"
 	DiscretionaryCall Reason = "discretionary"
 	NearLine          Reason = "near_line"
+	// Unconfirmed is a rejection that does not name all the searcher's
+	// values: the listing never said it accepts the rest (specs/008).
+	Unconfirmed Reason = "unconfirmed"
 )
 
 // Qualification is what the searcher declared: fact name -> values.
@@ -183,8 +188,8 @@ var (
 )
 
 // PublishedRules are the rules a listing's own words state, so loading derives
-// them without a model: its pets rules, and its request for proof of income
-// (incomeProofRule). The rule lists the pets
+// them without a model: its pets rules, its request for proof of income
+// (incomeProofRule) and the guarantees it refuses (guaranteeRejectionRule). The rule lists the pets
 // choices the listing admits, and every declared pet must be among them
 // (subset_of): a refusal admits every choice but the animals it names, or
 // only "none" when it names no species; "sólo gatos" admits only cats. A
@@ -217,6 +222,9 @@ func PublishedRules(item listing.Listing, catalog Catalog) []Rule {
 		}
 	}
 	if r, ok := incomeProofRule(item.Description, catalog); ok {
+		rules = append(rules, r)
+	}
+	if r, ok := guaranteeRejectionRule(item.Description, catalog); ok {
 		rules = append(rules, r)
 	}
 	return rules
@@ -267,6 +275,54 @@ func incomeProofRule(description string, catalog Catalog) (Rule, bool) {
 		return Rule{}, false
 	}
 	return Rule{Fact: "income_documented", Operator: OneOf, Values: []string{"yes"}, Hardness: Hard, Visibility: "public", Source: "parsed", Evidence: evidence}, true
+}
+
+// rejectsGuarantee opens a clause that names guarantees a listing does not
+// take: "no se aceptan", "no aceptamos", "no se admiten", "no trabajamos
+// con" (specs/008-guarantee-rejections). Not "sin": "sin garantía
+// propietaria" says the listing does not require one, not that it refuses it.
+var rejectsGuarantee = regexp.MustCompile(`(?i)\b(?:no\s+se\s+aceptan?|no\s+aceptan?|no\s+aceptamos|no\s+se\s+admiten?|no\s+trabajamos\s+con)\b`)
+
+// refusalEnds closes the list of refused instruments: a punctuation mark, or
+// a word that turns to what the listing does take ("…, solo garantía
+// propietaria").
+var refusalEnds = regexp.MustCompile(`(?i)[,.;:\n)]|\bs[oó]lo\b|\b[uú]nicamente\b`)
+
+// guaranteeRejectionRule reads the instruments a description refuses, named
+// with Instruments' own patterns, into one hard none_of rule. Each refusal
+// runs from its cue to the end of its list; every refusing clause adds its
+// instruments and its words to the evidence.
+func guaranteeRejectionRule(description string, catalog Catalog) (Rule, bool) {
+	if !catalog.Admissible("guarantee") {
+		return Rule{}, false
+	}
+	refused := map[string]bool{}
+	var clauses []string
+	for _, at := range rejectsGuarantee.FindAllStringIndex(description, -1) {
+		list := description[at[1]:]
+		if end := refusalEnds.FindStringIndex(list); end != nil {
+			list = list[:end[0]]
+		}
+		named := false
+		for _, in := range Instruments {
+			if in.Pattern.MatchString(list) && catalog.Offers("guarantee", in.Name) {
+				refused[in.Name], named = true, true
+			}
+		}
+		if named {
+			clauses = append(clauses, strings.TrimSpace(description[at[0]:at[1]]+list))
+		}
+	}
+	if len(clauses) == 0 {
+		return Rule{}, false
+	}
+	var values []string
+	for _, in := range Instruments {
+		if refused[in.Name] {
+			values = append(values, in.Name)
+		}
+	}
+	return Rule{Fact: "guarantee", Operator: NoneOf, Values: values, Hardness: Hard, Visibility: "public", Source: "parsed", Evidence: strings.Join(clauses, "; ")}, true
 }
 
 // sentence is the span around i up to a sentence end: a newline, a semicolon
@@ -341,7 +397,7 @@ func (r Rule) Validate() error {
 	}
 	// An empty list admits nobody, so the listing would be hidden from every
 	// searcher.
-	if (r.Operator == OneOf || r.Operator == SubsetOf) && len(r.Values) == 0 {
+	if (r.Operator == OneOf || r.Operator == SubsetOf || r.Operator == NoneOf) && len(r.Values) == 0 {
 		return fmt.Errorf("eligibility rule on %q admits no values", r.Fact)
 	}
 	return nil
@@ -404,6 +460,11 @@ func Assess(q Qualification, item listing.Listing, rules []Rule, catalog Catalog
 	case met:
 		v.State = Eligible
 	}
+	// An unconfirmed rejection only explains an unknown verdict; when another
+	// rule settles it, the rejection has nothing to add.
+	if v.State != Unknown {
+		v.Conditions = slices.DeleteFunc(v.Conditions, func(c Condition) bool { return c.Reason == Unconfirmed })
+	}
 	return v
 }
 
@@ -420,6 +481,8 @@ func comparison(op Operator) func(declared []string, item listing.Listing, r Rul
 		return subsetOf
 	case IncomeMultiple, IncomeMultipleWithExpenses:
 		return incomeMultiple
+	case NoneOf:
+		return noneOf
 	}
 	return nil
 }
@@ -441,7 +504,9 @@ func outcome(q Qualification, item listing.Listing, r Rule) Reason {
 	// unverifiable: discretion cannot vouch for it. A searcher who declared
 	// having none of the fact ("no tengo mascotas") is outside what the owner
 	// decides about, so clearing the rule is final for them.
-	if r.Hardness == Discretionary && reason != Unverifiable && !(reason == Met && slices.Equal(declared, []string{"none"})) {
+	// An unconfirmed guarantee was never the owner's to decide: a refusal only
+	// speaks about the guarantees it names (specs/008).
+	if r.Hardness == Discretionary && reason != Unverifiable && reason != Unconfirmed && !(reason == Met && slices.Equal(declared, []string{"none"})) {
 		return DiscretionaryCall
 	}
 	return reason
@@ -450,6 +515,18 @@ func outcome(q Qualification, item listing.Listing, r Rule) Reason {
 func oneOf(declared []string, _ listing.Listing, r Rule) Reason {
 	if slices.ContainsFunc(declared, func(v string) bool { return slices.Contains(r.Values, v) }) {
 		return Met
+	}
+	return NotMet
+}
+
+// noneOf fails a searcher whose declared values are all refused. Any other
+// value is unconfirmed, never met: a refusal says nothing about what the
+// listing accepts, so on its own it never makes a listing eligible.
+func noneOf(declared []string, _ listing.Listing, r Rule) Reason {
+	for _, v := range declared {
+		if !slices.Contains(r.Values, v) {
+			return Unconfirmed
+		}
 	}
 	return NotMet
 }
