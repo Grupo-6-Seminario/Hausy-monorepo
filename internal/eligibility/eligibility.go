@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 )
@@ -97,6 +98,18 @@ func (e *QualificationError) Error() string {
 	return "eligibility: " + e.Code + " on qualification fact " + strconv.Quote(e.Fact)
 }
 
+// retired are facts the form no longer asks: caucion_quoted left with spec
+// 007, since no rule reads it.
+var retired = []string{"caucion_quoted"}
+
+// DropRetired removes retired facts from q in place, so a saved profile or an
+// open tab that still sends one is not refused for it.
+func DropRetired(q Qualification) {
+	for _, fact := range retired {
+		delete(q, fact)
+	}
+}
+
 // ValidateQualification checks a declared qualification against the catalog
 // and returns the first problem, in fact-name order so the same input always
 // gets the same answer. An empty qualification is valid.
@@ -169,8 +182,9 @@ var (
 	ownerDecides = regexp.MustCompile(`(?i)\bpreferentemente\b|` + animal + `\s+(?:\S+\s+)?(?:grandes?|pequeñ[oa]s?|chic[oa]s?)\b`)
 )
 
-// PublishedRules are the pets rules a listing's own published attributes
-// state, so loading derives them without a model. The rule lists the pets
+// PublishedRules are the rules a listing's own words state, so loading derives
+// them without a model: its pets rules, and its request for proof of income
+// (incomeProofRule). The rule lists the pets
 // choices the listing admits, and every declared pet must be among them
 // (subset_of): a refusal admits every choice but the animals it names, or
 // only "none" when it names no species; "sólo gatos" admits only cats. A
@@ -202,8 +216,83 @@ func PublishedRules(item listing.Listing, catalog Catalog) []Rule {
 			rules = append(rules, r)
 		}
 	}
+	if r, ok := incomeProofRule(item.Description, catalog); ok {
+		rules = append(rules, r)
+	}
 	return rules
 }
+
+// incomeProof is a request to prove the tenant's income: "ingresos
+// comprobables", "demostración de ingresos en blanco", the tenant's "recibos
+// de sueldo" (specs/007-income-proof-rule).
+var incomeProof = regexp.MustCompile(`(?i)ingresos?\s+(?:\p{L}+\s+){0,2}?(?:comprobables?|demostrables?|justificables?|verificables?|en\s+blanco)|(?:demostraci[oó]n|justificaci[oó]n|comprobaci[oó]n|comprobantes?)\s+de\s+ingresos?|(?:demostrar|acreditar|justificar|comprobar)\s+(?:sus\s+|tus\s+|los\s+)?ingresos?|\brecibos?\s+de\s+(?:sueldo|haberes|ingresos)`)
+
+// payslip is the cue that is a guarantee instead when a guarantee leads its
+// sentence: "Garantía: Propietaria, recibo de sueldo o seguro de caución".
+var payslip = regexp.MustCompile(`(?i)^recibos?`)
+
+// orInstead is an alternative right after the request that is not proof of
+// income: "ingresos comprobables o seguro de caución", "ingresos/estudios".
+// One rule cannot say "or" across facts, so such a listing gets none.
+var orInstead = regexp.MustCompile(`(?i)^\s*(?:/|\bo\b)\s*(?:\p{L}+\s+){0,2}?(?:seguro|cauci|garant|estudi)`)
+
+var namesGuarantee = regexp.MustCompile(`(?i)garant`)
+
+// incomeProofRule reads the first clause of a description that asks the
+// tenant to prove their income into a hard income_documented rule.
+func incomeProofRule(description string, catalog Catalog) (Rule, bool) {
+	if !catalog.Admissible("income_documented") || !catalog.Offers("income_documented", "yes") {
+		return Rule{}, false
+	}
+	evidence := ""
+	for _, at := range incomeProof.FindAllStringIndex(description, -1) {
+		start, end := sentence(description, at[0])
+		// Pay slips after a guarantee are the guarantee, not a request.
+		if payslip.MatchString(description[at[0]:at[1]]) && namesGuarantee.MatchString(description[start:at[0]]) {
+			continue
+		}
+		// An alternative anywhere means the listing does not require the proof.
+		if orInstead.MatchString(description[at[1]:]) {
+			return Rule{}, false
+		}
+		if evidence == "" {
+			// The clause starts after a label such as "Requisitos:".
+			from := start + strings.LastIndex(description[start:at[0]], ":") + 1
+			evidence = strings.TrimFunc(description[from:end], func(r rune) bool {
+				return unicode.IsSpace(r) || strings.ContainsRune("-•~*", r)
+			})
+		}
+	}
+	if evidence == "" {
+		return Rule{}, false
+	}
+	return Rule{Fact: "income_documented", Operator: OneOf, Values: []string{"yes"}, Hardness: Hard, Visibility: "public", Source: "parsed", Evidence: evidence}, true
+}
+
+// sentence is the span around i up to a sentence end: a newline, a semicolon
+// or a period that is not inside an amount ("$ 2.000.000").
+func sentence(text string, i int) (int, int) {
+	ends := func(j int) bool {
+		switch text[j] {
+		case '\n', ';':
+			return true
+		case '.':
+			return !(j > 0 && j+1 < len(text) && isDigit(text[j-1]) && isDigit(text[j+1]))
+		}
+		return false
+	}
+	start := i
+	for start > 0 && !ends(start-1) {
+		start--
+	}
+	end := i
+	for end < len(text) && !ends(end) {
+		end++
+	}
+	return start, end
+}
+
+func isDigit(b byte) bool { return '0' <= b && b <= '9' }
 
 // refusesPets is an explicit refusal in a description, up to the end of its
 // clause so a size limit or "sólo gatos" after it still counts: "sin

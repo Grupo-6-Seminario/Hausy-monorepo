@@ -130,7 +130,7 @@ Why and how: [ADR 0001](./adr/0001-eligibility-rules-as-data.md); terms: [CONTEX
 
 | Table | Holds |
 | --- | --- |
-| `eligibility_facts` | Fact names (`guarantee`, `income_band`, `caucion_quoted`, …), whether each is `admissible`, and the choices the qualification form offers. Protected characteristics (`age`, `nationality`, `gender`) are rows with `admissible = false`. |
+| `eligibility_facts` | Fact names (`guarantee`, `income_band`, `income_documented`, …), whether each is `admissible`, and the choices the qualification form offers. Protected characteristics (`age`, `nationality`, `gender`) are rows with `admissible = false`. |
 | `listing_eligibility_rules` | A listing's eligibility requirements: `fact`, `operator` (`one_of`, `income_multiple`), `values` (JSON), `hardness` (`hard` / `discretionary`), `visibility` (`public` / `private`), `source` (`parsed` / `declared` / `observed`), and `evidence` in the listing's own words. |
 | `user_qualifications` | What a signed-in searcher declared: one row per `(user, fact, value)`. |
 

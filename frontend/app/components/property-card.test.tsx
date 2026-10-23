@@ -582,6 +582,34 @@ describe('PropertyCard eligibility reason', () => {
     ).toBeVisible();
   });
 
+  // Spec 007: the documented-income rule reads as the phrase the situation
+  // bar uses, never as the bare answer "sí".
+  it('names documented income as the searcher declared it', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'eligible',
+            met: [
+              { fact: 'guarantee', values: ['caucion'] },
+              { fact: 'income_documented', values: ['yes'] },
+            ],
+          },
+        }}
+        situation={{
+          facts: factsFixture,
+          declared: { guarantee: ['caucion'], income_documented: ['yes'] },
+        }}
+      />,
+    );
+    expect(
+      screen.getByText(
+        'Cumplís lo que pide: seguro de caución, ingresos comprobables.',
+      ),
+    ).toBeVisible();
+  });
+
   // A missing fact outranks a discretionary rule: the verdict is unknown, so
   // the agency line must not appear on an "A confirmar" card.
   it('adds no line to an unknown verdict, which keeps its own reason', () => {

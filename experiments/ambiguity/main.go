@@ -175,7 +175,7 @@ func fieldOf(q clarification.Question) string {
 				return "rooms"
 			case strings.HasPrefix(e.Value, "amenity="):
 				return "amenities"
-			case e.Field == "qualification.guarantee" || e.Field == "qualification.caucion_quoted":
+			case e.Field == "qualification.guarantee":
 				return "guarantee"
 			case e.Field == "qualification.income_band":
 				return "income"

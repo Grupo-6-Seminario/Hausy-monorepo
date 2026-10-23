@@ -62,13 +62,6 @@ describe('QualificationPanel', () => {
       '2000000-3000000',
     );
     await userEvent.click(
-      within(
-        screen.getByRole('group', {
-          name: '¿Ya cotizaste un seguro de caución?',
-        }),
-      ).getByLabelText('No'),
-    );
-    await userEvent.click(
       screen.getByRole('button', { name: 'Usar estos datos' }),
     );
 
@@ -77,7 +70,6 @@ describe('QualificationPanel', () => {
       income_documented: ['yes'],
       pets: ['dog'],
       income_band: ['2000000-3000000'],
-      caucion_quoted: ['no'],
     });
     // Anonymous: the questions are read, the profile is neither read nor saved.
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
@@ -169,14 +161,13 @@ describe('describeQualification', () => {
         {
           guarantee: ['caucion'],
           income_band: ['2000000-3000000'],
-          caucion_quoted: ['yes'],
           income_documented: ['yes'],
           pets: ['dog', 'cat'],
         },
         facts,
       ),
     ).toBe(
-      'seguro de caución · ingresos comprobables · perro, gato · $2.000.000 a $3.000.000 · caución cotizada',
+      'seguro de caución · ingresos comprobables · perro, gato · $2.000.000 a $3.000.000',
     );
     expect(describeQualification({ pets: ['none'] }, facts)).toBe(
       'sin mascotas',

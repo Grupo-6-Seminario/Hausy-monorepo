@@ -60,7 +60,6 @@ func declarables() []Declarable {
 		Declarable{Fact: "pets", Value: "other", Description: "a pet that is neither a dog nor a cat", Says: matches(`(?i)\bmascotas?\b|\banimal(?:es)?\b`)},
 		Declarable{Fact: "pets", Value: "none", Description: "no pets", Says: matches(`(?i)` + denies + `[^.;]{0,30}?\b(?:mascotas?|perr[oa]s?|gat[oa]s?|animal(?:es)?)\b`)},
 		Declarable{Fact: "income_band", Description: "their monthly income", Says: declaresIncomeAmount},
-		Declarable{Fact: "caucion_quoted", Description: "whether they already have a caución quote", Says: topics["caucion_quoted"].MatchString},
 		Declarable{Fact: "income_documented", Description: "whether they can document their income", Says: matches(`(?i)comprob|demostr|en\s+blanco|en\s+negro|informal`)},
 	)
 }
@@ -106,7 +105,6 @@ func Declared(c Catalog, q Qualification, text string) Qualification {
 var topics = map[string]*regexp.Regexp{
 	"guarantee":         regexp.MustCompile(`(?i)garant|cauci|fianza|garante`),
 	"income_band":       regexp.MustCompile(`(?i)ingreso|sueldo|\bgan(o|amos)\b|\bcobr|facturo`),
-	"caucion_quoted":    regexp.MustCompile(`(?i)cotiz|cotic`),
 	"pets":              regexp.MustCompile(`(?i)mascota|perr[oa]|gat[oa]|animal`),
 	"income_documented": regexp.MustCompile(`(?i)comprob|demostr|recibo|en\s+blanco|en\s+negro|informal`),
 }

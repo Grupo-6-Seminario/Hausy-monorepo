@@ -59,3 +59,25 @@ func TestSignedInSearchersSaveAndReadTheirQualification(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
+
+// Spec 007: the caución quote question left the form. A saved profile or an
+// open tab may still send it; the search and the save go on without it.
+func TestARetiredQuestionIsDroppedNotRefused(t *testing.T) {
+	agent := &qualifiedAgent{}
+	saved := memoryQualifications{}
+	handler := httpapi.NewHandler(agent, auth.NewLocal(auth.NewMemoryStore()), agency.NewMemoryCatalog(), saved)
+	resp := send(t, handler, http.MethodPost, "/api/messages", "", `{"session_id":"s","message":"Palermo","qualification":{"guarantee":["caucion"],"caucion_quoted":["yes"]}}`)
+	if _, kept := agent.got["caucion_quoted"]; resp.Code != http.StatusOK || kept || !slices.Equal(agent.got["guarantee"], []string{"caucion"}) {
+		t.Fatalf("search: got %d %s, qualification %v", resp.Code, resp.Body.String(), agent.got)
+	}
+
+	token := signedIn(t, handler)
+	if resp := send(t, handler, http.MethodPut, "/api/me/qualification", token, `{"guarantee":["caucion"],"caucion_quoted":["no"]}`); resp.Code != http.StatusNoContent {
+		t.Fatalf("save: got %d %s", resp.Code, resp.Body.String())
+	}
+	for _, q := range saved {
+		if _, kept := q["caucion_quoted"]; kept || !slices.Equal(q["guarantee"], []string{"caucion"}) {
+			t.Fatalf("saved %v", q)
+		}
+	}
+}

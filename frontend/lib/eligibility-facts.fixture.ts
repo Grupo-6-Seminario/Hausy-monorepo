@@ -50,13 +50,6 @@ export const factsFixture: EligibilityFact[] = [
       { value: '3000000-', label: 'Más de $3.000.000' },
     ],
   },
-  {
-    name: 'caucion_quoted',
-    label: '¿Ya cotizaste un seguro de caución?',
-    priority: 'medium',
-    multiple: false,
-    choices: yesNo,
-  },
 ];
 
 // withFacts answers the catalog request itself and hands every other request

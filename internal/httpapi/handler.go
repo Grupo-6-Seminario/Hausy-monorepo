@@ -268,6 +268,9 @@ func validQualification(w http.ResponseWriter, r *http.Request, store Qualificat
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "No pudimos validar tus datos.", Code: "internal"})
 		return false
 	}
+	// A retired question is dropped from the request itself, so the search or
+	// the save goes on without it.
+	eligibility.DropRetired(q)
 	if err := eligibility.ValidateQualification(catalog, q); err != nil {
 		status, body := domainError(err, catalog)
 		writeJSON(w, status, body)
