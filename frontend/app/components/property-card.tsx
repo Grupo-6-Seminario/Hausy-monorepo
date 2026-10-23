@@ -15,6 +15,8 @@ import type {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { yesPhrases } from './qualification-panel';
+
 // What the searcher declared and the catalog that names it: the card's
 // eligibility reason needs both.
 export interface Situation {
@@ -154,6 +156,8 @@ function metPhrase(
     return band ? `tus ingresos de ${lowerFirst(band.label)}` : null;
   }
   if (rule.fact === 'pets' && values.includes('none')) return 'sin mascotas';
+  // A yes/no fact reads as the phrase the situation bar uses, not "sí".
+  if (yesPhrases[rule.fact] && values.includes('yes')) return yesPhrases[rule.fact];
   const labels = fact.choices
     .filter((c) => values.includes(c.value) && (rule.values ?? []).includes(c.value))
     .map((c) => c.label.toLowerCase());

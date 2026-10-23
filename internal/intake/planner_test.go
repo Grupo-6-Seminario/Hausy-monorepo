@@ -31,7 +31,6 @@ var testCatalog = eligibility.Catalog{
 		{Value: "0-1000000", Label: "Hasta $1.000.000"}, {Value: "1000000-2000000", Label: "$1.000.000 a $2.000.000"},
 		{Value: "2000000-3000000", Label: "$2.000.000 a $3.000.000"}, {Value: "3000000-", Label: "Más de $3.000.000"},
 	}},
-	"caucion_quoted": {Admissible: true, Choices: []eligibility.Choice{{Value: "yes", Label: "Sí"}, {Value: "no", Label: "No"}}},
 }
 
 type sourceFunc func(context.Context, []string) (intake.Plan, error)

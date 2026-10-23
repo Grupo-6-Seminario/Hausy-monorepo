@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -118,7 +119,6 @@ func TestFactsCarryTheFormCatalog(t *testing.T) {
 			{Value: "2000000-3000000", Label: "$2.000.000 a $3.000.000"},
 			{Value: "3000000-", Label: "Más de $3.000.000"},
 		}},
-		"caucion_quoted": {Admissible: true, Label: "¿Ya cotizaste un seguro de caución?", Priority: "medium", Position: 5, Choices: yesNo},
 	}
 	for name, fact := range want {
 		if got := facts[name]; !reflect.DeepEqual(got, fact) {
@@ -129,6 +129,10 @@ func TestFactsCarryTheFormCatalog(t *testing.T) {
 		if facts.Admissible(protected) {
 			t.Errorf("%s must stay inadmissible", protected)
 		}
+	}
+	// Spec 007: no rule reads a caución quote, so the form stops asking it.
+	if _, ok := facts["caucion_quoted"]; ok {
+		t.Error("caucion_quoted must leave the catalog")
 	}
 }
 
@@ -231,12 +235,13 @@ func TestCandidatesKeepTheListingsAndRulesOfThePerListingReads(t *testing.T) {
 		digest string
 	}{
 		// Re-captured for spec 006: listing 59530580 gains its "sin mascota" rule (error 1)
-		// and 59966540's income rule covers expensas (error 2).
-		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "29f77e46c027c5501168025e761e37255d9fed2a91c0076d7d025668d825f088"},
+		// and 59966540's income rule covers expensas (error 2). Re-captured for spec 007:
+		// the income_documented rules are the only change (without them the old digests hold).
+		{"whole inventory", func() ([]eligibility.Candidate, error) { return store.Candidates(ctx, search.Query{}) }, 279, "a28bcde6e2323e453a2dc5f95769c0c961b6ac9fb7815462665ba218a512b411"},
 		{"palermo and congreso up to 900k", func() ([]eligibility.Candidate, error) {
 			return store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo", "congreso"}, Operation: "alquiler", Currency: "ARS", MaxPrice: &maxPrice})
-		}, 92, "1eb78918ca32486b95fcb79e16631aaaee29d5f011e3e4c1bf8159cbaef7a816"},
-		{"capped preview", func() ([]eligibility.Candidate, error) { return store.PreviewCandidates(ctx, search.Query{}, 50) }, 50, "5c8afef430f26de3ef8c3ad510a8fbe7d9fe2a724819ee5a3e82aaebe43d8aa5"},
+		}, 92, "ee6482b0fba7b507f23f87e342040f6fc9b7d563d4011ed16281d26342991f15"},
+		{"capped preview", func() ([]eligibility.Candidate, error) { return store.PreviewCandidates(ctx, search.Query{}, 50) }, 50, "ae66d400e4629be7e909e1db35152a4f049498121fcc785f3d56a723b43068d7"},
 	} {
 		got, err := tc.read()
 		if err != nil {
@@ -282,5 +287,41 @@ func TestEveryCatalogChoiceCanBeDeclaredInTheChat(t *testing.T) {
 				t.Errorf("%s=%s has no Declarable", name, c.Value)
 			}
 		}
+	}
+}
+
+// Spec 007: after load, exactly the searchable listings whose description
+// asks the tenant to prove their income carry the income_documented rule,
+// each with its own clause. The list is the hand review in
+// specs/007-income-proof-rule/clauses.md; a guarantor's pay slips and an
+// "or" alternative (59980152, 55770968, 55360032) are not on it.
+func TestLoadAsksForProofOfIncomeWhereTheListingDoes(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	loadCommitted(t, store)
+	want := strings.Fields(`53113773 54669946 58495144 58918850 59104263 59127966 59159610 59242857 59273620 59277251
+		59336411 59344807 59356911 59379959 59388489 59443185 59456752 59512038 59519746 59569984 59570949 59602413
+		59732810 59733661 59769260 59772156 59775328 59794846 59799057 59819140 59846555 59857030 59902632 59915695
+		59916237 59922514 59922516 59925532 59933400 59959677 59966540 59973061 59975659 59984791 59992529 60022997
+		60028740 60029155 60030285 60030932 60031095 60032274 60033803 60045025 60045336 60047227 60054215`)
+	candidates, err := store.Candidates(ctx, search.Query{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, c := range candidates {
+		for _, r := range c.Rules {
+			if r.Fact != "income_documented" {
+				continue
+			}
+			if r.Operator != eligibility.OneOf || !slices.Equal(r.Values, []string{"yes"}) || r.Hardness != eligibility.Hard || r.Evidence == "" || !strings.Contains(c.Listing.Description, r.Evidence) {
+				t.Errorf("%s: want a hard one_of [yes] rule quoting the listing, got %+v", c.Listing.URL, r)
+			}
+			got = append(got, regexp.MustCompile(`(\d+)\.html$`).FindStringSubmatch(c.Listing.URL)[1])
+		}
+	}
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Errorf("listings with the rule:\n got %v\nwant %v", got, want)
 	}
 }

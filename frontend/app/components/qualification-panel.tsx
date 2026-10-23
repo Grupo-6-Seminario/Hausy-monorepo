@@ -20,9 +20,8 @@ interface QualificationPanelProps {
 }
 
 // A yes/no fact reads as a phrase in the summary only when the answer is yes.
-const yesPhrases: Record<string, string> = {
+export const yesPhrases: Record<string, string> = {
   income_documented: 'ingresos comprobables',
-  caucion_quoted: 'caución cotizada',
 };
 
 function isYesNo(fact: EligibilityFact): boolean {

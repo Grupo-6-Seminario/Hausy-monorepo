@@ -32,7 +32,7 @@ func (s neighborhoodStock) Candidates(_ context.Context, q search.Query) ([]elig
 }
 
 func (neighborhoodStock) Facts(context.Context) (eligibility.Catalog, error) {
-	return eligibility.Catalog{"guarantee": {Admissible: true}, "income_band": {Admissible: true}, "caucion_quoted": {Admissible: true}}, nil
+	return eligibility.Catalog{"guarantee": {Admissible: true}, "income_band": {Admissible: true}}, nil
 }
 
 type cannedWriter struct{}

@@ -484,3 +484,59 @@ func TestANearLineConditionCarriesTheThresholdItWasComparedWith(t *testing.T) {
 		t.Errorf("only an income comparison has a threshold, got %+v", got.Conditions)
 	}
 }
+
+var incomeCatalog = eligibility.Catalog{"income_documented": {Admissible: true, Choices: []eligibility.Choice{{Value: "yes"}, {Value: "no"}}}}
+
+// Spec 007: a listing that asks the tenant to prove their income gets a hard
+// income_documented rule at load, with its own clause as evidence. Every
+// case is a committed listing's clause (specs/007-income-proof-rule/clauses.md).
+func TestPublishedRulesReadARequestForProofOfIncome(t *testing.T) {
+	proof := func(evidence string) []eligibility.Rule {
+		return []eligibility.Rule{{Fact: "income_documented", Operator: "one_of", Values: []string{"yes"}, Hardness: "hard", Visibility: "public", Source: "parsed", Evidence: evidence}}
+	}
+	for _, tc := range []struct {
+		name        string
+		description string
+		want        []eligibility.Rule
+	}{
+		{"59966540", "Excelente ubicación. Ingresos comprobables, recibos de sueldo que tripliquen el valor del alquiler y expensas. Garantía propietaria de Caba o seguro de caución.",
+			proof("Ingresos comprobables, recibos de sueldo que tripliquen el valor del alquiler y expensas")},
+		{"the guarantee after the tenant's slips (18)", "Condiciones: 1 mes de depósito, un mes de alquiler, por adelantados, recibos de sueldo comprobables, Seguro de caución o garantía propietaria.",
+			proof("1 mes de depósito, un mes de alquiler, por adelantados, recibos de sueldo comprobables, Seguro de caución o garantía propietaria")},
+		{"the tenant's and the guarantor's (300)", "Recibo de Sueldo del Inquilino/s y Garante/s.", proof("Recibo de Sueldo del Inquilino/s y Garante/s")},
+		{"an amount does not end the clause (296)", "Requisitos: un mes de alquiler, un mes de depósito, recibos de sueldo (con ingresos netos de al menos $ 2.000.000) + garantía de propiedad o seguro de caución.  Contrato por dos años.",
+			proof("un mes de alquiler, un mes de depósito, recibos de sueldo (con ingresos netos de al menos $ 2.000.000) + garantía de propiedad o seguro de caución")},
+		{"either proof will do (138)", "Recibo de Sueldo o Ingresos Comprobables.", proof("Recibo de Sueldo o Ingresos Comprobables")},
+		{"a demonstration of income (80)", "DEMOSTRACIÓN DE INGRESOS EN BLANCO", proof("DEMOSTRACIÓN DE INGRESOS EN BLANCO")},
+		{"or a caución instead (36)", "A INGRESOS COMPROBABLES O SEGURO DE CAUCIÓN.", nil},
+		{"an alternative anywhere spares the whole listing", "Ingresos comprobables o seguro de caución. Recibos de sueldo al día.", nil},
+		{"or studies instead (237)", "- Acreditar ingresos/estudios.", nil},
+		{"pay slips as the guarantee (74)", "Garantía: Propietaria, recibo de sueldo o seguro de caución", nil},
+		{"the guarantor's slips (106)", "-Garantía preferentemente propietaria en CABA también con recibos de ingresos verificables.", nil},
+		{"a noun form, padded with non-breaking spaces (86)", "Requisitos:\u00a0\u00a0 COMPROBANTE DE INGRESOS\n", proof("COMPROBANTE DE INGRESOS")},
+		{"nothing about income", "Luminoso, al frente. Garantía propietaria.", nil},
+	} {
+		got := eligibility.PublishedRules(listing.Listing{Description: tc.description}, incomeCatalog)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s:\n got %+v\nwant %+v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// Spec 007: "Sí" clears the documented-income rule, "No" fails it, and an
+// unanswered question leaves the listing unknown, never eligible.
+func TestTheDocumentedIncomeRuleFollowsTheAnswer(t *testing.T) {
+	proof := eligibility.Rule{Fact: "income_documented", Operator: "one_of", Values: []string{"yes"}, Hardness: "hard", Evidence: "Ingresos comprobables"}
+	for _, tc := range []struct {
+		answer eligibility.Qualification
+		want   eligibility.State
+	}{
+		{eligibility.Qualification{"income_documented": {"yes"}}, eligibility.Eligible},
+		{eligibility.Qualification{"income_documented": {"no"}}, eligibility.Ineligible},
+		{nil, eligibility.Unknown},
+	} {
+		if got := eligibility.Assess(tc.answer, listing.Listing{}, []eligibility.Rule{proof}, incomeCatalog); got.State != tc.want {
+			t.Errorf("%v: want %s, got %+v", tc.answer, tc.want, got)
+		}
+	}
+}
