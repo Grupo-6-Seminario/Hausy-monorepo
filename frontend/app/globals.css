@@ -3136,6 +3136,55 @@
   text-align: left;
 }
 
+/* The questions' outline while the catalog loads, sized like the real form. */
+.qualification-skeleton {
+  display: block;
+}
+
+.qualification-skeleton-title {
+  width: min(12rem, 60%);
+  height: 1.75rem;
+}
+
+.qualification-skeleton-row {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+}
+
+.qualification-skeleton-row > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.qualification-skeleton-label {
+  width: min(14rem, 70%);
+  height: 0.9375rem;
+}
+
+.qualification-skeleton-title + .qualification-skeleton-label {
+  margin-top: 0.5rem;
+}
+
+.qualification-skeleton-pill {
+  max-width: 100%;
+  height: 44px;
+  border-radius: var(--radius-pill);
+}
+
+.qualification-skeleton-select {
+  width: min(22rem, 100%);
+  height: 44px;
+}
+
+.qualification-skeleton-action {
+  width: 8rem;
+  height: 2rem;
+  margin-top: 1.25rem;
+  border-radius: var(--radius-pill);
+}
+
 .qualification-panel summary {
   display: grid;
   border-radius: 0.5rem;

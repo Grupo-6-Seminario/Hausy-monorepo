@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 // One question of the qualification form, as GET /api/eligibility/facts serves
 // it. The backend owns the catalog; the form only renders it.
@@ -67,21 +67,45 @@ export function parseFacts(body: unknown): EligibilityFact[] | null {
     : facts.filter((fact) => fact !== null);
 }
 
-// useEligibilityFacts loads the form's questions. The response is cacheable
-// (max-age=300), so each caller asking is cheap.
+// FactsContext carries the catalog the page loaded on the server, so the form
+// renders with the page instead of after a request.
+export const FactsContext = createContext<EligibilityFact[] | null>(null);
+
+// inFlight is the one request every component that mounts at the same time
+// shares. It is dropped once settled: later mounts ask again, and the
+// response is cacheable (max-age=300).
+let inFlight: Promise<EligibilityFact[] | null> | null = null;
+
+function requestFacts(): Promise<EligibilityFact[] | null> {
+  inFlight ??= fetch('/api/eligibility/facts')
+    .then(async (response) =>
+      response.ok ? parseFacts(await response.json()) : null,
+    )
+    .catch(() => null)
+    .finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
+// useEligibilityFacts gives the form's questions: the page's catalog when it
+// brought one, or one shared request otherwise.
 export function useEligibilityFacts(): FactsState {
-  const [state, setState] = useState<FactsState>({ kind: 'loading' });
+  const provided = useContext(FactsContext);
+  const [state, setState] = useState<FactsState>(
+    provided ? { kind: 'ready', facts: provided } : { kind: 'loading' },
+  );
   useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/eligibility/facts', { signal: controller.signal })
-      .then(async (response) => {
-        const facts = response.ok ? parseFacts(await response.json()) : null;
+    if (provided) return;
+    let mounted = true;
+    void requestFacts().then((facts) => {
+      if (mounted) {
         setState(facts ? { kind: 'ready', facts } : { kind: 'failed' });
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setState({ kind: 'failed' });
-      });
-    return () => controller.abort();
-  }, []);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [provided]);
   return state;
 }

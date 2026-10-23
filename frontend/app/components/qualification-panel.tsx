@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   type EligibilityFact,
   useEligibilityFacts,
@@ -74,6 +75,14 @@ function isQualification(value: unknown): value is Qualification {
 // questions come from the backend; without them the panel stays out of the way
 // and search continues without a qualification. Signed-in searchers get their
 // saved answers back and keep their changes.
+// The widths (rem) of the form's choice pills, so the skeleton wraps on a
+// phone the way the questions will: guarantee, documented income, pets.
+const skeletonPills = [
+  [12, 11, 17, 7.5],
+  [4.25, 4.5],
+  [7, 6, 5.5, 5.25],
+];
+
 export function QualificationPanel({
   onChange,
   initial = {},
@@ -105,7 +114,41 @@ export function QualificationPanel({
     return () => controller.abort();
   }, []);
 
-  if (factsState.kind !== 'ready') return null;
+  // The questions' place is held while they load; a failed catalog leaves
+  // nothing, since search works without a qualification.
+  if (factsState.kind === 'loading') {
+    return (
+      <output
+        className="qualification-panel qualification-skeleton"
+        aria-busy="true"
+        aria-label="Cargando las preguntas"
+      >
+        {/* Shaped like the form it replaces, so nothing moves when it lands. */}
+        <Skeleton className="qualification-skeleton-title" />
+        <Skeleton className="qualification-skeleton-label" />
+        {skeletonPills.map((widths, row) => (
+          <div key={row} className="qualification-skeleton-row">
+            <Skeleton className="qualification-skeleton-label" />
+            <div>
+              {widths.map((width, pill) => (
+                <Skeleton
+                  key={pill}
+                  className="qualification-skeleton-pill"
+                  style={{ width: `${width}rem` }}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="qualification-skeleton-row">
+          <Skeleton className="qualification-skeleton-label" />
+          <Skeleton className="qualification-skeleton-select" />
+        </div>
+        <Skeleton className="qualification-skeleton-action" />
+      </output>
+    );
+  }
+  if (factsState.kind === 'failed') return null;
   const { facts } = factsState;
 
   // "none" stands alone, as the backend requires: checking it clears the
@@ -190,6 +233,13 @@ export function QualificationPanel({
                       ? toggle(fact.name, choice.value, event.target.checked)
                       : choose(fact.name, choice.value)
                   }
+                  // A radio fires no change when its marked option is
+                  // clicked; that click takes the answer back instead.
+                  onClick={() => {
+                    if (!fact.multiple && declared.includes(choice.value)) {
+                      choose(fact.name, '');
+                    }
+                  }}
                 />
                 {choice.label}
               </label>
