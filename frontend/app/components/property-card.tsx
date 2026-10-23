@@ -98,6 +98,7 @@ export const eligibilityMark: Record<EligibilityState, string> = {
 // first two are data that is missing.
 function unknownReason(
   eligibility: Eligibility,
+  facts: EligibilityFact[] = [],
 ): { text: string; missing: boolean } | null {
   if (eligibility.state !== 'unknown') return null;
   const conditions = eligibility.conditions ?? [];
@@ -106,6 +107,17 @@ function unknownReason(
   }
   if (conditions.some((condition) => condition.reason === 'missing')) {
     return { text: 'Publica requisitos · completá tus datos', missing: true };
+  }
+  // A refusal that spares the searcher's guarantee names what it refuses
+  // (specs/008); the catalog labels it, or the raw value stands in.
+  const refusal = conditions.find((condition) => condition.reason === 'unconfirmed');
+  if (refusal) {
+    const choices = facts.find((f) => f.name === refusal.rule.fact)?.choices ?? [];
+    const refused = (refusal.rule.values ?? []).map(
+      (value) =>
+        choices.find((c) => c.value === value)?.label.toLowerCase() ?? value,
+    );
+    return { text: `No acepta ${refused.join(' ni ')}`, missing: false };
   }
   return { text: 'Requisito no verificable', missing: false };
 }
@@ -273,7 +285,9 @@ export function PropertyCard({
     bathrooms != null ? `${bathrooms} ${bathrooms === 1 ? 'baño' : 'baños'}` : null,
     total_area_m2 != null ? `${total_area_m2} m²` : null,
   ].filter((metric) => metric !== null);
-  const toConfirm = eligibility ? unknownReason(eligibility) : null;
+  const toConfirm = eligibility
+    ? unknownReason(eligibility, situation?.facts)
+    : null;
 
   return (
     <article

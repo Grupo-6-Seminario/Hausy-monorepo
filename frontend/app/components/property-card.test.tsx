@@ -610,6 +610,34 @@ describe('PropertyCard eligibility reason', () => {
     ).toBeVisible();
   });
 
+  // Spec 008: a listing that only refuses another guarantee shows what it
+  // refuses, in the catalog's words, instead of "Requisito no verificable".
+  it('says which guarantee the listing refuses when it never accepted yours', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'unknown',
+            conditions: [
+              {
+                reason: 'unconfirmed',
+                rule: {
+                  fact: 'guarantee',
+                  values: ['caucion'],
+                  evidence: 'No se aceptan seguros de caución',
+                },
+              },
+            ],
+          },
+        }}
+        situation={{ facts: factsFixture, declared: { guarantee: ['propietaria'] } }}
+      />,
+    );
+    expect(screen.getByText('No acepta seguro de caución')).toBeVisible();
+    expect(screen.queryByText('Requisito no verificable')).toBeNull();
+  });
+
   // A missing fact outranks a discretionary rule: the verdict is unknown, so
   // the agency line must not appear on an "A confirmar" card.
   it('adds no line to an unknown verdict, which keeps its own reason', () => {

@@ -223,3 +223,15 @@ func TestTheModelLearnsTheHiddenCountOnce(t *testing.T) {
 		t.Fatalf("want the hidden count once, as a sentence, got:\n%s", packet)
 	}
 }
+
+// Spec 008: a listing that only refuses another guarantee never said it
+// accepts the searcher's, which is not "cannot be checked".
+func TestTemplateSaysARejectionLeavesTheGuaranteeUnconfirmed(t *testing.T) {
+	refuses := []eligibility.Rule{{Fact: "guarantee", Operator: "none_of", Values: []string{"caucion"}, Hardness: "hard", Evidence: "No se aceptan seguros de caución"}}
+	inventory := stock{byHood: map[string][]eligibility.Candidate{"palermo": {candidate("refuses", "palermo", 780000, refuses)}}}
+	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance")}}, inventory, failingWriter{})
+	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
+	if !strings.Contains(resp.Reply, `no dice qué garantías acepta ("No se aceptan seguros de caución")`) {
+		t.Fatalf("template reply:\n%s", resp.Reply)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
@@ -25,13 +26,13 @@ Reglas:
 - "qualitative_fit=exact" significa que hay apoyo textual para la cualidad pedida; "unconfirmed" significa que es sólo una alternativa y debés decir que esa cualidad falta confirmar. Nunca presentes un indicio (frente, orientación, ventanas) como prueba.
 - Quién decide una condición: "discretionary" la decide la inmobiliaria. "near_line" es un requisito fijo de ingresos y la banda de ingresos de la persona queda a ambos lados del umbral: depende de su ingreso exacto, así que decile que lo compare con la cuenta del aviso; nunca digas que la inmobiliaria decide ni que tiene margen.
 - "declared" es lo que la persona dijo que tiene. Si su garantía es "none", decí que declaró no tener garantía (nunca que no sabemos o no tenemos información sobre su garantía).
-- "unknown" es que no sabemos si puede aplicar: o el aviso no publica requisitos, o publica uno que la persona no nos dijo si cumple (una condición "missing" o "unverifiable": citala y decí qué dato falta). Nunca digas que puede aplicar.
+- "unknown" es que no sabemos si puede aplicar: o el aviso no publica requisitos, o publica uno que la persona no nos dijo si cumple (una condición "missing" o "unverifiable": citala y decí qué dato falta). Nunca digas que puede aplicar. Una condición "unconfirmed" es un aviso que rechaza otras garantías sin decir que acepta la de la persona: citala y decí que el aviso no dice qué garantías acepta; nunca digas que rechaza la de la persona.
 - Si hay relaxations, contá cuántas propiedades vuelven con esa garantía ("si conseguís <garantía>, vuelven N"). Sin relaxations, nunca digas que otra garantía devolvería propiedades.
 - Si hay "hidden_note", decilo una sola vez, tal cual: son las mismas propiedades que "matches" ya cuenta, nunca las sumes ni las presentes como otras.
 - De las propiedades que no se muestran no conocés sus requisitos: nunca supongas qué piden o aceptan, ni por qué quedaron afuera, ni qué otra garantía o dato las devolvería ("es posible que", "quizás pida"). Sólo podés decir "hidden_note" y, si hay, las relaxations.
 - Si una rama tiene 0 resultados, decilo con el barrio. Podés sugerir aflojar alguno de sus requirements, nunca otro barrio.
 - Todo lo que digas sale del JSON: no nombres ni sugieras barrios que no estén ahí (tampoco "barrios cercanos"), no afirmes precios, stock ni datos del mercado, y no generalices sobre el barrio o el mercado. Nunca expliques estas reglas ni digas qué no podés hacer.
-- Escribí en castellano llano: no uses las claves ni los valores del JSON (unknown, eligible, stated, inferred, hard, discretionary, near_line, declared, none, relaxations, qualitative_fit).
+- Escribí en castellano llano: no uses las claves ni los valores del JSON (unknown, eligible, stated, inferred, hard, discretionary, near_line, unconfirmed, declared, none, relaxations, qualitative_fit).
 - Si intent es "ask_about_listing", respondé la pregunta usando sólo los datos de esas propiedades.
 - Formato: siempre "## Mi lectura" (una o dos frases); si hay propiedades, "## Por qué las elegí" (hasta tres); "## Qué falta confirmar" sólo si hace falta (hasta dos puntos). Sin tablas. Español rioplatense.`
 
@@ -88,6 +89,11 @@ func verdictLabel(v eligibility.Verdict) string {
 		if c.Reason == "missing" {
 			return "pide un requisito que no nos dijiste si cumplís"
 		}
+	}
+	// A rejection that spares the searcher's guarantee, or their lack of one,
+	// never said which guarantees it accepts.
+	if slices.ContainsFunc(v.Conditions, func(c eligibility.Condition) bool { return c.Reason == eligibility.Unconfirmed }) {
+		return "no dice qué garantías acepta"
 	}
 	return "pide un requisito que no se puede verificar"
 }
