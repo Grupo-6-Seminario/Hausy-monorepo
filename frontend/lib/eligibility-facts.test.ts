@@ -1,7 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useEligibilityFacts } from './eligibility-facts';
+import { FactsContext, useEligibilityFacts } from './eligibility-facts';
 import { factsFixture } from './eligibility-facts.fixture';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -32,5 +33,29 @@ describe('useEligibilityFacts', () => {
     answer(response);
     const { result } = renderHook(() => useEligibilityFacts());
     await waitFor(() => expect(result.current).toEqual({ kind: 'failed' }));
+  });
+
+  // Seen in a production build: the search page asked for the catalog once
+  // per component that needed it.
+  it('asks once for every component that needs the catalog at the same time', async () => {
+    answer(() => Response.json({ facts: factsFixture }));
+    const { result } = renderHook(() => [useEligibilityFacts(), useEligibilityFacts()]);
+    await waitFor(() =>
+      expect(result.current).toEqual([
+        { kind: 'ready', facts: factsFixture },
+        { kind: 'ready', facts: factsFixture },
+      ]),
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  // The page loads the catalog on the server, so the form renders with it.
+  it('uses the catalog the page brought without asking', () => {
+    answer(() => Response.json({ facts: [] }));
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(FactsContext, { value: factsFixture }, children);
+    const { result } = renderHook(() => useEligibilityFacts(), { wrapper });
+    expect(result.current).toEqual({ kind: 'ready', facts: factsFixture });
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

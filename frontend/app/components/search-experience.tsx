@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -19,7 +20,11 @@ import type {
   Relaxation,
   Requirement,
 } from '@/lib/types';
-import { useEligibilityFacts } from '@/lib/eligibility-facts';
+import {
+  FactsContext,
+  parseFacts,
+  useEligibilityFacts,
+} from '@/lib/eligibility-facts';
 import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
@@ -76,7 +81,22 @@ function referencedRanks(reply: string): number[] {
   return [...ranks];
 }
 
-export function SearchExperience() {
+// The page passes the catalog it loaded on the server (the endpoint's body),
+// so every part of the search that reads the form's questions has them at
+// once; without it, each asks the one shared request.
+export function SearchExperience({ initialFacts }: { initialFacts?: unknown }) {
+  const facts = useMemo(
+    () => (initialFacts ? parseFacts(initialFacts) : null),
+    [initialFacts],
+  );
+  return (
+    <FactsContext value={facts}>
+      <SearchWorkspace />
+    </FactsContext>
+  );
+}
+
+function SearchWorkspace() {
   const factsState = useEligibilityFacts();
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');

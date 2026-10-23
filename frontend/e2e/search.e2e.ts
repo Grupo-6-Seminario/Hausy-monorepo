@@ -559,3 +559,24 @@ test('an empty result names the listings eligibility hid and what would bring th
   });
   expect(errors).toEqual([]);
 });
+
+// A marked single choice can be taken back by clicking it again. The
+// keyboard still picks an answer as before.
+test('a marked answer in the qualification form can be cleared by clicking it', async ({
+  page,
+}) => {
+  await page.route('**/api/eligibility/facts', (route) =>
+    route.fulfill({ json: { facts: factsFixture } }),
+  );
+  await openSearch(page);
+  const documented = page
+    .getByRole('group', { name: '¿Podés comprobar tus ingresos?' })
+    .getByLabel('Sí');
+  await documented.focus();
+  await page.keyboard.press('Space');
+  await expect(documented).toBeChecked();
+  await documented.click();
+  await expect(documented).not.toBeChecked();
+  await documented.click();
+  await expect(documented).toBeChecked();
+});

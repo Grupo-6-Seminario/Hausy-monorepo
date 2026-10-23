@@ -129,6 +129,52 @@ describe('QualificationPanel', () => {
     expect(onChange).toHaveBeenLastCalledWith({ pets: ['cat'] });
   });
 
+  // A single choice could be changed but never taken back: clicking the marked
+  // option clears it, and the fact is left undeclared.
+  it('clears a marked option when it is clicked again', async () => {
+    routes({ '/api/eligibility/facts': factsOK });
+    const onChange = vi.fn();
+    render(<QualificationPanel onChange={onChange} />);
+    await open();
+
+    const documented = within(
+      screen.getByRole('group', { name: '¿Podés comprobar tus ingresos?' }),
+    ).getByLabelText('Sí');
+    await userEvent.click(documented);
+    expect(documented).toBeChecked();
+    await userEvent.click(documented);
+    expect(documented).not.toBeChecked();
+
+    const dog = screen.getByLabelText('Perro');
+    await userEvent.click(dog);
+    await userEvent.click(dog);
+    await userEvent.click(screen.getByLabelText('Seguro de caución'));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Usar estos datos' }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith({ guarantee: ['caucion'] });
+  });
+
+  // Seen in a production build: nothing rendered until the catalog arrived.
+  it('holds the place of the questions while they load', async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((resolve) => (answer = resolve))),
+    );
+    render(<QualificationPanel onChange={vi.fn()} />);
+
+    const skeleton = screen.getByRole('status', {
+      name: 'Cargando las preguntas',
+    });
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByRole('group')).toBeNull();
+
+    answer(factsOK());
+    expect(await screen.findByText(/Tu situación/)).toBeVisible();
+    expect(screen.queryByLabelText('Cargando las preguntas')).toBeNull();
+  });
+
   it('stays out of the way when the questions cannot be loaded', async () => {
     const fetchMock = routes({});
     const onChange = vi.fn();
