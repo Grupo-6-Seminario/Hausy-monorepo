@@ -25,6 +25,7 @@ import {
   parseFacts,
   useEligibilityFacts,
 } from '@/lib/eligibility-facts';
+import { requirementLabel } from '@/lib/listing-labels';
 import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
@@ -557,8 +558,7 @@ function SearchWorkspace() {
                     <li
                       key={`${requirement.type}-${requirement.value}-${index}`}
                     >
-                      <span>{requirement.type.replaceAll('_', ' ')}</span>{' '}
-                      {requirement.value}
+                      {requirementLabel(requirement)}
                     </li>
                   ))}
                 </ul>

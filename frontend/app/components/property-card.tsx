@@ -14,6 +14,7 @@ import type {
   ListingAttribute,
   Qualification,
 } from '@/lib/types';
+import { attributeLabel, formatMoney } from '@/lib/listing-labels';
 import { cn } from '@/lib/utils';
 
 import { yesPhrases } from './qualification-panel';
@@ -30,52 +31,6 @@ interface PropertyCardProps {
   isRecommended?: boolean;
   className?: string;
   situation?: Situation;
-}
-
-function formatMoney(amount?: number | null, currency?: string | null): string {
-  if (amount == null) return 'A consultar';
-  const formattedNumber = new Intl.NumberFormat('es-AR', {
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-  return currency === 'USD' ? `USD ${formattedNumber}` : `$ ${formattedNumber}`;
-}
-
-function formatAttributeLabel({ type, value }: ListingAttribute): string {
-  switch (type) {
-    case 'natural_light':
-      if (value === 'high') return 'Luz natural: alta';
-      if (value === 'medium') return 'Luz natural: media';
-      if (value === 'low') return 'Luz natural: baja';
-      return `Luz natural: ${value}`;
-    case 'noise_level':
-      if (value === 'quiet') return 'Silencioso';
-      if (value === 'moderate') return 'Ruido moderado';
-      if (value === 'noisy') return 'Ruidoso';
-      return `Ruido: ${value}`;
-    case 'exposure':
-      if (value === 'frente') return 'Al frente';
-      if (value === 'contrafrente') return 'Contrafrente';
-      if (value === 'interno') return 'Interno';
-      if (value === 'lateral') return 'Lateral';
-      return `Disposición: ${value}`;
-    case 'outdoor_space':
-      if (value === 'balcon') return 'Balcón';
-      if (value === 'balcon_terraza') return 'Balcón terraza';
-      if (value === 'terraza') return 'Terraza';
-      if (value === 'patio') return 'Patio';
-      if (value === 'jardin') return 'Jardín';
-      return value;
-    case 'transit_access':
-      if (value.startsWith('subte_')) {
-        return `Subte ${value.replace('subte_', '').toUpperCase()}`;
-      }
-      return value.charAt(0).toUpperCase() + value.slice(1);
-    case 'amenity':
-      return value.charAt(0).toUpperCase() + value.slice(1);
-    default:
-      return `${type.replaceAll('_', ' ')}: ${value}`;
-  }
 }
 
 // The searcher-facing names of the eligibility states (CONTEXT.md, Eligibility).
@@ -295,8 +250,8 @@ export function PropertyCard({
         first.evidence === attribute.evidence &&
         first.provenance === attribute.provenance,
     );
-    if (same) same.labels.push(formatAttributeLabel(attribute));
-    else qualities.push({ labels: [formatAttributeLabel(attribute)], attribute });
+    if (same) same.labels.push(attributeLabel(attribute.type, attribute.value));
+    else qualities.push({ labels: [attributeLabel(attribute.type, attribute.value)], attribute });
   }
 
   // Recording interest must never stand between the searcher and the agency, so
