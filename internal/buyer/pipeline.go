@@ -193,17 +193,17 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	q := mergeQualification(declared, plan.Qualification)
 
 	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort, Declared: q}
-	var results []Result
+	var results, ineligible []Result
 	var relaxations []eligibility.Relaxation
 	searchStarted := time.Now()
 	if len(plan.Branches) == 0 {
 		// Nothing to search (a greeting): keep what is already on screen,
 		// including what eligibility hid and what would bring it back.
 		a.mu.RLock()
-		results, relaxations, packet.Hidden = sess.results, sess.relaxations, sess.hidden
+		results, relaxations, packet.Hidden, ineligible = sess.results, sess.relaxations, sess.hidden, sess.ineligible
 		a.mu.RUnlock()
 	} else {
-		results, relaxations, packet.Branches, packet.Hidden, err = p.rank(ctx, plan, q, catalog)
+		results, relaxations, packet.Branches, packet.Hidden, ineligible, err = p.rank(ctx, plan, q, catalog)
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_search", slog.String("outcome", "error"),
 				slog.String("error_class", logging.ErrorClass(err)), slog.Int64("duration_ms", time.Since(searchStarted).Milliseconds()))
@@ -230,7 +230,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 
 	if events.Results != nil {
-		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden})
+		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible})
 	}
 	writerStarted := time.Now()
 	reply, err := p.writer.Write(ctx, packet, events.Reply)
@@ -249,10 +249,10 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 
 	a.mu.Lock()
 	sess.turns, sess.plan, sess.results = turns, plan, results
-	sess.relaxations, sess.hidden = relaxations, packet.Hidden
+	sess.relaxations, sess.hidden, sess.ineligible = relaxations, packet.Hidden, ineligible
 	a.mu.Unlock()
 	turnOutcome = "success"
-	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden}, nil
+	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible}, nil
 }
 
 type scored struct {
@@ -268,13 +268,14 @@ type scored struct {
 // rank retrieves every branch, assesses each listing and orders the merged
 // list: eligibility section first, then the user's sort (default: how many
 // preferred requirements the listing meets), then URL for a stable order.
-func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, catalog eligibility.Catalog) ([]Result, []eligibility.Relaxation, []BranchReport, int, error) {
+func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qualification, catalog eligibility.Catalog) ([]Result, []eligibility.Relaxation, []BranchReport, int, []Result, error) {
 	logger := logging.FromContext(ctx)
 	var all []eligibility.Candidate
 	var rows []scored
 	var reports []BranchReport
 	seen := map[string]bool{}
 	hidden := 0
+	var refused []scored
 	for branchIndex, branch := range plan.Branches {
 		storedQuery, qualitative, preferredQualitative, amenities := separateQualitative(branch)
 		candidateStarted := time.Now()
@@ -283,7 +284,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 			logger.LogAttrs(ctx, slog.LevelWarn, "buyer_candidates", slog.String("outcome", "error"),
 				slog.Int("branch", branchIndex), slog.String("error_class", logging.ErrorClass(err)),
 				slog.Int64("duration_ms", time.Since(candidateStarted).Milliseconds()))
-			return nil, nil, nil, 0, err
+			return nil, nil, nil, 0, nil, err
 		}
 		logger.LogAttrs(ctx, slog.LevelInfo, "buyer_candidates", slog.String("outcome", "success"),
 			slog.Int("branch", branchIndex), slog.Int("count", len(candidates)),
@@ -306,6 +307,7 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 			verdict := eligibility.Assess(q, c.Listing, c.Rules, catalog)
 			if verdict.State == eligibility.Ineligible {
 				hidden++
+				refused = append(refused, scored{result: Result{Listing: c.Listing, Eligibility: &verdict, Matched: matched(c.Listing, branch)}, fit: fit(c.Listing, branch.PreferredAttributes)})
 				continue
 			}
 			rows = append(rows, scored{result: Result{Listing: c.Listing, Eligibility: &verdict, Matched: matched(c.Listing, branch)}, section: section[verdict.State], fit: fit(c.Listing, branch.PreferredAttributes), requiredQualitative: qualitative, preferredQualitative: preferredQualitative, requiredAmenities: amenities})
@@ -336,7 +338,44 @@ func (p *pipeline) rank(ctx context.Context, plan intake.Plan, q eligibility.Qua
 		results[i] = r.result
 		results[i].Rank = i + 1
 	}
-	return results, eligibility.Relaxations(q, all, catalog), reports, hidden, nil
+	var ineligible []Result
+	if len(results) == 0 {
+		ineligible = closestRefused(refused, plan.Sort)
+	}
+	return results, eligibility.Relaxations(q, all, catalog), reports, hidden, ineligible, nil
+}
+
+// closestRefused is what an empty search may offer instead of nothing: the
+// listings the searcher does not qualify for, fewest unmet requirements
+// first, then the search's own order (specs/009-ineligible-on-empty).
+func closestRefused(refused []scored, sort string) []Result {
+	unmet := func(s scored) int {
+		n := 0
+		for _, c := range s.result.Eligibility.Conditions {
+			if c.Reason == eligibility.NotMet {
+				n++
+			}
+		}
+		return n
+	}
+	slices.SortFunc(refused, func(a, b scored) int {
+		if c := cmp.Compare(unmet(a), unmet(b)); c != 0 {
+			return c
+		}
+		if c := byUserSort(sort, a, b); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.result.URL, b.result.URL)
+	})
+	if len(refused) > maxShown {
+		refused = refused[:maxShown]
+	}
+	out := make([]Result, len(refused))
+	for i, r := range refused {
+		out[i] = r.result
+		out[i].Rank = i + 1
+	}
+	return out
 }
 
 // Only qualities with an evidence rubric belong here. The other attributes

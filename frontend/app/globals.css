@@ -1246,7 +1246,8 @@
 }
 
 .property-list > ol,
-.eligibility-section > ol {
+.eligibility-section > ol,
+.refused-listings ol {
   display: grid;
   gap: 1.25rem;
   margin: 0;
@@ -3114,6 +3115,79 @@
   font-size: 0.625rem;
   font-weight: 700;
   line-height: 1;
+}
+
+/* What an empty search hid, folded until asked for (specs/009). */
+.refused-listings {
+  margin-top: 1.5rem;
+}
+
+.refused-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 1.25rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 140ms ease;
+}
+
+.refused-toggle::after {
+  /* Decorative: the empty alternative keeps it out of the button name. */
+  content: '▾' / '';
+  transition: transform 160ms ease;
+}
+
+.refused-toggle[aria-expanded='true']::after {
+  transform: rotate(180deg);
+}
+
+.refused-toggle:hover {
+  background: var(--secondary);
+}
+
+.refused-toggle:focus-visible,
+.refused-listings li:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.refused-listings ol {
+  margin-top: 1.25rem;
+}
+
+.refused-listings li {
+  border-radius: 1.25rem;
+}
+
+.refused-note {
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refused-toggle,
+  .refused-toggle::after {
+    transition: none;
+  }
+}
+
+/* On a phone the label wraps: the button takes the width, the arrow its end. */
+@media (max-width: 640px) {
+  .refused-toggle {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.625rem 1.125rem;
+    border-radius: 1rem;
+    text-align: left;
+  }
 }
 
 .relaxation-line {

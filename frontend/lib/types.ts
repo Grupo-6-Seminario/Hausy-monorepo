@@ -20,6 +20,7 @@ export type EligibilityState =
 
 export interface EligibilityRule {
   fact: string;
+  operator?: string;
   values?: string[];
   hardness?: string;
   evidence?: string;
@@ -101,6 +102,8 @@ export interface AgentResponse {
   requirements?: Requirement[];
   relaxations?: Relaxation[];
   hidden_ineligible?: number;
+  // Sent only when nothing else is shown (specs/009).
+  ineligible?: Listing[];
   error?: string;
   clarification?: ClarificationQuestion;
   clarification_hint?: string;

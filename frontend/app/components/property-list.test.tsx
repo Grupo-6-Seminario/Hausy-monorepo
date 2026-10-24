@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -267,4 +267,116 @@ it('explains what each eligibility section means when asked', async () => {
   expect(
     screen.getByText('Cumplís todo lo que el aviso publica como requisito.'),
   ).not.toBeVisible();
+});
+
+describe('PropertyList when nothing is left to show', () => {
+  const refused = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      ...mockListings[0],
+      id: 100 + i,
+      url: `https://zonaprop.com.ar/refused-${i}`,
+      address: `Refused ${i}`,
+      rank: i + 1,
+      eligibility: {
+        state: 'ineligible' as const,
+        conditions: [
+          { reason: 'not_met', rule: { fact: 'guarantee', values: ['caucion'] } },
+        ],
+      },
+    }));
+
+  // Spec 009: the listings the searcher does not qualify for stay folded
+  // until asked for, by click or keyboard, and focus lands on the first.
+  it('opens and closes the listings the searcher does not qualify for', async () => {
+    vi.stubGlobal('fetch', withFacts(() => Promise.reject(new Error('unreachable'))));
+    const user = userEvent.setup();
+    render(
+      <PropertyList
+        listings={[]}
+        hiddenIneligible={2}
+        ineligible={refused(2)}
+        declared={{ guarantee: ['propietaria'] }}
+      />,
+    );
+    const toggle = screen.getByRole('button', {
+      name: 'Ver las 2 propiedades que no aceptan tu situación',
+    });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Refused 0')).toBeNull();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Refused 0')).toBeVisible();
+    expect(screen.getByText('Refused 1')).toBeVisible();
+    expect(screen.getAllByText('No calificás')).toHaveLength(2);
+    expect(await screen.findAllByText('Pide seguro de caución')).toHaveLength(2);
+    expect(document.activeElement).toBe(
+      screen.getByText('Refused 0').closest('li'),
+    );
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Refused 0')).toBeNull();
+
+    toggle.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText('Refused 0')).toBeVisible();
+    toggle.focus();
+    await user.keyboard(' ');
+    expect(screen.queryByText('Refused 0')).toBeNull();
+  });
+
+  // Found in review: the streamed results and the final reply carry the
+  // same listings in two arrays; the section must not fold between them.
+  it('stays open when the same listings arrive again, and folds for new ones', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <PropertyList listings={[]} hiddenIneligible={2} ineligible={refused(2)} />,
+    );
+    await user.click(screen.getByRole('button', { name: /no aceptan tu situación/ }));
+    rerender(
+      <PropertyList listings={[]} hiddenIneligible={2} ineligible={refused(2)} />,
+    );
+    expect(screen.getByText('Refused 0')).toBeVisible();
+
+    rerender(
+      <PropertyList listings={[]} hiddenIneligible={1} ineligible={refused(3).slice(2)} />,
+    );
+    expect(screen.queryByText('Refused 2')).toBeNull();
+  });
+
+  it('names one listing in the singular and says when it shows only ten', () => {
+    const { rerender } = render(
+      <PropertyList listings={[]} hiddenIneligible={1} ineligible={refused(1)} />,
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Ver la propiedad que no acepta tu situación',
+      }),
+    ).toBeVisible();
+
+    rerender(
+      <PropertyList listings={[]} hiddenIneligible={14} ineligible={refused(10)} />,
+    );
+    const toggle = screen.getByRole('button', {
+      name: 'Ver las 14 propiedades que no aceptan tu situación',
+    });
+    toggle.click();
+    return waitFor(() =>
+      expect(
+        screen.getByText('Te mostramos las 10 a las que les falta menos.'),
+      ).toBeVisible(),
+    );
+  });
+
+  it('offers nothing when the search shows results', () => {
+    render(
+      <PropertyList
+        listings={[mockListings[0]]}
+        hiddenIneligible={2}
+        ineligible={refused(2)}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /no acepta/ })).toBeNull();
+  });
 });

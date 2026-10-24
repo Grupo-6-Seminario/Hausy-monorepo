@@ -105,6 +105,7 @@ function SearchWorkspace() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [relaxations, setRelaxations] = useState<Relaxation[]>([]);
   const [hiddenIneligible, setHiddenIneligible] = useState(0);
+  const [ineligible, setIneligible] = useState<Listing[]>([]);
   // The qualification the shown verdicts were assessed against: the form can
   // change before the next search, and the cards must not follow it.
   const [searchedQualification, setSearchedQualification] =
@@ -220,6 +221,7 @@ function SearchWorkspace() {
             setRequirements(partial.requirements || []);
             setRelaxations(partial.relaxations || []);
             setHiddenIneligible(partial.hidden_ineligible ?? 0);
+            setIneligible(partial.ineligible ?? []);
             setSearchedQualification(sent);
             setHasSearched(true);
           },
@@ -247,6 +249,7 @@ function SearchWorkspace() {
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
+        setIneligible(payload.ineligible ?? []);
         setSearchedQualification(sent);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
@@ -307,6 +310,7 @@ function SearchWorkspace() {
           setRequirements(partial.requirements || []);
           setRelaxations(partial.relaxations || []);
           setHiddenIneligible(partial.hidden_ineligible ?? 0);
+          setIneligible(partial.ineligible ?? []);
           setSearchedQualification(sent);
           setHasSearched(true);
         },
@@ -336,6 +340,7 @@ function SearchWorkspace() {
         setRequirements(payload.requirements || []);
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
+        setIneligible(payload.ineligible ?? []);
         setSearchedQualification(sent);
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
@@ -425,6 +430,7 @@ function SearchWorkspace() {
     setRequirements([]);
     setRelaxations([]);
     setHiddenIneligible(0);
+    setIneligible([]);
     setSearchedQualification({});
     setRecommendedRanks([]);
     setHasSearched(false);
@@ -738,6 +744,7 @@ function SearchWorkspace() {
               listings={listings}
               relaxations={relaxations}
               hiddenIneligible={hiddenIneligible}
+              ineligible={ineligible}
               declared={searchedQualification}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}

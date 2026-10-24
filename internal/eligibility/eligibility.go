@@ -408,8 +408,8 @@ func (r Rule) Validate() error {
 type Condition struct {
 	Rule   Rule   `json:"rule"`
 	Reason Reason `json:"reason"`
-	// Threshold is the monthly income (ARS) a near-the-line band was compared
-	// with, so a reader can name it without recomputing it.
+	// Threshold is the monthly income (ARS) a near-the-line or unmet band was
+	// compared with, so a reader can name it without recomputing it.
 	Threshold *float64 `json:"threshold,omitempty"`
 }
 
@@ -442,7 +442,7 @@ func Assess(q Qualification, item listing.Listing, rules []Rule, catalog Catalog
 			v.Met = append(v.Met, r)
 		default:
 			c := Condition{Rule: r, Reason: reason}
-			if reason == NearLine {
+			if reason == NearLine || reason == NotMet {
 				if threshold, ok := incomeThreshold(item, r); ok {
 					c.Threshold = &threshold
 				}

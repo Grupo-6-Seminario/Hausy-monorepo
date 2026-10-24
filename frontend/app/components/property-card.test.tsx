@@ -660,3 +660,45 @@ describe('PropertyCard eligibility reason', () => {
     expect(screen.getByText('Publica requisitos · completá tus datos')).toBeVisible();
   });
 });
+
+describe('PropertyCard for a listing the searcher does not qualify for', () => {
+  // Spec 009: opened from an empty search, each card says what it asks for
+  // that the searcher lacks, in the catalog's words.
+  it('names every unmet requirement under "No calificás"', () => {
+    render(
+      <PropertyCard
+        listing={{
+          ...sampleListing,
+          eligibility: {
+            state: 'ineligible',
+            conditions: [
+              { reason: 'not_met', rule: { fact: 'guarantee', values: ['caucion'] } },
+              { reason: 'not_met', rule: { fact: 'guarantee', values: ['caucion'], operator: 'none_of' } },
+              { reason: 'not_met', rule: { fact: 'pets', values: ['none'] } },
+              { reason: 'not_met', rule: { fact: 'pets', values: ['none', 'cat'] } },
+              { reason: 'not_met', threshold: 2478000, rule: { fact: 'income_band', values: ['3'] } },
+              { reason: 'not_met', rule: { fact: 'income_documented', values: ['yes'] } },
+              { reason: 'not_met', rule: { fact: 'smoking', evidence: 'No fumadores' } },
+            ],
+          },
+        }}
+        situation={{
+          facts: factsFixture,
+          declared: { guarantee: ['propietaria'], pets: ['dog'], income_band: ['1000000-2000000'], income_documented: ['no'] },
+        }}
+      />,
+    );
+    expect(screen.getByText('No calificás')).toBeVisible();
+    expect(
+      screen.getAllByText(/^(Pide|No acepta)/).map((line) => line.textContent),
+    ).toEqual([
+      'Pide seguro de caución',
+      'No acepta seguro de caución',
+      'No acepta mascotas',
+      'No acepta perro',
+      'Pide ingresos de $2.478.000',
+      'Pide ingresos comprobables',
+      'Pide: «No fumadores»',
+    ]);
+  });
+});
