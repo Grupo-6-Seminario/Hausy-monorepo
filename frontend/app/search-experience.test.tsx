@@ -286,7 +286,9 @@ describe('SearchExperience', () => {
     );
   });
 
-  it('names the kind of each condition it is using', async () => {
+  // Seen in the app: the chips showed the backend field ("max price 1000
+  // USD", "neighborhood palermo") instead of a phrase the searcher reads.
+  it('names each condition it is using as a short Spanish phrase', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
@@ -295,8 +297,12 @@ describe('SearchExperience', () => {
           reply: 'Respuesta del agente.',
           listings: [sampleListing],
           requirements: [
-            { type: 'outdoor_space', value: 'balcon' },
-            { type: 'excluye_outdoor_space', value: 'balcon' },
+            { type: 'max_price', value: '1000 USD' },
+            { type: 'min_rooms', value: '3' },
+            { type: 'neighborhood', value: 'villa_crespo' },
+            { type: 'operation', value: 'alquiler' },
+            { type: 'amenity', value: 'cochera' },
+            { type: 'excluye_exposure', value: 'contrafrente' },
           ],
         }),
       )),
@@ -312,7 +318,14 @@ describe('SearchExperience', () => {
       within(criteria)
         .getAllByRole('listitem')
         .map((item) => item.textContent),
-    ).toEqual(['outdoor space balcon', 'excluye outdoor space balcon']);
+    ).toEqual([
+      'Hasta USD 1.000',
+      'Desde 3 ambientes',
+      'Villa Crespo',
+      'Alquiler',
+      'Con cochera',
+      'Sin contrafrente',
+    ]);
   });
 
   it('starts a new line on Shift+Enter without sending', async () => {

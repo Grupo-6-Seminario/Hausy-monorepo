@@ -895,11 +895,6 @@
   line-height: 1.3;
 }
 
-/* The kind of condition stays visible: "excluye" and "prefiere" change its meaning. */
-.criteria li span {
-  color: var(--muted-foreground);
-}
-
 /* Positioned: the newest turn's offsetTop is measured from here when it scrolls into view. */
 .conversation-log {
   position: relative;
