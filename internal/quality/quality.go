@@ -38,8 +38,10 @@ type Record struct {
 	Review        Review `json:"review"`
 }
 
-// Fingerprint binds a review to searchable content while ignoring refresh timestamps.
+// Fingerprint binds a review to searchable content while ignoring the row id
+// and refresh timestamps.
 func Fingerprint(item listing.Listing) string {
+	item.ID = 0
 	item.Rank = 0
 	item.ScrapedAt = time.Time{}
 	item.ParsedAt = nil

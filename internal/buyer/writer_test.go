@@ -10,6 +10,7 @@ import (
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/buyer"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/intake"
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/listing"
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/llm"
 )
 
@@ -233,5 +234,22 @@ func TestTemplateSaysARejectionLeavesTheGuaranteeUnconfirmed(t *testing.T) {
 	resp := turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
 	if !strings.Contains(resp.Reply, `no dice qué garantías acepta ("No se aceptan seguros de caución")`) {
 		t.Fatalf("template reply:\n%s", resp.Reply)
+	}
+}
+
+// The row id is for the result card's contact intent, not for the model: a
+// number in the packet is one more the reply could quote.
+func TestTheModelNeverSeesTheStoredID(t *testing.T) {
+	client := &recordingLLM{}
+	p := buyer.Packet{Intent: "new_search", Shown: []buyer.Result{{Listing: listing.Listing{ID: 4817, Rank: 1, URL: "https://ex.test/1"}}}}
+	if _, err := (buyer.LocalWriter{Client: client}).Write(context.Background(), p, nil); err != nil {
+		t.Fatal(err)
+	}
+	packet := client.last.Messages[len(client.last.Messages)-1].Content
+	if strings.Contains(packet, "4817") || !strings.Contains(packet, `"rank":1`) {
+		t.Fatalf("want the listing without its id, got:\n%s", packet)
+	}
+	if p.Shown[0].ID != 4817 {
+		t.Fatal("Write changed the caller's packet")
 	}
 }

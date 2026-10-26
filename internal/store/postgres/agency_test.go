@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/agency"
@@ -111,6 +112,42 @@ func TestStore_PersistsContactIntentsIdempotently(t *testing.T) {
 	}
 	if !first.Created || replay.Created || !first.Recorded || !replay.Recorded {
 		t.Fatalf("receipts = first %+v, replay %+v", first, replay)
+	}
+	properties, err := store.List(ctx, owner.ID)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if got := properties[0].ContactCount; got != 1 {
+		t.Fatalf("ContactCount = %d, want 1", got)
+	}
+}
+
+// The result card sends the listing's id with "Contactar"; a search result
+// must carry the id the contact intent takes, or no contact is ever counted.
+func TestStore_ASearchResultTakesAContactIntent(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	owner, err := auth.NewLocal(store).SignUp(ctx, auth.Registration{
+		Email: uniqueEmail(), Password: "alquileres-caba", Name: "Lounge Propiedades", Role: auth.RoleRealtor,
+	})
+	if err != nil {
+		t.Fatalf("SignUp: %v", err)
+	}
+	created, err := store.Add(ctx, agency.Owner{ID: owner.ID, Name: owner.Name}, postgresAgencyPropertyInput())
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if err := store.SaveReview(ctx, created.URL, quality.Review{Status: quality.Passed}); err != nil {
+		t.Fatal(err)
+	}
+	found, err := store.Candidates(ctx, search.Query{Neighborhoods: []string{"palermo"}, Operation: "alquiler"})
+	if err != nil || len(found) != 1 {
+		t.Fatalf("Candidates = %+v, %v; want the one property", found, err)
+	}
+
+	intent := agency.ContactIntent{ID: "0d2f1a54-58a4-4a53-9a39-5b0e1f0c2b7e", Source: agency.ContactSourceSearchResultCard}
+	if _, err := store.RecordContactIntent(ctx, strconv.FormatInt(found[0].Listing.ID, 10), intent); err != nil {
+		t.Fatalf("RecordContactIntent with the result's id: %v", err)
 	}
 	properties, err := store.List(ctx, owner.ID)
 	if err != nil {

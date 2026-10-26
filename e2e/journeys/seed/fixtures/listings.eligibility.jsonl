@@ -1,0 +1,10 @@
+{"url":"http://127.0.0.1:8710/publicacion/60023997","rules":[],"extracted_at":"2026-09-23T21:23:36.815251Z"}
+{"url":"http://127.0.0.1:8710/publicacion/58879194","rules":[],"extracted_at":"2026-09-23T21:23:41.105713Z"}
+{"url":"http://127.0.0.1:8710/publicacion/60033652","rules":[],"extracted_at":"2026-09-23T21:23:54.298297Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59798471","rules":[],"extracted_at":"2026-09-23T21:23:32.470842Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59962059","rules":[],"extracted_at":"2026-09-23T21:24:03.128014Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59994882","rules":[{"fact":"guarantee","operator":"one_of","values":["propietaria","caucion"],"hardness":"hard","visibility":"public","source":"parsed","evidence":"- Garantía propietaria CABA o seguro de caución"}],"extracted_at":"2026-09-23T21:27:10.076326Z"}
+{"url":"http://127.0.0.1:8710/publicacion/53113773","rules":[{"fact":"guarantee","operator":"one_of","values":["propietaria"],"hardness":"hard","visibility":"public","source":"parsed","evidence":"Los requisitos son: Ingresos demostrables y garante con propiedad (si es del Interior de familiar directo)."}],"extracted_at":"2026-09-23T21:28:21.764526Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59988218","rules":[{"fact":"guarantee","operator":"one_of","values":["caucion"],"hardness":"hard","visibility":"public","source":"parsed","evidence":"Se necesita Seguro de Caución."}],"extracted_at":"2026-09-23T21:24:33.011664Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59794846","rules":[{"fact":"guarantee","operator":"one_of","values":["caucion"],"hardness":"hard","visibility":"public","source":"parsed","evidence":"•Seguro de caución-respaldar (excluyente)"}],"extracted_at":"2026-09-23T21:24:44.597754Z"}
+{"url":"http://127.0.0.1:8710/publicacion/59902632","rules":[{"fact":"guarantee","operator":"one_of","values":["caucion"],"hardness":"hard","visibility":"public","source":"parsed","evidence":"REQUISITOS: Ingresos comprobables, garantía seguro de caución"}],"extracted_at":"2026-09-23T21:24:43.192513Z"}

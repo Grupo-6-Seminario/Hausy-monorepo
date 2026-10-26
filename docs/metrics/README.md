@@ -6,6 +6,7 @@ a feature or an integration can be measured against what came before it.
 | Snapshot | Revision | Taken for |
 | --- | --- | --- |
 | [2026-09-28](./2026-09-28/REPORT.md) | `3559c82` | Baseline before the December MVP work |
+| [2026-10-26](./2026-10-26/journeys.csv) | `ddd833e` | First user-journey timings, fake model |
 
 ## Taking a snapshot
 
@@ -101,8 +102,68 @@ input. None call a model.
 | `buyer.Turn` | One turn of a new conversation between its two model calls: eligibility, relaxations and ordering over all 200 listings of Palermo and Congreso, served from memory |
 | `store/postgres.Candidates` | The hard-filter query for Palermo and Congreso up to ARS 900,000 over the loaded inventory (92 candidates) |
 
-Not measured yet: model latency (planner, writer, clarification, matching), the HTTP layer and the
-frontend.
+Not measured yet: model latency (planner, writer, clarification, matching). The user journeys below
+time the HTTP layer and the frontend, with a fake model.
+
+## User journeys
+
+`npm run test:journeys`, run in `frontend/`, drives three journeys through the whole stack: a
+browser, the production frontend build, the Go API and Postgres. No request is mocked. The model is
+the one stand-in: `e2e/journeys/fakemodel` answers the planner with a canned plan for each message
+and streams one fixed reply for the writer. Before the run, `e2e/journeys/seed` recreates
+`hausy_e2e_test` from the fixture in `e2e/journeys/seed/fixtures`: ten scraped listings, a realtor,
+and one listing the realtor created. The realtor owns two of the eleven. The seed refuses any database whose name does not end in `_test`.
+
+| Journey | Steps |
+| --- | --- |
+| New searcher | Searches "con amenities", answers the amenities question and contacts a realtor's listing. The realtor's contact count goes up by one. |
+| Registered searcher | Signs up, declares a qualification and sees "Calificás" in Palermo. Opens the Monserrat listings that refuse the qualification, then reloads and keeps the session and the answers. |
+| Realtor | Signs in, edits a listing in the catalog, reloads and sees the change. |
+
+The journeys need `docker compose up -d`, Go, Node and Chrome. They use ports 8710 to 8713, so a
+dev server on 3000 or an API on 8080 is never in the way. Outside CI, Playwright reuses a server
+that is already on its port. Each journey is safe to repeat: it signs up a new email, checks that
+the contact count went up rather than its value, and writes a new address.
+
+Each step is a `test.step`. The reporter writes the step durations to
+`frontend/test-results/journeys/journeys.json` and prints them as a table.
+
+**The timings come from the fake model.** They measure the frontend, the HTTP layer and the
+database, not model latency. Do not compare them with a run against a real model.
+
+### Taking a journeys snapshot
+
+```bash
+docker compose up -d
+cd frontend && npm run journeys:snapshot
+```
+
+The snapshot runs each journey five times and writes `docs/metrics/<date>/journeys.csv`, with the
+median and p95 in milliseconds for each step. Like the benchmarks, the times depend on the machine,
+so compare only snapshots taken on the same one. There are no thresholds.
+
+### What the journeys do not cover
+
+- **Model-driven clarifications.** The clarification journey covers only the deterministic
+  amenities question, asked when "con amenities" names no amenity. The Judge proposes every other
+  question, and it needs `AI_GATEWAY_API_KEY`. Matching and the Jev planner need it too.
+- **Mobile and dark layouts.** The journeys run on desktop only. The fixture-backed UI suite
+  (`npm run test:ui`) covers the layouts.
+
+### Running against a real model
+
+This is a manual option, never part of CI. Seed the database, then start the API on port 8711
+against `hausy_e2e_test` with a real model, for example `HAUSY_LLM=bedrock`. Playwright reuses it.
+The canned plans no longer apply, so a journey passes only if the model plans the same search, and
+the timings then include model latency.
+
+```bash
+cd frontend && go run ../e2e/journeys/seed
+HAUSY_API_ADDR=127.0.0.1:8711 \
+DATABASE_URI=postgresql://hausy:hausy@localhost:5432/hausy_e2e_test \
+HAUSY_LLM=bedrock go run ../cmd/hausy &
+npx playwright test -c playwright.journeys.config.ts
+```
 
 ## Baseline, 2026-09-28
 
