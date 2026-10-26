@@ -106,24 +106,23 @@ WHERE ` + b.whereClause() + ` ORDER BY l.id`
 	var out []eligibility.Candidate
 	for rows.Next() {
 		var c eligibility.Candidate
-		var id int64
 		var attributes, rules []byte
-		if err := rows.Scan(append(listingTargets(&c.Listing, &id), &attributes, &rules)...); err != nil {
+		if err := rows.Scan(append(listingTargets(&c.Listing), &attributes, &rules)...); err != nil {
 			return nil, fmt.Errorf("postgres: scan candidate: %w", err)
 		}
 		if attributes != nil {
 			if err := json.Unmarshal(attributes, &c.Listing.Attributes); err != nil {
-				return nil, fmt.Errorf("postgres: attributes of listing %d: %w", id, err)
+				return nil, fmt.Errorf("postgres: attributes of listing %d: %w", c.Listing.ID, err)
 			}
 		}
 		if rules != nil {
 			if err := json.Unmarshal(rules, &c.Rules); err != nil {
-				return nil, fmt.Errorf("postgres: rules of listing %d: %w", id, err)
+				return nil, fmt.Errorf("postgres: rules of listing %d: %w", c.Listing.ID, err)
 			}
 		}
 		for _, r := range c.Rules {
 			if err := r.Validate(); err != nil {
-				return nil, fmt.Errorf("postgres: listing %d: %w", id, err)
+				return nil, fmt.Errorf("postgres: listing %d: %w", c.Listing.ID, err)
 			}
 		}
 		out = append(out, c)

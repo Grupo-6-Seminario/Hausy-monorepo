@@ -205,7 +205,7 @@ LEFT JOIN agencies a ON a.id = l.agency_id
 WHERE l.url = $1 AND l.catalog_status = 'active'`
 
 // listingTargets are the scan destinations of listingColumns, in order.
-func listingTargets(item *listing.Listing, id *int64) []any {
+func listingTargets(item *listing.Listing) []any {
 	return []any{
 		&item.Source, &item.URL, &item.Neighborhood, &item.Agency, &item.Address,
 		&item.Description, &item.Operation,
@@ -213,23 +213,21 @@ func listingTargets(item *listing.Listing, id *int64) []any {
 		&item.Expenses.Amount, &item.Expenses.Currency,
 		&item.TotalAreaM2, &item.CoveredAreaM2, &item.Rooms, &item.Bedrooms, &item.Bathrooms,
 		&item.ParkingSpaces, &item.AgeYears, &item.Floor,
-		&item.ScrapedAt, &item.ParsedAt, &item.ParserModel, id,
+		&item.ScrapedAt, &item.ParsedAt, &item.ParserModel, &item.ID,
 	}
 }
 
 // ByURL reads back a single listing with its attributes.
 func (s *Store) ByURL(ctx context.Context, url string) (listing.Listing, error) {
 	var item listing.Listing
-	var id int64
-
-	err := s.pool.QueryRow(ctx, selectListing, url).Scan(listingTargets(&item, &id)...)
+	err := s.pool.QueryRow(ctx, selectListing, url).Scan(listingTargets(&item)...)
 	if err != nil {
 		return listing.Listing{}, fmt.Errorf("postgres: read listing %s: %w", url, err)
 	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT type, value, provenance, COALESCE(evidence, '')
-		 FROM listing_attributes WHERE listing_id = $1 ORDER BY type, value`, id)
+		 FROM listing_attributes WHERE listing_id = $1 ORDER BY type, value`, item.ID)
 	if err != nil {
 		return listing.Listing{}, fmt.Errorf("postgres: read attributes for %s: %w", url, err)
 	}

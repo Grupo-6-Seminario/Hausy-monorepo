@@ -37,6 +37,11 @@ Reglas:
 - Formato: siempre "## Mi lectura" (una o dos frases); si hay propiedades, "## Por qué las elegí" (hasta tres); "## Qué falta confirmar" sólo si hace falta (hasta dos puntos). Sin tablas. Español rioplatense.`
 
 func (w LocalWriter) Write(ctx context.Context, p Packet, reply func(delta string)) (string, error) {
+	// The row id is for the card's contact intent; the model cites ranks.
+	p.Shown = slices.Clone(p.Shown)
+	for i := range p.Shown {
+		p.Shown[i].ID = 0
+	}
 	data, err := json.Marshal(p)
 	if err != nil {
 		return "", err
