@@ -1,0 +1,15 @@
+# Fake model: these times are app and database overhead, not model latency.
+journey,step,runs,median_ms,p95_ms
+Realtor edits a catalog listing and the change persists,Sign in,5,1532,1562
+Realtor edits a catalog listing and the change persists,Open the catalog,5,80,87
+Realtor edits a catalog listing and the change persists,Edit the listing,5,1464,1483
+Realtor edits a catalog listing and the change persists,Reload and see the change,5,94,108
+New searcher answers the amenities question and contacts a listing,Open the search,5,431,446
+New searcher answers the amenities question and contacts a listing,Search with amenities,5,123,125
+New searcher answers the amenities question and contacts a listing,Answer the clarification,5,141,170
+New searcher answers the amenities question and contacts a listing,Contact the listing,5,134,1559
+Registered searcher declares a qualification and finds what accepts it,Sign up,5,1793,1800
+Registered searcher declares a qualification and finds what accepts it,Declare the qualification,5,267,285
+Registered searcher declares a qualification and finds what accepts it,Search where the qualification is accepted,5,120,136
+Registered searcher declares a qualification and finds what accepts it,Open the listings that refuse it,5,169,170
+Registered searcher declares a qualification and finds what accepts it,Reload and keep the session,5,140,169

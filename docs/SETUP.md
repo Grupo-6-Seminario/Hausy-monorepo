@@ -185,7 +185,7 @@ straight after cloning, stop and report it rather than committing them.
 ## CI
 
 GitHub Actions ([`ci.yml`](../.github/workflows/ci.yml)) runs on pull requests into `dev` and
-`main` and on pushes to both. Its three jobs run in parallel and are intended to become required
+`main` and on pushes to both. Its four jobs run in parallel and are intended to become required
 checks:
 
 | Job | Runs |
@@ -193,6 +193,7 @@ checks:
 | `go` | `gofmt` check, `go vet ./...`, `go test ./...` against a Postgres 14 service with `HAUSY_TEST_DATABASE_URI` set, and `python3 scripts/check-agent-instructions.py` |
 | `frontend` | `npm ci`, `npm test`, `npm run lint`, `npx tsc --noEmit --incremental false` and `npm run build` in `frontend/` |
 | `e2e` | Playwright on the `desktop`, `mobile` and `dark` projects, without retries. On failure, the HTML report and traces are uploaded as the `playwright-report` artifact for 7 days. |
+| `journeys` | `npm run test:journeys`: seeds `hausy_e2e_test` in a Postgres 14 service, then runs the whole-stack journeys with the fake model ([metrics README](metrics/README.md#user-journeys)). The HTML report, traces and `journeys.json` are uploaded as the `journeys-report` artifact for 7 days. |
 
 In CI, the Postgres-backed tests fail instead of skipping when the database is unreachable.
 CI does not run `npm run test:gpu` (it needs a real WebGPU adapter), the live Bedrock test

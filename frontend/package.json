@@ -11,6 +11,8 @@
     "start": "wrangler dev --config dist/server/wrangler.json",
     "test": "vitest run",
     "test:ui": "playwright test",
+    "test:journeys": "go run ../e2e/journeys/seed && playwright test -c playwright.journeys.config.ts",
+    "journeys:snapshot": "npm run test:journeys -- --repeat-each=5",
     "test:gpu": "node scripts/check-luminary.mjs",
     "test:watch": "vitest",
     "lint": "oxlint",

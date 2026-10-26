@@ -87,3 +87,42 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/
           retention-days: 7
+
+  # Whole-stack journeys: browser, production frontend build, Go API and
+  # Postgres, with a fake model (e2e/journeys/fakemodel). Nothing is mocked.
+  journeys:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14.23-trixie
+        env:
+          POSTGRES_USER: hausy
+          POSTGRES_PASSWORD: hausy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hausy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run test:journeys
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: journeys-report
+          path: frontend/test-results/journeys/
+          retention-days: 7

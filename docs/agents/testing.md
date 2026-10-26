@@ -17,7 +17,7 @@ Use current manifests and [SETUP](../SETUP.md) to verify commands. These are the
 | Go | Focused package checks during work; `go test ./...` before completion; `gofmt` on changed Go files |
 | Postgres behavior | Set `HAUSY_TEST_DATABASE_URI` to a designated disposable database ending in `_test`; run relevant store integration tests |
 | Frontend | Focused tests, then `npm test`, `npm run lint`, `npx tsc --noEmit --incremental false`, and `npm run build` in `frontend/` |
-| User journey or visible UI | Relevant `npm run test:ui`, running-browser inspection, screenshots, applicable keyboard/reduced-motion/error checks |
+| User journey or visible UI | Relevant `npm run test:ui`; `npm run test:journeys` when the change crosses the frontend, API and database; running-browser inspection, screenshots, applicable keyboard/reduced-motion/error checks |
 | GPU/shader behavior | `npm run test:gpu` plus actual UI fallback inspection |
 | Infrastructure | Local formatting and validation; authenticated plan only after authorization |
 | Agent documents or setup | `python3 scripts/check-agent-instructions.py`; `python3 scripts/verify-agent-setup.py` in a disposable checkout; independent behavioral check after substantial workflow changes |
