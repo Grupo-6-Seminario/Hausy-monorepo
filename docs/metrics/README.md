@@ -6,7 +6,7 @@ a feature or an integration can be measured against what came before it.
 | Snapshot | Revision | Taken for |
 | --- | --- | --- |
 | [2026-09-28](./2026-09-28/REPORT.md) | `3559c82` | Baseline before the December MVP work |
-| [2026-10-26](./2026-10-26/journeys.csv) | `feat/journeys` | First user-journey timings, fake model |
+| [2026-10-26](./2026-10-26/journeys.csv) | `ddd833e` | First user-journey timings, fake model |
 
 ## Taking a snapshot
 
