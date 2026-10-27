@@ -372,6 +372,7 @@ test('eligibility sections, the zero-results line and the declared qualification
     await route.fulfill({
       json: {
         reply: '## Mi lectura\n**#1 Humboldt 1900** acepta tu garantía.',
+        qualification: { guarantee: ['propietaria'], income_band: ['2000000-3000000'] },
         listings: [
           {
             ...listing,

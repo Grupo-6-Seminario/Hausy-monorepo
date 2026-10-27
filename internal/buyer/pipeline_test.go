@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -335,7 +336,16 @@ func TestChatQualificationAddsToTheDeclaredOneAndPlansSeeTheHistory(t *testing.T
 	planner := &fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), second}}
 	agent := buyer.NewAgent(planner, fourStates(), &fakeWriter{})
 	turn(t, agent, "Alquiler en Palermo", eligibility.Qualification{"guarantee": {"propietaria"}})
-	resp := turn(t, agent, "tengo caución también", eligibility.Qualification{"guarantee": {"propietaria"}})
+	var early buyer.TurnResponse
+	resp, err := agent.HandleMessage(context.Background(), "s", "tengo caución también", eligibility.Qualification{"guarantee": {"propietaria"}}, buyer.Events{
+		Results: func(r buyer.TurnResponse) { early = r },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := eligibility.Qualification{"guarantee": {"propietaria", "caucion"}}
+	assertTurnQualification(t, early, want)
+	assertTurnQualification(t, *resp, want)
 	if len(resp.Listings) != 4 || len(resp.Relaxations) != 0 {
 		t.Fatalf("with caución declared in the chat the caución-only listing returns, got %v", urls(resp))
 	}
@@ -442,7 +452,8 @@ func TestATurnWithNothingToSearchKeepsWhatEligibilityHid(t *testing.T) {
 	agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{palermoPlan("relevance"), greeting}}, fourStates(), &fakeWriter{})
 	q := eligibility.Qualification{"guarantee": {"propietaria"}}
 	first := turn(t, agent, "Alquiler en Palermo", q)
-	second := turn(t, agent, "gracias", q)
+	second := turn(t, agent, "gracias", eligibility.Qualification{"guarantee": {"caucion"}})
+	assertTurnQualification(t, *second, q)
 	if second.HiddenIneligible != first.HiddenIneligible || !slices.Equal(second.Relaxations, first.Relaxations) || len(first.Relaxations) == 0 {
 		t.Fatalf("want the first turn's hidden %d and relaxations %+v kept, got %d and %+v",
 			first.HiddenIneligible, first.Relaxations, second.HiddenIneligible, second.Relaxations)
@@ -508,7 +519,8 @@ func TestTheOfferedListingsFollowTheSearchOrderAndSurviveAGreeting(t *testing.T)
 	if len(first.Ineligible) != 2 || first.Ineligible[0].URL != "b-bright" {
 		t.Fatalf("want the bright listing first, got %v", ineligibleURLs(first))
 	}
-	second := turn(t, agent, "gracias", q)
+	second := turn(t, agent, "gracias", eligibility.Qualification{"guarantee": {"caucion"}})
+	assertTurnQualification(t, *second, q)
 	if !slices.Equal(ineligibleURLs(second), ineligibleURLs(first)) {
 		t.Fatalf("a greeting must keep the offered listings, got %v", ineligibleURLs(second))
 	}
@@ -520,4 +532,57 @@ func ineligibleURLs(resp *buyer.TurnResponse) []string {
 		out = append(out, r.URL)
 	}
 	return out
+}
+
+// Inspect the wire value that clients use to explain verdicts and send inquiries.
+func assertTurnQualification(t *testing.T, response buyer.TurnResponse, want eligibility.Qualification) {
+	t.Helper()
+	data, err := json.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wire struct {
+		Qualification eligibility.Qualification `json:"qualification"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(wire.Qualification, want) {
+		t.Fatalf("qualification used for the shown verdicts: got %v, want %v", wire.Qualification, want)
+	}
+}
+
+type qualificationInventory struct {
+	stock
+	catalog eligibility.Catalog
+}
+
+func (s qualificationInventory) Facts(context.Context) (eligibility.Catalog, error) {
+	return s.catalog, nil
+}
+
+func TestChatQualificationReplacesSingleChoicesAndExclusiveNone(t *testing.T) {
+	for _, tc := range []struct {
+		name, fact, before, after string
+		multiple                  bool
+	}{
+		{"documented income", "income_documented", "no", "yes", false},
+		{"income band", "income_band", "0-1000000", "2000000-3000000", false},
+		{"new guarantee", "guarantee", "none", "caucion", true},
+		{"no guarantee", "guarantee", "caucion", "none", true},
+		{"new pet", "pets", "none", "cat", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			facts := eligibility.Catalog{tc.fact: {Admissible: true, Multiple: tc.multiple, Choices: []eligibility.Choice{{Value: tc.before}, {Value: tc.after}}}}
+			plan := palermoPlan("relevance")
+			plan.Qualification = eligibility.Qualification{tc.fact: {tc.after}}
+			inv := qualificationInventory{stock: fourStates(), catalog: facts}
+			agent := buyer.NewAgent(&fakePlanner{plans: []intake.Plan{plan}}, inv, &fakeWriter{})
+			response := turn(t, agent, "Mi situación cambió", eligibility.Qualification{tc.fact: {tc.before}})
+			assertTurnQualification(t, *response, eligibility.Qualification{tc.fact: {tc.after}})
+			if err := eligibility.ValidateQualification(facts, response.Qualification); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
 }

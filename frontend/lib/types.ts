@@ -23,6 +23,8 @@ export interface EligibilityRule {
   operator?: string;
   values?: string[];
   hardness?: string;
+  // "declared" when the agency stated it in Hausy rather than the ad.
+  source?: string;
   evidence?: string;
 }
 
@@ -57,6 +59,8 @@ export interface Listing {
   url: string;
   neighborhood: string;
   agency?: string;
+  // An agency manages it in Hausy, so the searcher can send it an inquiry.
+  managed?: boolean;
   address?: string;
   description: string;
   operation?: string;
@@ -97,6 +101,8 @@ export interface ClarificationQuestion {
 }
 
 export interface AgentResponse {
+  // The qualification used to assess these results, including chat answers.
+  qualification?: Qualification;
   reply?: string;
   listings?: Listing[];
   requirements?: Requirement[];

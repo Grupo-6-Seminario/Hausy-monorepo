@@ -48,7 +48,9 @@ func (b *builder) whereClause() string {
 // base with different price predicates.
 func applyBaseConditions(b *builder, query search.Query) {
 	b.where("l.catalog_status = 'active'")
-	b.where("l.quality_status IN ('legacy', 'passed')")
+	// An agency's own listing is published when saved: it answers for it. A
+	// review that withheld it still hides it.
+	b.where("(l.quality_status IN ('legacy', 'passed') OR (l.owner_user_id IS NOT NULL AND l.quality_status = 'pending'))")
 	if len(query.Neighborhoods) > 0 {
 		b.where("l.neighborhood = ANY(" + b.param(query.Neighborhoods) + ")")
 	}

@@ -196,7 +196,8 @@ const listingColumns = `l.source, l.url, l.neighborhood, COALESCE(a.name, ''), C
        l.expenses_amount, COALESCE(l.expenses_currency, ''),
        l.total_area_m2, l.covered_area_m2, l.rooms, l.bedrooms, l.bathrooms,
        l.parking_spaces, l.age_years, COALESCE(l.floor, ''),
-       l.scraped_at, l.parsed_at, COALESCE(l.parser_model, ''), l.id`
+       l.scraped_at, l.parsed_at, COALESCE(l.parser_model, ''), l.id,
+       l.owner_user_id IS NOT NULL`
 
 const selectListing = `
 SELECT ` + listingColumns + `
@@ -214,6 +215,7 @@ func listingTargets(item *listing.Listing) []any {
 		&item.TotalAreaM2, &item.CoveredAreaM2, &item.Rooms, &item.Bedrooms, &item.Bathrooms,
 		&item.ParkingSpaces, &item.AgeYears, &item.Floor,
 		&item.ScrapedAt, &item.ParsedAt, &item.ParserModel, &item.ID,
+		&item.Managed,
 	}
 }
 

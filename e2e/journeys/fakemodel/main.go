@@ -20,9 +20,10 @@ import (
 // plans maps the searcher's latest message to the plan the planner returns.
 // The journeys type exactly these messages.
 var plans = map[string]string{
-	"Busco alquiler en Palermo con amenities": `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler"}]}`,
-	"Busco alquiler en Palermo":               `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler"}]}`,
-	"Busco alquiler en Monserrat":             `{"intent":"new_search","branches":[{"neighborhoods":["monserrat"],"operation":"alquiler"}]}`,
+	"Busco alquiler en Palermo y tengo seguro de caución": `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler"}],"qualification":{"guarantee":["caucion"]}}`,
+	"Busco alquiler en Palermo con amenities":             `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler"}]}`,
+	"Busco alquiler en Palermo":                           `{"intent":"new_search","branches":[{"neighborhoods":["palermo"],"operation":"alquiler"}]}`,
+	"Busco alquiler en Monserrat":                         `{"intent":"new_search","branches":[{"neighborhoods":["monserrat"],"operation":"alquiler"}]}`,
 }
 
 const writerReply = "Estas son las propiedades del catálogo de prueba que cumplen lo que pediste."

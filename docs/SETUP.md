@@ -174,6 +174,8 @@ terraform -chdir=infra init
 terraform -chdir=infra plan
 terraform -chdir=infra apply
 aws ssm put-parameter --name /hausy/ai_gateway_api_key --type SecureString --overwrite --value "$AI_GATEWAY_API_KEY"
+# Optional: the demo agency's password, so --seed also creates it (cmd/demo).
+aws ssm put-parameter --name /hausy/demo_password --type SecureString --value "$HAUSY_DEMO_PASSWORD"
 scripts/deploy.sh --seed   # first deploy; later ones: scripts/deploy.sh
 terraform -chdir=infra output -raw site_url
 ```

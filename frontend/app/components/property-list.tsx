@@ -18,7 +18,11 @@ import type {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { eligibilityLabel, PropertyCard, type Situation } from './property-card';
+import {
+  eligibilityLabel,
+  PropertyCard,
+  type Situation,
+} from './property-card';
 
 // Eligibility order is the product's order (CONTEXT.md, Eligibility);
 // ineligible listings never reach the list.
@@ -82,6 +86,8 @@ interface PropertyListProps {
   ineligible?: Listing[];
   // What the searcher declared, so each card can say why its verdict holds.
   declared?: Qualification;
+  // What the search is looking for, for an inquiry to an agency.
+  searching?: string[];
   recommendedRanks?: number[];
   isLoading?: boolean;
   className?: string;
@@ -95,6 +101,7 @@ export function PropertyList({
   hiddenIneligible = 0,
   ineligible = [],
   declared,
+  searching,
   recommendedRanks = [],
   isLoading = false,
   className,
@@ -112,7 +119,7 @@ export function PropertyList({
   }, [showRefused]);
   const situation: Situation | undefined =
     facts.kind === 'ready' && declared
-      ? { facts: facts.facts, declared }
+      ? { facts: facts.facts, declared, searching }
       : undefined;
   if (isLoading) {
     return (
@@ -249,7 +256,9 @@ export function PropertyList({
 
   const count = listings.length;
 
-  const hasQualitativeGroups = listings.some((listing) => listing.qualitative_fit);
+  const hasQualitativeGroups = listings.some(
+    (listing) => listing.qualitative_fit,
+  );
   const countLabel =
     count === 1
       ? '1 propiedad seleccionada'
@@ -286,41 +295,69 @@ export function PropertyList({
       {hasQualitativeGroups ? (
         <>
           {(['exact', 'unconfirmed'] as const).map((fit) => {
-            const group = listings.filter((listing) => fit === 'exact'
-              ? listing.qualitative_fit !== 'unconfirmed'
-              : listing.qualitative_fit === 'unconfirmed');
+            const group = listings.filter((listing) =>
+              fit === 'exact'
+                ? listing.qualitative_fit !== 'unconfirmed'
+                : listing.qualitative_fit === 'unconfirmed',
+            );
             if (group.length === 0) return null;
-            return <div key={fit} className="qualitative-section">
-              <h3>{fit === 'exact' ? 'Coincidencias con evidencia' : 'Otras opciones por confirmar'}</h3>
-              {renderByEligibility(group, recommendedRanks, true, situation)}
-            </div>;
+            return (
+              <div key={fit} className="qualitative-section">
+                <h3>
+                  {fit === 'exact'
+                    ? 'Coincidencias con evidencia'
+                    : 'Otras opciones por confirmar'}
+                </h3>
+                {renderByEligibility(group, recommendedRanks, true, situation)}
+              </div>
+            );
           })}
         </>
-      ) : renderByEligibility(listings, recommendedRanks, false, situation)}
+      ) : (
+        renderByEligibility(listings, recommendedRanks, false, situation)
+      )}
       {relaxationLines(facts, relaxations)}
     </section>
   );
 }
 
-function renderByEligibility(listings: Listing[], recommendedRanks: number[], nested: boolean, situation?: Situation) {
-  if (!listings.some((listing) => listing.eligibility)) return renderCards(listings, recommendedRanks, situation);
+function renderByEligibility(
+  listings: Listing[],
+  recommendedRanks: number[],
+  nested: boolean,
+  situation?: Situation,
+) {
+  if (!listings.some((listing) => listing.eligibility))
+    return renderCards(listings, recommendedRanks, situation);
   return sections.map((state) => {
-    const inSection = listings.filter((listing) => listing.eligibility?.state === state);
+    const inSection = listings.filter(
+      (listing) => listing.eligibility?.state === state,
+    );
     if (inSection.length === 0) return null;
-    return <div key={state} className="eligibility-section" data-state={state}>
-      <div className="eligibility-section-title">
-        {nested ? <h4>{sectionTitle[state]}</h4> : <h3>{sectionTitle[state]}</h3>}
-        <details className="section-meaning">
-          <summary>¿Qué significa?</summary>
-          <p>{sectionMeaning[state]}</p>
-        </details>
+    return (
+      <div key={state} className="eligibility-section" data-state={state}>
+        <div className="eligibility-section-title">
+          {nested ? (
+            <h4>{sectionTitle[state]}</h4>
+          ) : (
+            <h3>{sectionTitle[state]}</h3>
+          )}
+          <details className="section-meaning">
+            <summary>¿Qué significa?</summary>
+            <p>{sectionMeaning[state]}</p>
+          </details>
+        </div>
+        {renderCards(inSection, recommendedRanks, situation)}
       </div>
-      {renderCards(inSection, recommendedRanks, situation)}
-    </div>;
+    );
   });
 }
 
-function renderCards(listings: Listing[], recommendedRanks: number[], situation?: Situation) {
+function renderCards(
+  listings: Listing[],
+  recommendedRanks: number[],
+  situation?: Situation,
+) {
   return (
     <ol start={listings[0]?.rank ?? 1}>
       {listings.map((listing, index) => {

@@ -55,7 +55,7 @@ deduplication is deliberately not attempted yet.
 | `ingested_at` | timestamptz | no | |
 | `owner_user_id` | bigint | yes | FK → `users.id`; set only for account-managed catalog entries |
 | `catalog_status` | text | no | `active` \| `archived`; archived rows never appear in buyer search |
-| `quality_status` | text | no | `legacy` \| `pending` \| `passed` \| `withheld`; buyer search includes only `legacy` and `passed` |
+| `quality_status` | text | no | `legacy` \| `pending` \| `passed` \| `withheld`; scraped listings require `legacy` or `passed`; owned listings also allow `pending` |
 | `quality_evidence` | jsonb | yes | Two source-backed claims for a withheld listing |
 | `quality_checked_at` | timestamptz | yes | Last completed review |
 
@@ -70,9 +70,11 @@ principal to the same catalog owner without changing the listing contract.
 Removing an entry from a realtor catalog sets `catalog_status = 'archived'`.
 It does not delete the canonical facts or contact history.
 
-`quality_status` is a separate publication gate. New listings and changes to
-published facts or prose become `pending` and disappear from buyer search until
-reviewed. Repeating an unchanged `load` preserves the prior review. Migration
+`quality_status` is a separate publication gate. Scraped listings and changes
+to their published facts or prose become `pending` and disappear from buyer
+search until reviewed. Agency-owned listings publish on save and can appear
+in `pending`. A withheld agency listing stays withheld after edits until a
+new review clears it. Repeating an unchanged `load` preserves the prior review. Migration
 marks existing rows `legacy` so the site stays available while the one-time
 audit runs. `go run ./cmd/listings audit` reviews descriptions already in
 Postgres with Jev and checks source quotes for suspected contradictions; it
@@ -100,6 +102,16 @@ client can submit or overwrite the aggregate. A retried `intent_id` for the
 same listing is a successful replay, while reusing it for another listing is a
 conflict. This measures deliberate Contactar activations, not unique people or
 delivered inquiries.
+
+### `listing_inquiries`
+
+Migration `0009` stores each consented inquiry once by its caller-generated
+UUID. `listing_id` references the property, `brief` contains the immutable
+JSON delivered to the agency, and `created_at` records the server timestamp.
+The brief includes the preview revision, contact details, and only the
+qualification facts the property asks for. Reads join the property's
+`owner_user_id` to the authenticated realtor. See the
+[inquiry contract](AGENCY_CATALOG.md#inquiry-api).
 
 ### `listing_attributes` — parsed qualities
 

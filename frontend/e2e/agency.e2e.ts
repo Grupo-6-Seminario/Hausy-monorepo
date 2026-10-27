@@ -13,6 +13,8 @@ const properties = [
     agency: 'Lounge Propiedades',
     source: 'agency',
     contact_count: 7,
+    inquiry_count: 0,
+    requirements: [],
     url: 'https://www.zonaprop.com.ar/propiedades/palermo-101.html',
     neighborhood: 'palermo',
     address: 'Humboldt al 1900',
@@ -30,6 +32,8 @@ const properties = [
     agency: 'Lounge Propiedades',
     source: 'agency',
     contact_count: 6,
+    inquiry_count: 0,
+    requirements: [],
     url: 'https://www.zonaprop.com.ar/propiedades/belgrano-202.html',
     neighborhood: 'belgrano',
     address: 'Mendoza al 2400',
@@ -62,6 +66,9 @@ test('a realtor can inspect the catalog and open the property editor', async ({
   );
   await page.route('**/api/agency/catalog', (route) =>
     route.fulfill({ json: { properties } }),
+  );
+  await page.route('**/api/agency/inquiries', (route) =>
+    route.fulfill({ json: { inquiries: [] } }),
   );
 
   await page.goto('/inmobiliaria');
