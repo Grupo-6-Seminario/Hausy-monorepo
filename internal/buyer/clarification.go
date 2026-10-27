@@ -252,7 +252,7 @@ func (a *DefaultAgent) prepareClarification(ctx context.Context, sess *session, 
 	if planErr != nil {
 		problem = planErr.Error()
 	}
-	proposals, err := a.pipeline.clarifier.Propose(ctx, turns, plan, problem, mergeQualification(declared, plan.Qualification), catalog)
+	proposals, err := a.pipeline.clarifier.Propose(ctx, turns, plan, problem, mergeQualification(declared, plan.Qualification, catalog), catalog)
 	if err != nil {
 		proposals = nil
 	}
@@ -468,7 +468,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 			}
 		}
 	}
-	baseline, _, _, _, _, err := preview.rank(ctx, base, mergeQualification(declared, base.Qualification), catalog)
+	baseline, _, _, _, _, err := preview.rank(ctx, base, mergeQualification(declared, base.Qualification, catalog), catalog)
 	if err != nil {
 		return false, false, err
 	}
@@ -493,7 +493,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 		if !valid {
 			continue
 		}
-		shown, _, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), catalog)
+		shown, _, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification, catalog), catalog)
 		if err != nil {
 			return false, false, err
 		}
@@ -505,7 +505,7 @@ func (a *DefaultAgent) questionImpact(ctx context.Context, plan intake.Plan, dec
 	if q.Multi && len(allEffects) > 1 {
 		variant, err := clarification.Apply(base, allEffects, catalog)
 		if err == nil {
-			shown, _, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification), catalog)
+			shown, _, _, _, _, err := preview.rank(ctx, variant, mergeQualification(declared, variant.Qualification, catalog), catalog)
 			if err != nil {
 				return false, false, err
 			}

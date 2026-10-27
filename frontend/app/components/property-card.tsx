@@ -17,6 +17,7 @@ import type {
 import { attributeLabel, formatMoney } from '@/lib/listing-labels';
 import { cn } from '@/lib/utils';
 
+import { InquiryDialog } from './inquiry-dialog';
 import { yesPhrases } from './qualification-panel';
 
 // What the searcher declared and the catalog that names it: the card's
@@ -24,6 +25,8 @@ import { yesPhrases } from './qualification-panel';
 export interface Situation {
   facts: EligibilityFact[];
   declared: Qualification;
+  // What the search is looking for, as an inquiry would tell the agency.
+  searching?: string[];
 }
 
 interface PropertyCardProps {
@@ -66,9 +69,12 @@ function unknownReason(
   }
   // A refusal that spares the searcher's guarantee names what it refuses
   // (specs/008); the catalog labels it, or the raw value stands in.
-  const refusal = conditions.find((condition) => condition.reason === 'unconfirmed');
+  const refusal = conditions.find(
+    (condition) => condition.reason === 'unconfirmed',
+  );
   if (refusal) {
-    const choices = facts.find((f) => f.name === refusal.rule.fact)?.choices ?? [];
+    const choices =
+      facts.find((f) => f.name === refusal.rule.fact)?.choices ?? [];
     const refused = (refusal.rule.values ?? []).map(
       (value) =>
         choices.find((c) => c.value === value)?.label.toLowerCase() ?? value,
@@ -125,9 +131,12 @@ function metPhrase(
   }
   if (rule.fact === 'pets' && values.includes('none')) return 'sin mascotas';
   // A yes/no fact reads as the phrase the situation bar uses, not "sí".
-  if (yesPhrases[rule.fact] && values.includes('yes')) return yesPhrases[rule.fact];
+  if (yesPhrases[rule.fact] && values.includes('yes'))
+    return yesPhrases[rule.fact];
   const labels = fact.choices
-    .filter((c) => values.includes(c.value) && (rule.values ?? []).includes(c.value))
+    .filter(
+      (c) => values.includes(c.value) && (rule.values ?? []).includes(c.value),
+    )
     .map((c) => c.label.toLowerCase());
   return labels.length > 0 ? labels.join(', ') : null;
 }
@@ -169,7 +178,10 @@ function unmetLine(
 
 // The line under the badge: why this verdict, with this listing's numbers.
 // The income threshold is the engine's; "A confirmar" keeps its own reason.
-function reasonLines(eligibility: Eligibility, situation?: Situation): string[] {
+function reasonLines(
+  eligibility: Eligibility,
+  situation?: Situation,
+): string[] {
   if (!situation) return [];
   if (eligibility.state === 'ineligible') {
     return [
@@ -237,10 +249,15 @@ export function PropertyCard({
     floor,
     matched = [],
     eligibility,
+    managed,
   } = listing;
   const conditions = (eligibility?.conditions ?? []).filter(
     (condition) => condition.rule.evidence,
   );
+  // A managed listing's requirements are the agency's own words, not the ad's.
+  const declaredByAgency =
+    conditions.length > 0 &&
+    conditions.every((condition) => condition.rule.source === 'declared');
   // Ads name their amenities in one sentence, so a shared quote shows once.
   const qualities: { labels: string[]; attribute: ListingAttribute }[] = [];
   for (const attribute of matched) {
@@ -251,7 +268,11 @@ export function PropertyCard({
         first.provenance === attribute.provenance,
     );
     if (same) same.labels.push(attributeLabel(attribute.type, attribute.value));
-    else qualities.push({ labels: [attributeLabel(attribute.type, attribute.value)], attribute });
+    else
+      qualities.push({
+        labels: [attributeLabel(attribute.type, attribute.value)],
+        attribute,
+      });
   }
 
   // Recording interest must never stand between the searcher and the agency, so
@@ -260,6 +281,10 @@ export function PropertyCard({
   // link and no event at all — an untraceable count is worse than no count.
   const listingID = stableListingID(listing);
   const [trackingFailed, setTrackingFailed] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  // Someone a strict requirement rules out cannot send one (CONTEXT.md, Inquiry).
+  const takesInquiries =
+    managed && listingID && eligibility?.state !== 'ineligible';
 
   const recordInterest = async () => {
     if (!listingID) {
@@ -276,13 +301,19 @@ export function PropertyCard({
 
   const hasExpenses = expenses?.amount != null;
   const isRental = operation.toLowerCase().includes('alquiler');
-  const sourceName = source
-    ? source.charAt(0).toUpperCase() + source.slice(1)
-    : 'ZonaProp';
+  // An agency publishes its own listings in Hausy (source "agency").
+  const sourceName =
+    source === 'agency'
+      ? 'Hausy'
+      : source
+        ? source.charAt(0).toUpperCase() + source.slice(1)
+        : 'ZonaProp';
   const metrics = [
     rooms != null ? `${rooms} amb` : null,
     bedrooms != null ? `${bedrooms} dorm` : null,
-    bathrooms != null ? `${bathrooms} ${bathrooms === 1 ? 'baño' : 'baños'}` : null,
+    bathrooms != null
+      ? `${bathrooms} ${bathrooms === 1 ? 'baño' : 'baños'}`
+      : null,
     total_area_m2 != null ? `${total_area_m2} m²` : null,
   ].filter((metric) => metric !== null);
   const toConfirm = eligibility
@@ -359,14 +390,22 @@ export function PropertyCard({
 
       {conditions.length > 0 ? (
         <div className="card-block">
-          <h5>Lo que pide el aviso</h5>
+          <h5>
+            {declaredByAgency
+              ? 'Lo que pide la inmobiliaria'
+              : 'Lo que pide el aviso'}
+          </h5>
           <ul
             className="eligibility-conditions"
             aria-label="Condiciones del aviso"
           >
             {conditions.map((condition, index) => (
               <li key={index}>
-                <q>{condition.rule.evidence}</q>
+                {declaredByAgency ? (
+                  condition.rule.evidence
+                ) : (
+                  <q>{condition.rule.evidence}</q>
+                )}
               </li>
             ))}
           </ul>
@@ -404,7 +443,10 @@ export function PropertyCard({
             </section>
           ) : null}
           {toConfirm ? (
-            <section className="card-block card-confirm" aria-label="Qué confirmar">
+            <section
+              className="card-block card-confirm"
+              aria-label="Qué confirmar"
+            >
               <h5>Qué confirmar</h5>
               <ul>
                 <li>
@@ -427,6 +469,15 @@ export function PropertyCard({
           {agency ? <span title={agency}> · {agency}</span> : null}
         </span>
         <div className="property-card-actions">
+          {takesInquiries ? (
+            <button
+              type="button"
+              className="listing-contact listing-inquiry"
+              onClick={() => setInquiryOpen(true)}
+            >
+              Enviar consulta
+            </button>
+          ) : null}
           <a
             className="listing-contact"
             href={url}
@@ -461,6 +512,16 @@ export function PropertyCard({
             : ''}
         </p>
       </footer>
+      {inquiryOpen && listingID ? (
+        <InquiryDialog
+          listingId={listingID}
+          title={address || `Departamento en ${neighborhood}`}
+          agency={agency}
+          declared={situation?.declared ?? {}}
+          searching={situation?.searching ?? []}
+          onClose={() => setInquiryOpen(false)}
+        />
+      ) : null}
     </article>
   );
 }

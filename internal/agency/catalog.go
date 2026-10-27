@@ -13,6 +13,8 @@ import (
 	"math"
 	"net/url"
 	"strings"
+
+	"github.com/Grupo-6-Seminario/proyecto-angus-back/internal/eligibility"
 )
 
 // ErrPropertyNotFound deliberately covers both a missing property and a
@@ -74,6 +76,9 @@ type PropertyInput struct {
 	ParkingSpaces *int     `json:"parking_spaces,omitempty"`
 	AgeYears      *int     `json:"age_years,omitempty"`
 	Floor         string   `json:"floor,omitempty"`
+	// Requirements are the eligibility requirements the agency declares; they
+	// replace whatever was read from the listing's text (PrepareRequirements).
+	Requirements []eligibility.Rule `json:"requirements"`
 }
 
 // Property is one active entry in an agency catalog.
@@ -82,6 +87,7 @@ type Property struct {
 	Agency       string `json:"agency"`
 	Source       string `json:"source"`
 	ContactCount int    `json:"contact_count"`
+	InquiryCount int    `json:"inquiry_count"`
 	PropertyInput
 }
 
@@ -117,6 +123,9 @@ type Catalog interface {
 	Update(ctx context.Context, ownerID, propertyID string, input PropertyInput) (Property, error)
 	Remove(ctx context.Context, ownerID, propertyID string) error
 	RecordContactIntent(ctx context.Context, propertyID string, intent ContactIntent) (ContactReceipt, error)
+	PreviewInquiry(ctx context.Context, propertyID string, input InquiryInput) (Inquiry, error)
+	SendInquiry(ctx context.Context, propertyID string, input InquiryInput) (Inquiry, error)
+	Inquiries(ctx context.Context, ownerID string) ([]Inquiry, error)
 }
 
 // PreparePropertyInput normalizes and validates editable facts before an
@@ -193,17 +202,21 @@ func validateMoney(field string, money Money) error {
 
 // ValidateContactIntent checks the cross-transport event contract.
 func ValidateContactIntent(intent ContactIntent) error {
-	if intent.Source != ContactSourceSearchResultCard {
+	if intent.Source != ContactSourceSearchResultCard || !validUUID(intent.ID) {
 		return ErrInvalidContactIntent
 	}
-	parts := strings.Split(intent.ID, "-")
+	return nil
+}
+
+func validUUID(id string) bool {
+	parts := strings.Split(id, "-")
 	if len(parts) != 5 || len(parts[0]) != 8 || len(parts[1]) != 4 || len(parts[2]) != 4 || len(parts[3]) != 4 || len(parts[4]) != 12 {
-		return ErrInvalidContactIntent
+		return false
 	}
 	for _, part := range parts {
 		if _, err := hex.DecodeString(part); err != nil {
-			return ErrInvalidContactIntent
+			return false
 		}
 	}
-	return nil
+	return true
 }

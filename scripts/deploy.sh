@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds a release, uploads it and switches the instance from infra/ to it (docs/SETUP.md).
-# Every run ships a new release. --seed also loads the committed listings into RDS.
+# Every run ships a new release. --seed also loads the committed listings into RDS and, when the
+# /hausy/demo_password parameter exists, the demo agency (cmd/demo).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -24,7 +25,7 @@ release=$(date -u +%Y%m%dT%H%M%SZ)-$(git describe --always --dirty)
 build=$(mktemp -d)
 trap 'rm -rf "$build"' EXIT
 mkdir "$build/bin" "$build/data"
-for cmd in hausy listings; do
+for cmd in hausy listings demo; do
   CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o "$build/bin/$cmd" "./cmd/$cmd"
 done
 # The build inlines NEXT_PUBLIC_SITE_URL. The standalone output is plain JS and wasm, with
@@ -86,6 +87,11 @@ systemctl restart hausy-api
 healthy http://127.0.0.1:8080/api/eligibility/facts
 if [ "$seed" = true ]; then
   (cd "$dir" && DATABASE_URI=$db_uri bin/listings load)
+  if demo_password=$(aws ssm get-parameter --name /hausy/demo_password --with-decryption --query Parameter.Value --output text 2>/dev/null); then
+    DATABASE_URI=$db_uri HAUSY_DEMO_PASSWORD=$demo_password "$dir/bin/demo"
+  else
+    echo "No /hausy/demo_password parameter: skipping the demo agency."
+  fi
 fi
 systemctl restart hausy-web
 healthy http://127.0.0.1:3000/api/eligibility/facts

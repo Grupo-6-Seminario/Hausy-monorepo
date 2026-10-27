@@ -32,6 +32,9 @@ type TurnResponse struct {
 	Reply        string        `json:"reply"`
 	Requirements []Requirement `json:"requirements"`
 
+	// Qualification is the form plus chat answers used for the shown verdicts.
+	Qualification eligibility.Qualification `json:"qualification"`
+
 	// Listings are the properties the agent settled on this turn, whole rather
 	// than trimmed: a card shows only each result's Matched, and the rest
 	// stays for a detail view.
@@ -93,6 +96,7 @@ type session struct {
 	turns           []string
 	plan            intake.Plan
 	results         []Result
+	qualification   eligibility.Qualification
 	relaxations     []eligibility.Relaxation
 	hidden          int
 	ineligible      []Result

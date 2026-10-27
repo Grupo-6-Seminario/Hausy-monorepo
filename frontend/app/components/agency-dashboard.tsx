@@ -4,6 +4,7 @@ import {
   Building2,
   ExternalLink,
   Home,
+  Inbox,
   MousePointerClick,
   Pencil,
   Plus,
@@ -20,9 +21,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgencyProperty, AgencyPropertyInput } from '@/lib/agency';
+import type {
+  AgencyProperty,
+  AgencyPropertyInput,
+  Inquiry,
+} from '@/lib/agency';
 import type { AuthUser } from '@/lib/auth';
+import { useEligibilityFacts } from '@/lib/eligibility-facts';
 
+import { AgencyInquiries } from './agency-inquiries';
+import {
+  AgencyRequirements,
+  declaredRequirements,
+} from './agency-requirements';
 import { BrandLink } from './brand-link';
 import { usePointerGlow } from './pointer-glow';
 import { ThemeToggle } from './theme-toggle';
@@ -41,6 +52,7 @@ const emptyProperty: AgencyPropertyInput = {
   rooms: null,
   bedrooms: null,
   bathrooms: null,
+  requirements: [],
 };
 
 function formatMoney(amount?: number | null, currency?: string) {
@@ -72,6 +84,15 @@ function editableProperty(property: AgencyProperty): AgencyPropertyInput {
     parking_spaces: property.parking_spaces,
     age_years: property.age_years,
     floor: property.floor,
+    // Only what the agency declares; the server adds the wording and source.
+    requirements: property.requirements.map(
+      ({ fact, operator, values, hardness }) => ({
+        fact,
+        operator,
+        values,
+        hardness,
+      }),
+    ),
   };
 }
 
@@ -79,6 +100,10 @@ export function AgencyDashboard() {
   const [state, setState] = useState<LoadState>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [properties, setProperties] = useState<AgencyProperty[]>([]);
+  // Null when the inbox failed to load; the catalog stays usable.
+  const [inquiries, setInquiries] = useState<Inquiry[] | null>([]);
+  // Asked for with the page, so the requirements editor opens labelled.
+  const facts = useEligibilityFacts();
   const [error, setError] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingID, setEditingID] = useState<string | null>(null);
@@ -97,18 +122,12 @@ export function AgencyDashboard() {
 
   useEffect(() => {
     if (!editorOpen) return;
-    const frame = requestAnimationFrame(() =>
-      editorFirstFieldRef.current?.focus(),
-    );
-    return () => cancelAnimationFrame(frame);
+    editorFirstFieldRef.current?.focus();
   }, [editorOpen]);
 
   useEffect(() => {
     if (!removingProperty) return;
-    const frame = requestAnimationFrame(() =>
-      removeConfirmRef.current?.focus(),
-    );
-    return () => cancelAnimationFrame(frame);
+    removeConfirmRef.current?.focus();
   }, [removingProperty]);
 
   useEffect(() => {
@@ -117,8 +136,16 @@ export function AgencyDashboard() {
     Promise.all([
       fetch('/api/auth/me', { signal: controller.signal }),
       fetch('/api/agency/catalog', { signal: controller.signal }),
+      fetch('/api/agency/inquiries', { signal: controller.signal })
+        .then((response) =>
+          response.ok
+            ? (response.json() as Promise<{ inquiries?: Inquiry[] }>)
+            : null,
+        )
+        .then((payload) => payload?.inquiries ?? null)
+        .catch(() => null),
     ])
-      .then(async ([userResponse, catalogResponse]) => {
+      .then(async ([userResponse, catalogResponse, inbox]) => {
         const userPayload = (await userResponse.json()) as {
           user?: AuthUser;
           error?: string;
@@ -144,6 +171,7 @@ export function AgencyDashboard() {
 
         setUser(userPayload.user);
         setProperties(catalogPayload.properties);
+        setInquiries(inbox);
         setState('ready');
       })
       .catch((cause) => {
@@ -164,6 +192,7 @@ export function AgencyDashboard() {
       properties.reduce((total, property) => total + property.contact_count, 0),
     [properties],
   );
+  const inquiryTotal = inquiries?.length;
 
   function openAddEditor() {
     setEditingID(null);
@@ -210,7 +239,10 @@ export function AgencyDashboard() {
         {
           method: editingID ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(draft),
+          body: JSON.stringify({
+            ...draft,
+            requirements: declaredRequirements(draft.requirements),
+          }),
         },
       );
       const payload = (await response.json()) as AgencyProperty & {
@@ -336,6 +368,15 @@ export function AgencyDashboard() {
                     : 'contactos iniciados'}
                 </dd>
               </div>
+              <div>
+                <dt>Consultas recibidas</dt>
+                <dd>
+                  <Inbox aria-hidden="true" />
+                  {inquiryTotal == null
+                    ? 'No disponible'
+                    : `${inquiryTotal} ${inquiryTotal === 1 ? 'consulta' : 'consultas'}`}
+                </dd>
+              </div>
             </dl>
           </section>
 
@@ -385,9 +426,15 @@ export function AgencyDashboard() {
                           .join(' / ')}
                       </p>
                     </div>
-                    <div className="agency-property-interest">
-                      <span>Contactos iniciados</span>
-                      <strong>{property.contact_count}</strong>
+                    <div className="agency-property-counts">
+                      <div className="agency-property-interest">
+                        <span>Contactos iniciados</span>
+                        <strong>{property.contact_count}</strong>
+                      </div>
+                      <div className="agency-property-interest">
+                        <span>Consultas</span>
+                        <strong>{property.inquiry_count}</strong>
+                      </div>
                     </div>
                     <div className="agency-property-actions">
                       <a
@@ -426,6 +473,8 @@ export function AgencyDashboard() {
               </ul>
             )}
           </section>
+
+          <AgencyInquiries inquiries={inquiries} />
 
           {editorOpen ? (
             <div className="agency-editor-backdrop">
@@ -717,6 +766,14 @@ export function AgencyDashboard() {
                       }
                     />
                   </div>
+
+                  <AgencyRequirements
+                    facts={facts.kind === 'ready' ? facts.facts : []}
+                    requirements={draft.requirements}
+                    onChange={(requirements) =>
+                      setDraft((current) => ({ ...current, requirements }))
+                    }
+                  />
 
                   {editorError ? (
                     <p className="agency-form-error" role="alert">

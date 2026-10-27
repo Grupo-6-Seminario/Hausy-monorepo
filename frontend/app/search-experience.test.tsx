@@ -580,3 +580,56 @@ describe('SearchExperience', () => {
     });
   });
 });
+
+it.each(['json', 'stream', 'clarification'])(
+  'uses the server qualification for an inquiry after a %s turn',
+  async (transport) => {
+    const user = userEvent.setup();
+    const turn = {
+      reply: 'Encontré una propiedad.',
+      qualification: { guarantee: ['caucion'] },
+      listings: [{ ...sampleListing, managed: true, eligibility: { state: 'eligible' } }],
+      requirements: [],
+    };
+    let asked = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      if (input === '/api/agent') {
+        if (transport === 'clarification' && !asked) {
+          asked = true;
+          return Response.json({ clarification: {
+            id: 'guarantee', source: 'garantía', kind: 'qualification',
+            prompt: '¿Qué garantía tenés?',
+            choices: [{ id: 'caucion', label: 'Seguro de caución' }],
+          } });
+        }
+        if (transport === 'stream') {
+          return new Response(
+            [JSON.stringify({ type: 'results', ...turn }), JSON.stringify({ type: 'done', ...turn })].join('\n') + '\n',
+            { headers: { 'Content-Type': 'application/x-ndjson' } },
+          );
+        }
+        return Response.json(turn);
+      }
+      if (input === '/api/listings/101/inquiries/preview') {
+        return Response.json({
+          listing_id: '101', property: 'Humboldt 1900', agency: 'Demo', name: '',
+          eligibility: 'eligible', requirements: [],
+        });
+      }
+      return Response.json({});
+    });
+    vi.stubGlobal('fetch', withFacts(fetchMock));
+    render(<SearchExperience />);
+    await user.type(screen.getByRole('textbox', { name: /qué estás buscando/i }), 'Tengo caución y busco en Palermo{Enter}');
+    if (transport === 'clarification') {
+      await user.click(await screen.findByRole('radio', { name: 'Seguro de caución' }));
+      await user.click(screen.getByRole('button', { name: 'Continuar búsqueda' }));
+    }
+    await user.click(await screen.findByRole('button', { name: 'Enviar consulta' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/listings/101/inquiries/preview', expect.anything()));
+    const call = fetchMock.mock.calls.find(([url]) => url === '/api/listings/101/inquiries/preview');
+    const body = call?.[1]?.body;
+    if (typeof body !== 'string') throw new Error('Expected a JSON inquiry request');
+    expect(JSON.parse(body).qualification).toEqual({ guarantee: ['caucion'] });
+  },
+);
