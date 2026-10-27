@@ -6,7 +6,7 @@ The authoritative shared process is [workflow](workflow.md); task-specific verif
 
 ## Baseline inventory
 
-The audit found 61 distinct original project skills. One is removed and one is added, plus teammate onboarding, leaving 62 active skills. Every original skill has a route or exclusion below.
+The audit found 61 distinct original project skills. One is removed and one is added, plus teammate onboarding and live app verification, leaving 63 active skills. Every original skill has a route or exclusion below.
 
 | Skill | Activation | Flow |
 | --- | --- | --- |
@@ -70,6 +70,7 @@ The audit found 61 distinct original project skills. One is removed and one is a
 | `test-audit` | Required | Touching tests; broader affected-area audit after long tasks. |
 | `typescript-best-practices` | Required | Reading or editing TS/TSX; practical strict types and boundary parsing. |
 | `unslop` | Required | All prose, including updates, docs, and final reports. |
+| `verify` | Conditional | User-visible change, or a request to run, drive, or screenshot the app; seeded disposable stack, screenshot evidence, teardown of only what it started. |
 | `why` | Conditional | Design rationale, history, or regression explanation with evidence. |
 | `writing-for-agents` | Required | Writing agent instructions, skills, or linked workflow documents. |
 

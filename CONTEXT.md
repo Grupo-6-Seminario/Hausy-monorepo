@@ -68,4 +68,4 @@ _Avoid_: qualifies, match
 The property's condition is discretionary, owner-dependent, or the searcher is near the line; shown with the condition named.
 
 **Unknown (eligibility)**:
-Nothing says whether the searcher clears what the property demands: nothing is published, declared or observed about it, or it demands something the searcher has not declared or that cannot be checked (an income multiple on a rent in dollars), or it refuses some guarantees without saying it accepts the searcher's ("no se aceptan seguros de caución" for a searcher with a garantía propietaria). Shown and marked, never treated as eligible.
+Nothing says whether the searcher clears what the property demands: nothing is published, declared or observed about it, or it demands something the searcher has not declared or that cannot be checked (an income multiple on a rent in dollars), or it refuses some guarantees without saying it accepts the searcher's ("no se aceptan seguros de caución" for a searcher with a garantía propietaria) and publishes no other requirement the searcher clears. Shown and marked, never treated as eligible.

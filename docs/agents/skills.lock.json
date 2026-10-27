@@ -742,6 +742,23 @@
       "files": {
         "SKILL.md": "1b3e896835032dbbedc8b127d2dfbde3609a4193a9a02cde333de844d18f20fe"
       }
+    },
+    "verify": {
+      "tracked": ".claude/skills/verify",
+      "sha256": "32b594e248b269295e0efbb4c3d52cce21ccd468e7d2dead8c94c358fbb371d2",
+      "files": {
+        "SKILL.md": "32b594e248b269295e0efbb4c3d52cce21ccd468e7d2dead8c94c358fbb371d2",
+        "features/README.md": "fabd9c01b1cd8d93c92351d61bfdf66a7d811d18b59846d53564e3f144462701",
+        "features/accounts.md": "167b5a2958151bf50b84a810e8819274abf681732af1d1fd99ad836ce9caf1fb",
+        "features/clarification.md": "78f992e46cc5934879296f2dd5266d1c4f67f64568863f3274860fa74e4622cf",
+        "features/contact.md": "4030322eb8d01311d2cf0f346ecd79020a7ab7264e73db2aec0fe1866fa6b05e",
+        "features/eligibility.md": "4c03609bca0189eba87f4ab5f5f87d72f4056a0b81408286aeb2ac7a83ce81ac",
+        "features/realtor-catalog.md": "d2379e1fce4517200a7c3d0fbe12e3fe5ba779c9044fc3f126f80d89d254de7e",
+        "features/search.md": "63deac204c7f1c24b155a8f6f30d3e7d3ec24e7b3c8e648b707c60d318f45028",
+        "features/theme-and-brand.md": "731f7e88fb3e88b42b9b03c049e791d001b1b9acbce91f667410eea9985804f4",
+        "scripts/journey.mjs": "9d594bec4f495bede5b3faf7a866b28715d0a276c6715c1dcc12d0a61c086574",
+        "scripts/stack.mjs": "cbe64aa5d8a495c7bbad97ec3029bc47944f6632f413dd0f68d0aa2d9111e0ec"
+      }
     }
   },
   "removed": [

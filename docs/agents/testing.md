@@ -15,6 +15,7 @@ Use current manifests and [SETUP](../SETUP.md) to verify commands. These are the
 | Change | Checks |
 | --- | --- |
 | Go | Focused package checks during work; `go test ./...` before completion; `gofmt` on changed Go files |
+| Eligibility evaluator (`Assess`, `Relaxations`) | `go test -tags formal -run TestFormal ./internal/eligibility`; read `.claude/skills/eligibility-verdicts/SKILL.md` for coverage and known findings |
 | Postgres behavior | Set `HAUSY_TEST_DATABASE_URI` to a designated disposable database ending in `_test`; run relevant store integration tests |
 | Frontend | Focused tests, then `npm test`, `npm run lint`, `npx tsc --noEmit --incremental false`, and `npm run build` in `frontend/` |
 | User journey or visible UI | Relevant `npm run test:ui`; `npm run test:journeys` when the change crosses the frontend, API and database; running-browser inspection, screenshots, applicable keyboard/reduced-motion/error checks |

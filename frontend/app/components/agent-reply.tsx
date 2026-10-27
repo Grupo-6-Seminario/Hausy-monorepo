@@ -46,9 +46,14 @@ function parseReply(reply: string): ReplyBlock[] {
 }
 
 function renderInline(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+  // Italics must hug their text, so a lone "3 * 2" stays literal.
+  return text.split(/(\*\*[^*]+\*\*|\*[^\s*](?:[^*]*[^\s*])?\*)/g).map((part, index) => {
+    // split puts the captured markers at odd indices.
+    if (index % 2 === 1 && part.startsWith('**')) {
       return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    if (index % 2 === 1) {
+      return <em key={`${part}-${index}`}>{part.slice(1, -1)}</em>;
     }
     return <Fragment key={`${part}-${index}`}>{part}</Fragment>;
   });
