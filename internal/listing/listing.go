@@ -49,8 +49,11 @@ type Listing struct {
 	URL          string `json:"url"`
 	Neighborhood string `json:"neighborhood"`
 	Agency       string `json:"agency,omitempty"`
-	Address      string `json:"address,omitempty"`
-	Description  string `json:"description"`
+	// Managed means an agency manages the listing in Hausy, so a searcher can
+	// send it an inquiry instead of only leaving for the publication.
+	Managed     bool   `json:"managed,omitempty"`
+	Address     string `json:"address,omitempty"`
+	Description string `json:"description"`
 
 	Operation     string   `json:"operation,omitempty"`
 	Price         Money    `json:"price"`

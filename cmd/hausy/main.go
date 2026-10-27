@@ -181,7 +181,12 @@ func main() {
 	agent := buyer.NewAgent(plannerFromEnv(llmClient), store, buyer.LocalWriter{Client: writer}, options...)
 	// ponytail: the only Provider today is Local; an AWS Cognito Provider would
 	// be chosen here from configuration without changing httpapi or the frontend.
-	provider := auth.NewLocal(store)
+	var provider auth.Provider = auth.NewLocal(store)
+	// A public deployment closes realtor sign-up: an agency's listings are
+	// published when saved, so anyone could publish to every searcher.
+	if os.Getenv("HAUSY_REALTOR_SIGNUP") == "closed" {
+		provider = auth.ClosedToRealtors{Provider: provider}
+	}
 	server := &http.Server{
 		Addr:              config.address,
 		Handler:           httpapi.NewHandler(agent, provider, store, store),

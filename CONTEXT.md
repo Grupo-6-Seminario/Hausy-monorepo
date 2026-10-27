@@ -57,7 +57,7 @@ A qualification fact the searcher volunteered without enough detail to evaluate 
 _Avoid_: ineligible, unknown eligibility
 
 **Eligibility requirement**:
-A rule a property or its agency applies to the searcher's qualification ("acepta garantía propietaria o caución", "ingresos 3x el alquiler"). Either published in the listing or, in a future release, stated privately by the agency and never shown to the searcher.
+A rule a property or its agency applies to the searcher's qualification ("acepta garantía propietaria o caución", "ingresos 3x el alquiler"). Either published in the listing, declared by the agency for its own property, or, in a future release, stated privately by the agency and never shown to the searcher. A declared requirement is shown to the searcher and replaces what was read from the listing's text; each one is either strict or left to the agency's judgment, and the latter makes the searcher conditionally eligible.
 _Avoid_: listing requirement, condition
 
 **Eligibility**:
@@ -69,3 +69,13 @@ The property's condition is discretionary, owner-dependent, or the searcher is n
 
 **Unknown (eligibility)**:
 Nothing says whether the searcher clears what the property demands: nothing is published, declared or observed about it, or it demands something the searcher has not declared or that cannot be checked (an income multiple on a rent in dollars), or it refuses some guarantees without saying it accepts the searcher's ("no se aceptan seguros de caución" for a searcher with a garantía propietaria) and publishes no other requirement the searcher clears. Shown and marked, never treated as eligible.
+
+### Agencies
+
+**Inquiry**:
+What a searcher chooses to send to the agency that manages a property in Hausy, after seeing exactly what it carries: how to reach them, what they declared that the property's requirements ask about, the eligibility each requirement gives them, and what they are looking for. Nothing else they declared or searched travels with it. A searcher that a strict requirement rules out cannot send one. In Spanish, "consulta".
+_Avoid_: lead, qualified lead, contact
+
+**Contact intent**:
+One activation of the link that takes a searcher to a listing's publication outside Hausy. It identifies no one and does not mean a message was sent. In Spanish, "contacto iniciado".
+_Avoid_: interest, inquiry, lead

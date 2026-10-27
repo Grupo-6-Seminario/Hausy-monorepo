@@ -190,7 +190,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 			delete(plan.Qualification, fact)
 		}
 	}
-	q := mergeQualification(declared, plan.Qualification)
+	q := mergeQualification(declared, plan.Qualification, catalog)
 
 	packet := Packet{Intent: plan.Intent, Question: message, Sort: plan.Sort, Declared: q}
 	var results, ineligible []Result
@@ -201,6 +201,8 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 		// including what eligibility hid and what would bring it back.
 		a.mu.RLock()
 		results, relaxations, packet.Hidden, ineligible = sess.results, sess.relaxations, sess.hidden, sess.ineligible
+		q = mergeQualification(nil, sess.qualification, catalog)
+		packet.Declared = q
 		a.mu.RUnlock()
 	} else {
 		results, relaxations, packet.Branches, packet.Hidden, ineligible, err = p.rank(ctx, plan, q, catalog)
@@ -230,7 +232,7 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 	}
 
 	if events.Results != nil {
-		events.Results(TurnResponse{Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible})
+		events.Results(TurnResponse{Qualification: q, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible})
 	}
 	writerStarted := time.Now()
 	reply, err := p.writer.Write(ctx, packet, events.Reply)
@@ -249,10 +251,11 @@ func (a *DefaultAgent) handlePipeline(ctx context.Context, sessionID, message st
 
 	a.mu.Lock()
 	sess.turns, sess.plan, sess.results = turns, plan, results
+	sess.qualification = mergeQualification(nil, q, catalog)
 	sess.relaxations, sess.hidden, sess.ineligible = relaxations, packet.Hidden, ineligible
 	a.mu.Unlock()
 	turnOutcome = "success"
-	return &TurnResponse{Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible}, nil
+	return &TurnResponse{Qualification: q, Reply: reply, Requirements: packet.Requirements, Listings: results, Relaxations: relaxations, HiddenIneligible: packet.Hidden, Ineligible: ineligible}, nil
 }
 
 type scored struct {
@@ -591,11 +594,15 @@ func fit(l listing.Listing, preferred []search.AttributeFilter) int {
 }
 
 // mergeQualification adds what the searcher said in the chat to what they
-// declared in the form or their account.
-func mergeQualification(declared, chat eligibility.Qualification) eligibility.Qualification {
+// declared in the form or their account. A later single choice or exclusive
+// "none" replaces the earlier answer; compatible multiple choices accumulate.
+func mergeQualification(declared, chat eligibility.Qualification, catalog eligibility.Catalog) eligibility.Qualification {
 	out := eligibility.Qualification{}
 	for _, q := range []eligibility.Qualification{declared, chat} {
 		for fact, values := range q {
+			if !catalog[fact].Multiple || slices.Contains(values, "none") || slices.Contains(out[fact], "none") {
+				out[fact] = nil
+			}
 			for _, v := range values {
 				if !slices.Contains(out[fact], v) {
 					out[fact] = append(out[fact], v)

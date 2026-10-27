@@ -26,6 +26,7 @@ import {
   useEligibilityFacts,
 } from '@/lib/eligibility-facts';
 import { requirementLabel } from '@/lib/listing-labels';
+import { searchingPhrases } from '@/lib/inquiry';
 import { readTurn } from '@/lib/read-turn';
 import { cn } from '@/lib/utils';
 import { morph } from '@/lib/view-transition';
@@ -122,7 +123,8 @@ function SearchWorkspace() {
   const [pendingQuery, setPendingQuery] = useState('');
   // The reply as it streams in, until the turn is done.
   const [pendingReply, setPendingReply] = useState('');
-  const [clarification, setClarification] = useState<ClarificationQuestion | null>(null);
+  const [clarification, setClarification] =
+    useState<ClarificationQuestion | null>(null);
   const [selectedChoices, setSelectedChoices] = useState<string[]>([]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherAnswer, setOtherAnswer] = useState('');
@@ -157,15 +159,25 @@ function SearchWorkspace() {
     if (!saved) return;
     sessionRef.current = saved;
     const controller = new AbortController();
-    void fetch(`/api/agent?session_id=${encodeURIComponent(saved)}`, { signal: controller.signal })
-      .then(async (response) => (await response.json()) as { clarification?: ClarificationQuestion })
+    void fetch(`/api/agent?session_id=${encodeURIComponent(saved)}`, {
+      signal: controller.signal,
+    })
+      .then(
+        async (response) =>
+          (await response.json()) as { clarification?: ClarificationQuestion },
+      )
       .then((payload: { clarification?: ClarificationQuestion }) => {
         if (!controller.signal.aborted && payload.clarification) {
           setClarification(payload.clarification);
           setQualificationOpen(false);
-        } else if (!controller.signal.aborted && window.sessionStorage.getItem(pendingStorageKey)) {
+        } else if (
+          !controller.signal.aborted &&
+          window.sessionStorage.getItem(pendingStorageKey)
+        ) {
           setQuery(window.sessionStorage.getItem(queryStorageKey) || '');
-          setError('La pregunta anterior ya no está disponible. Podés editar la búsqueda y volver a enviarla.');
+          setError(
+            'La pregunta anterior ya no está disponible. Podés editar la búsqueda y volver a enviarla.',
+          );
           window.sessionStorage.removeItem(pendingStorageKey);
         }
       })
@@ -223,12 +235,15 @@ function SearchWorkspace() {
             setRelaxations(partial.relaxations || []);
             setHiddenIneligible(partial.hidden_ineligible ?? 0);
             setIneligible(partial.ineligible ?? []);
-            setSearchedQualification(sent);
+            setSearchedQualification(partial.qualification ?? {});
             setHasSearched(true);
           },
           onReply: (delta) => setPendingReply((text) => text + delta),
         });
-        if (!response.ok || (!payload.reply && !payload.listings && !payload.clarification)) {
+        if (
+          !response.ok ||
+          (!payload.reply && !payload.listings && !payload.clarification)
+        ) {
           throw new Error(
             payload.error || 'El agente local no pudo responder.',
           );
@@ -251,7 +266,7 @@ function SearchWorkspace() {
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
         setIneligible(payload.ineligible ?? []);
-        setSearchedQualification(sent);
+        setSearchedQualification(payload.qualification ?? {});
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
         setTurns((currentTurns) => [
@@ -293,7 +308,12 @@ function SearchWorkspace() {
     [],
   );
 
-  async function answerClarification(answer: { question_id: string; selected?: string[]; other?: string; action?: string }) {
+  async function answerClarification(answer: {
+    question_id: string;
+    selected?: string[];
+    other?: string;
+    action?: string;
+  }) {
     if (!clarification || isWorking) return;
     const original = clarification;
     setState('loading');
@@ -302,8 +322,15 @@ function SearchWorkspace() {
       const sent = qualificationRef.current;
       const response = await fetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
-        body: JSON.stringify({ session_id: sessionRef.current, answer, qualification: sent }),
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/x-ndjson',
+        },
+        body: JSON.stringify({
+          session_id: sessionRef.current,
+          answer,
+          qualification: sent,
+        }),
       });
       const payload = await readTurn(response, {
         onResults(partial) {
@@ -312,12 +339,13 @@ function SearchWorkspace() {
           setRelaxations(partial.relaxations || []);
           setHiddenIneligible(partial.hidden_ineligible ?? 0);
           setIneligible(partial.ineligible ?? []);
-          setSearchedQualification(sent);
+          setSearchedQualification(partial.qualification ?? {});
           setHasSearched(true);
         },
         onReply: (delta) => setPendingReply((text) => text + delta),
       });
-      if (!response.ok || payload.error) throw new Error(payload.error || 'No pudimos continuar la búsqueda.');
+      if (!response.ok || payload.error)
+        throw new Error(payload.error || 'No pudimos continuar la búsqueda.');
       if (answer.action === 'edit') {
         setClarification(null);
         window.sessionStorage.removeItem(pendingStorageKey);
@@ -342,15 +370,26 @@ function SearchWorkspace() {
         setRelaxations(payload.relaxations || []);
         setHiddenIneligible(payload.hidden_ineligible ?? 0);
         setIneligible(payload.ineligible ?? []);
-        setSearchedQualification(sent);
+        setSearchedQualification(payload.qualification ?? {});
         setRecommendedRanks(referencedRanks(payload.reply || ''));
         setHasSearched(true);
-        setTurns((current) => [...current, { id: ++turnIDRef.current, query: original.request || original.source, reply: payload.reply || '' }]);
+        setTurns((current) => [
+          ...current,
+          {
+            id: ++turnIDRef.current,
+            query: original.request || original.source,
+            reply: payload.reply || '',
+          },
+        ]);
       }
       setPendingReply('');
       setState('idle');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No pudimos continuar la búsqueda.');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'No pudimos continuar la búsqueda.',
+      );
       setState('idle');
     }
   }
@@ -483,7 +522,10 @@ function SearchWorkspace() {
     >
       <header className="site-header">
         {/* After a search the logo leads home, which means a fresh start. */}
-        <BrandLink href="#top" onClick={isWorkspace ? forgetSearch : undefined} />
+        <BrandLink
+          href="#top"
+          onClick={isWorkspace ? forgetSearch : undefined}
+        />
         {isWorkspace ? null : (
           <nav className="header-sections" aria-label="Secciones">
             <a href="#como-funciona">Cómo funciona</a>
@@ -500,7 +542,11 @@ function SearchWorkspace() {
             ) : null}
             {/* Full navigation on purpose: vinext only shims next/link inside Vite, not vitest. */}
             {/* oxlint-disable-next-line next/no-html-link-for-pages */}
-            <a className="results-link header-agency" href="/inmobiliaria" data-glow>
+            <a
+              className="results-link header-agency"
+              href="/inmobiliaria"
+              data-glow
+            >
               Soy inmobiliaria
             </a>
             {/* oxlint-disable-next-line next/no-html-link-for-pages */}
@@ -553,7 +599,10 @@ function SearchWorkspace() {
           {isWorkspace && (hasSearched || !clarification) ? (
             <div className="conversation-panel">
               {requirements.length > 0 ? (
-                <ul className="criteria" aria-label="Criterios que estoy usando">
+                <ul
+                  className="criteria"
+                  aria-label="Criterios que estoy usando"
+                >
                   {requirements.map((requirement, index) => (
                     <li
                       key={`${requirement.type}-${requirement.value}-${index}`}
@@ -611,13 +660,23 @@ function SearchWorkspace() {
           ) : null}
 
           {clarification ? (
-            <section className="clarification-card" aria-labelledby="clarification-prompt">
+            <section
+              className="clarification-card"
+              aria-labelledby="clarification-prompt"
+            >
               <p className="eyebrow">Una pregunta para afinar la búsqueda</p>
-              {clarification.request ? <p className="clarification-request">Vos: {clarification.request}</p> : null}
+              {clarification.request ? (
+                <p className="clarification-request">
+                  Vos: {clarification.request}
+                </p>
+              ) : null}
               <h2 id="clarification-prompt">{clarification.prompt}</h2>
               {clarification.kind !== 'unsupported' ? (
                 <fieldset disabled={isWorking}>
-                  <legend>Elegí {clarification.multi ? 'una o más opciones' : 'una opción'}</legend>
+                  <legend>
+                    Elegí{' '}
+                    {clarification.multi ? 'una o más opciones' : 'una opción'}
+                  </legend>
                   {(clarification.choices || []).map((choice) => (
                     <label key={choice.id} className="clarification-choice">
                       <input
@@ -625,7 +684,16 @@ function SearchWorkspace() {
                         name="clarification-choice"
                         value={choice.id}
                         checked={selectedChoices.includes(choice.id)}
-                        onChange={() => { setOtherOpen(false); setSelectedChoices((current) => clarification.multi ? current.includes(choice.id) ? current.filter((id) => id !== choice.id) : [...current, choice.id] : [choice.id]); }}
+                        onChange={() => {
+                          setOtherOpen(false);
+                          setSelectedChoices((current) =>
+                            clarification.multi
+                              ? current.includes(choice.id)
+                                ? current.filter((id) => id !== choice.id)
+                                : [...current, choice.id]
+                              : [choice.id],
+                          );
+                        }}
                       />
                       <span>{choice.label}</span>
                     </label>
@@ -634,86 +702,167 @@ function SearchWorkspace() {
               ) : null}
               {clarification.kind !== 'unsupported' ? (
                 <>
-                  <button type="button" className="clarification-other" onClick={() => { setOtherOpen(true); setSelectedChoices([]); }}>Ninguna de estas</button>
-                  {otherOpen ? <input aria-label="Tu respuesta" value={otherAnswer} onChange={(event) => setOtherAnswer(event.target.value)} placeholder="Contanos qué querías decir" /> : null}
+                  <button
+                    type="button"
+                    className="clarification-other"
+                    onClick={() => {
+                      setOtherOpen(true);
+                      setSelectedChoices([]);
+                    }}
+                  >
+                    Ninguna de estas
+                  </button>
+                  {otherOpen ? (
+                    <input
+                      aria-label="Tu respuesta"
+                      value={otherAnswer}
+                      onChange={(event) => setOtherAnswer(event.target.value)}
+                      placeholder="Contanos qué querías decir"
+                    />
+                  ) : null}
                 </>
               ) : null}
               <div className="clarification-actions">
-                {clarification.kind === 'unsupported' && clarification.can_remove ? (
-                  <Button type="button" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'remove' })}>Quitar condición y buscar</Button>
+                {clarification.kind === 'unsupported' &&
+                clarification.can_remove ? (
+                  <Button
+                    type="button"
+                    disabled={isWorking}
+                    onClick={() =>
+                      void answerClarification({
+                        question_id: clarification.id,
+                        action: 'remove',
+                      })
+                    }
+                  >
+                    Quitar condición y buscar
+                  </Button>
                 ) : clarification.kind !== 'unsupported' ? (
-                  <Button type="button" disabled={isWorking || (otherOpen ? !otherAnswer.trim() : selectedChoices.length === 0)} onClick={() => void answerClarification({ question_id: clarification.id, ...(otherOpen ? { other: otherAnswer.trim() } : { selected: selectedChoices }) })}>Continuar búsqueda</Button>
+                  <Button
+                    type="button"
+                    disabled={
+                      isWorking ||
+                      (otherOpen
+                        ? !otherAnswer.trim()
+                        : selectedChoices.length === 0)
+                    }
+                    onClick={() =>
+                      void answerClarification({
+                        question_id: clarification.id,
+                        ...(otherOpen
+                          ? { other: otherAnswer.trim() }
+                          : { selected: selectedChoices }),
+                      })
+                    }
+                  >
+                    Continuar búsqueda
+                  </Button>
                 ) : null}
-                {clarification.kind === 'qualification' ? <Button type="button" variant="outline" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'decline' })}>Prefiero no decir</Button> : null}
-                <Button type="button" variant="outline" disabled={isWorking} onClick={() => void answerClarification({ question_id: clarification.id, action: 'edit' })}>Editar búsqueda</Button>
+                {clarification.kind === 'qualification' ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isWorking}
+                    onClick={() =>
+                      void answerClarification({
+                        question_id: clarification.id,
+                        action: 'decline',
+                      })
+                    }
+                  >
+                    Prefiero no decir
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isWorking}
+                  onClick={() =>
+                    void answerClarification({
+                      question_id: clarification.id,
+                      action: 'edit',
+                    })
+                  }
+                >
+                  Editar búsqueda
+                </Button>
               </div>
               {error ? <p role="alert">{error}</p> : null}
             </section>
-          ) : <search><form className="query-form" onSubmit={handleSubmit} noValidate>
-            <label htmlFor="property-query">
-              {isWorkspace ? 'Sumá a tu búsqueda' : '¿Qué estás buscando?'}
-            </label>
-            <div
-              className="prompt-stage"
-              data-prompt-stage
-              data-active={isWorking ? 'true' : 'false'}
-            >
-              <PromptLuminary />
-              <div
-                className={cn('query-control', error && 'query-control-error')}
-              >
-                <Textarea
-                  ref={inputRef}
-                  id="property-query"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    if (error) setError('');
-                  }}
-                  onKeyDown={handleKeyDown}
-                  aria-describedby={
-                    error ? 'query-error query-help' : 'query-help'
-                  }
-                  aria-invalid={Boolean(error)}
-                  placeholder={
-                    isWorkspace
-                      ? 'Sumá algo: “que tenga balcón”, “priorizá el silencio”…'
-                      : 'Ej: 2 ambientes en Palermo, mucha luz y poco ruido. Hasta $850.000, puedo estirar un poco si vale la pena.'
-                  }
-                  rows={2}
-                />
-                <p id="query-help" className="query-hint">
-                  {isWorkspace
-                    ? 'Enter para sumar a tu búsqueda'
-                    : 'Enter para buscar · Shift + Enter para nueva línea'}
-                </p>
-                {isWorking ? (
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="outline"
-                    onClick={stopSearch}
+          ) : (
+            <search>
+              <form className="query-form" onSubmit={handleSubmit} noValidate>
+                <label htmlFor="property-query">
+                  {isWorkspace ? 'Sumá a tu búsqueda' : '¿Qué estás buscando?'}
+                </label>
+                <div
+                  className="prompt-stage"
+                  data-prompt-stage
+                  data-active={isWorking ? 'true' : 'false'}
+                >
+                  <PromptLuminary />
+                  <div
+                    className={cn(
+                      'query-control',
+                      error && 'query-control-error',
+                    )}
                   >
-                    Detener
-                    <Square aria-hidden="true" />
-                  </Button>
-                ) : (
-                  <Button type="submit" size="lg" variant="outline">
-                    {isWorkspace ? 'Sumar' : 'Empezar búsqueda'}
-                    {isWorkspace ? null : <ArrowRight aria-hidden="true" />}
-                  </Button>
-                )}
-              </div>
-            </div>
-            {error ? (
-              <p id="query-error" className="query-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-          </form></search>}
+                    <Textarea
+                      ref={inputRef}
+                      id="property-query"
+                      value={query}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        if (error) setError('');
+                      }}
+                      onKeyDown={handleKeyDown}
+                      aria-describedby={
+                        error ? 'query-error query-help' : 'query-help'
+                      }
+                      aria-invalid={Boolean(error)}
+                      placeholder={
+                        isWorkspace
+                          ? 'Sumá algo: “que tenga balcón”, “priorizá el silencio”…'
+                          : 'Ej: 2 ambientes en Palermo, mucha luz y poco ruido. Hasta $850.000, puedo estirar un poco si vale la pena.'
+                      }
+                      rows={2}
+                    />
+                    <p id="query-help" className="query-hint">
+                      {isWorkspace
+                        ? 'Enter para sumar a tu búsqueda'
+                        : 'Enter para buscar · Shift + Enter para nueva línea'}
+                    </p>
+                    {isWorking ? (
+                      <Button
+                        type="button"
+                        size="lg"
+                        variant="outline"
+                        onClick={stopSearch}
+                      >
+                        Detener
+                        <Square aria-hidden="true" />
+                      </Button>
+                    ) : (
+                      <Button type="submit" size="lg" variant="outline">
+                        {isWorkspace ? 'Sumar' : 'Empezar búsqueda'}
+                        {isWorkspace ? null : <ArrowRight aria-hidden="true" />}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {error ? (
+                  <p id="query-error" className="query-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+              </form>
+            </search>
+          )}
 
           {/* Before the first results there is no results column to hold it. */}
-          {isWorkspace && clarification && !hasSearched ? qualificationPanel : null}
+          {isWorkspace && clarification && !hasSearched
+            ? qualificationPanel
+            : null}
 
           {!isWorkspace ? (
             <>
@@ -734,7 +883,7 @@ function SearchWorkspace() {
           ) : null}
         </section>
 
-        {isWorkspace && (hasSearched || !clarification && isWorking) ? (
+        {isWorkspace && (hasSearched || (!clarification && isWorking)) ? (
           <section
             id="resultados"
             aria-label="Análisis y resultados"
@@ -746,6 +895,7 @@ function SearchWorkspace() {
               hiddenIneligible={hiddenIneligible}
               ineligible={ineligible}
               declared={searchedQualification}
+              searching={searchingPhrases(requirements, requirementLabel)}
               recommendedRanks={recommendedRanks}
               isLoading={isWorking && !hasSearched}
             >
