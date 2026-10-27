@@ -3,7 +3,7 @@
 resource "aws_budgets_budget" "monthly" {
   name         = "hausy-monthly-gross"
   budget_type  = "COST"
-  limit_amount = "20"
+  limit_amount = "40"
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 

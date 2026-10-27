@@ -163,6 +163,27 @@ aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-confi
 aws s3api get-bucket-encryption --bucket "$BUCKET"   # confirms default SSE-S3 (AES256)
 ```
 
+### Deploy to AWS
+
+The app runs on one EC2 instance behind Caddy, with Postgres on RDS (`infra/app.tf`). Apply
+follows the review rules above. Then set the AI Gateway key, which Terraform never stores, and
+deploy. `--seed` also loads the committed listings; use it on the first deploy.
+
+```bash
+terraform -chdir=infra init
+terraform -chdir=infra plan
+terraform -chdir=infra apply
+aws ssm put-parameter --name /hausy/ai_gateway_api_key --type SecureString --overwrite --value "$AI_GATEWAY_API_KEY"
+scripts/deploy.sh --seed   # first deploy; later ones: scripts/deploy.sh
+terraform -chdir=infra output -raw site_url
+```
+
+At the end of the course, delete everything, including the database and its data:
+
+```bash
+terraform -chdir=infra destroy
+```
+
 ## Verify
 
 Each command below should produce the stated result.
